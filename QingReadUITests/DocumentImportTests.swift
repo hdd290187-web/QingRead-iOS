@@ -8,14 +8,18 @@ final class DocumentImportTests: XCTestCase {
         XCTAssertTrue(app.buttons["library.import"].waitForExistence(timeout: 15))
         return app
     }
-    @MainActor private func selectFile(_ name: String, app: XCUIApplication) {
+    @MainActor @discardableResult private func selectFile(_ name: String, app: XCUIApplication) -> Bool {
         app.buttons["library.import"].tap()
         let fileView = app.collectionViews["File View"]
         let folder = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@", "导入测试,")).firstMatch
-        if folder.waitForExistence(timeout: 3) { folder.tap() }
         let file = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", name + ",", (name as NSString).deletingPathExtension + ",")).firstMatch
-        guard file.waitForExistence(timeout: 15) else { XCTFail("系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription); return }
-        file.tap()
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in file.exists || (folder.exists && folder.isHittable) }, object: nil)
+        guard XCTWaiter.wait(for: [ready], timeout: 20) == .completed else {
+            XCTFail("等待系统 Files 完成首次加载失败。\n" + app.debugDescription); return false
+        }
+        if folder.exists && folder.isHittable { folder.press(forDuration: 0.15) }
+        guard file.waitForExistence(timeout: 15) else { XCTFail("系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription); return false }
+        file.press(forDuration: 0.15)
         let open = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Open", "打开"])).firstMatch
         if open.waitForExistence(timeout: 3) {
             let ready = NSPredicate(format: "enabled == true AND hittable == true")
@@ -25,10 +29,11 @@ final class DocumentImportTests: XCTestCase {
             // controls can ignore a synthetic 50 ms event while transitioning.
             open.press(forDuration: 0.15)
         }
+        return true
     }
     @MainActor func testSystemFilesTXTImportRefreshDuplicateAndRestartRead() {
         let app = launch()
-        selectFile("系统文件测试.txt", app: app)
+        guard selectFile("系统文件测试.txt", app: app) else { return }
         let done = app.buttons["import.result.done"]
         XCTAssertTrue(done.waitForExistence(timeout: 20), app.debugDescription)
         XCTAssertTrue(app.staticTexts["import.result.message"].label.contains("系统文件测试"))
@@ -40,7 +45,7 @@ final class DocumentImportTests: XCTestCase {
         XCTAssertTrue(content.waitForExistence(timeout: 15))
         XCTAssertTrue((content.value as? String)?.contains("系统文件选择器") ?? false)
         app.buttons["返回书架"].tap()
-        selectFile("系统文件测试.txt", app: app)
+        guard selectFile("系统文件测试.txt", app: app) else { return }
         XCTAssertTrue(done.waitForExistence(timeout: 20))
         XCTAssertTrue(app.staticTexts["import.result.message"].label.contains("阅读进度已保留"), app.staticTexts["import.result.message"].label)
         done.tap()
@@ -53,14 +58,14 @@ final class DocumentImportTests: XCTestCase {
     }
     @MainActor func testSystemFilesEPUBAndEmptyFileFeedback() {
         let app = launch()
-        selectFile("空白文件.txt", app: app)
+        guard selectFile("空白文件.txt", app: app) else { return }
         let done = app.buttons["import.result.done"]
         XCTAssertTrue(done.waitForExistence(timeout: 20))
         let message = app.staticTexts["import.result.message"].label
         XCTAssertTrue(message.contains("文件为空")); XCTAssertTrue(message.contains("错误码"))
         XCTAssertTrue(app.buttons["import.copyError"].exists)
         done.tap()
-        selectFile("原创测试书.epub", app: app)
+        guard selectFile("原创测试书.epub", app: app) else { return }
         XCTAssertTrue(done.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(app.staticTexts["import.result.message"].label.contains("已加入"))
         done.tap()
@@ -73,7 +78,7 @@ final class DocumentImportTests: XCTestCase {
         XCTAssertTrue(cancel.waitForExistence(timeout: 10)); cancel.tap()
         XCTAssertTrue(app.buttons["library.import"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["import.copyError"].exists)
-        selectFile("系统文件测试.txt", app: app)
+        guard selectFile("系统文件测试.txt", app: app) else { return }
         XCTAssertTrue(app.buttons["import.result.done"].waitForExistence(timeout: 20))
     }
 }
