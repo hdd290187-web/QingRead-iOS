@@ -33,7 +33,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
             session.chapters = toc.map { Chapter(title: $0.title ?? "章节", href: $0.href) }
             var locator: Locator?
             if let json = session.position.locatorJSON { locator = try Locator(json: JSONValue(jsonString: json), warnings: nil) }
-            let navigator = try EPUBNavigatorViewController(publication: publication, initialLocation: locator, config: .init(preferences: preferences(), disablePageTurnsWhileScrolling: true))
+            let navigator = try EPUBNavigatorViewController(publication: publication, initialLocation: locator, config: .init(preferences: preferences(), disablePageTurnsWhileScrolling: true, fontFamilyDeclarations: fontDeclarations()))
             navigator.delegate = self; self.navigator = navigator
             navigator.addObserver(.tap { [weak self] event in
                 guard let self else { return false }
@@ -47,6 +47,10 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
             view.addSubview(navigator.view); navigator.didMove(toParent: self)
         } catch { session.error = "EPUB 打开失败：\(error.localizedDescription)" }
     }
+    private func fontDeclarations() -> [AnyHTMLFontFamilyDeclaration] {
+        guard let url = Bundle.main.url(forResource: "NotoSerifSC", withExtension: "ttf"), let file = FileURL(url: url) else { return [] }
+        return [CSSFontFamilyDeclaration(fontFamily: "Noto Serif SC", fontFaces: [CSSFontFace(file: file, style: .normal, weight: .variable(200...900))]).eraseToAnyHTMLFontFamilyDeclaration()]
+    }
     private func preferences() -> EPUBPreferences {
         var prefs = EPUBPreferences()
         prefs.fontSize = settings.fontSize / 16
@@ -58,9 +62,9 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         prefs.publisherStyles = false
         prefs.scroll = settings.mode == .scroll
         prefs.columnCount = .one
-        prefs.backgroundColor = ReadiumNavigator.Color(uiColor: settings.theme.uiBackground)
-        prefs.textColor = ReadiumNavigator.Color(uiColor: settings.theme.uiForeground)
-        prefs.fontFamily = FontFamily(rawValue: settings.font == .serif ? "serif" : "sans-serif")
+        prefs.backgroundColor = ReadiumNavigator.Color(uiColor: settings.theme.uiBackground.resolvedColor(with: traitCollection))
+        prefs.textColor = ReadiumNavigator.Color(uiColor: settings.theme.uiForeground.resolvedColor(with: traitCollection))
+        prefs.fontFamily = FontFamily(rawValue: settings.font == .serif ? "Noto Serif SC" : "sans-serif")
         prefs.theme = settings.theme == .dark ? .dark : settings.theme == .cream ? .sepia : .light
         return prefs
     }

@@ -1,0 +1,32 @@
+[
+  {
+    "name": "vreader",
+    "sha": "b996ab4d828a180ae4b23d0b07d045b3d318c34f",
+    "url": "https://github.com/lllyys/vreader.git"
+  },
+  {
+    "name": "SwiftBookApp",
+    "sha": "bb0840032091bea10ef146cd079876da064ea976",
+    "url": "https://github.com/KevinLeeeee323/SwiftBookApp.git"
+  },
+  {
+    "name": "kmreader",
+    "sha": "6223c9b774e97dfc8d415d2eddf887a9f20bfee0",
+    "url": "https://github.com/kmworks/kmreader.git"
+  },
+  {
+    "name": "open-reading",
+    "sha": "1827b8e5cd2581cafe7fd57addf722913bf3e20a",
+    "url": "https://github.com/KeloYuan/open-reading.git"
+  },
+  {
+    "name": "swift-toolkit",
+    "sha": "9a8c094b72245fd27043c9d298005e5c78b32a01",
+    "url": "https://github.com/readium/swift-toolkit.git"
+  },
+  {
+    "name": "KRead",
+    "sha": "8bacce2a7ccfe2c7e01208397216e5b4e6a228ee",
+    "url": "https://github.com/Mac-XK/KRead.git"
+  }
+]

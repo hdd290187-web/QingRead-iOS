@@ -14,6 +14,7 @@ private struct ReaderHost: View {
     @State private var showSettings = false
     @State private var showBookmarks = false
     @State private var chapterSlider = 0.0
+    @State private var draggingProgress = false
     @State private var originalBrightness: CGFloat?
     @State private var bookmarkAdded = false
     var body: some View {
@@ -26,7 +27,7 @@ private struct ReaderHost: View {
                     if session.book.format == .epub { EPUBReader(session: session, settings: library.settings) }
                     else { NativeReader(session: session, settings: library.settings) }
                 }
-                HStack { Text(Date(), style: .time); Spacer(); Text(session.pageInfo); Spacer(); Text("\(Int(session.position.progression * 100))%") }
+                HStack { Text(Date(), style: .time); Spacer(); Text(session.pageInfo).accessibilityIdentifier("reader.pageInfo"); Spacer(); Text("\(Int(session.position.progression * 100))%") }
                     .font(.caption2).monospacedDigit().foregroundStyle(library.settings.theme.foreground.opacity(0.6)).padding(.horizontal, 24).frame(height: 24)
             }
             if session.isLoading { ProgressView("正在准备正文…").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) }
@@ -61,7 +62,7 @@ private struct ReaderHost: View {
                     Spacer(); Text("\(min(session.position.chapter + 1, session.chapters.count)) / \(session.chapters.count) 章").font(.caption).monospacedDigit(); Spacer()
                     Button("下一章") { session.jump(session.position.chapter + 1) }.disabled(session.position.chapter + 1 >= session.chapters.count)
                 }.font(.subheadline)
-                Slider(value: Binding(get: { Double(session.position.chapter) }, set: { chapterSlider = $0 }), in: 0...Double(max(1, session.chapters.count - 1)), step: 1) { editing in if !editing { session.jump(Int(chapterSlider)) } }.accessibilityLabel("阅读进度")
+                Slider(value: Binding(get: { draggingProgress ? chapterSlider : Double(session.position.chapter) }, set: { chapterSlider = $0 }), in: 0...Double(max(1, session.chapters.count - 1)), step: 1) { editing in if editing { chapterSlider = Double(session.position.chapter) }; draggingProgress = editing; if !editing { session.jump(Int(chapterSlider)) } }.accessibilityLabel("阅读进度")
                 HStack {
                     Button { showContents = true } label: { Label("目录", systemImage: "list.bullet") }; Spacer()
                     Button { showSettings = true } label: { Label("排版", systemImage: "textformat.size") }; Spacer()

@@ -12,7 +12,7 @@
 
 ## 构建
 
-Linux 只负责代码、静态检查和 GitHub Actions 触发；本机没有 Xcode。GitHub Actions 在 `macos-15` 的 `/Applications/Xcode_26.3.app` 上通过 XcodeGen 生成工程，先运行 Simulator XCTest，再运行 `generic/platform=iOS` 的 Release device build，签名关闭后打包 unsigned arm64 IPA。工作流会上传环境信息、真实编译日志、测试 xcresult、IPA 和 SHA256。
+Linux 只负责代码、静态检查和 GitHub Actions 触发；本机没有 Xcode。GitHub Actions 在 `macos-15` 的 `/Applications/Xcode_26.3.app` 上通过 XcodeGen 生成工程，先运行 `generic/platform=iOS` 的 Release device build，再运行 Simulator XCTest；签名关闭后打包 unsigned arm64 IPA。工作流会上传环境信息、真实编译日志、测试 xcresult、IPA 和 SHA256。
 
 ```bash
 brew install xcodegen

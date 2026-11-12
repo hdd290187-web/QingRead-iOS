@@ -71,7 +71,7 @@ struct SourceManagerView: View {
             Section("已导入") {
                 ForEach(Array(library.sources.enumerated()), id: \.element.id) { _, source in
                     VStack(alignment: .leading, spacing: 5) { Text(source.name).font(.headline); Text(source.compatibilityNote).font(.caption).foregroundStyle(source.issues.isEmpty ? Color.secondary : Color.orange) }
-                }
+                }.onDelete { offsets in for index in offsets.sorted(by: >) { library.removeSource(at: index) } }
             }
         }.navigationTitle("书源管理")
             .fileImporter(isPresented: $importFile, allowedContentTypes: [.json]) { result in

@@ -1,0 +1,18 @@
+QingRead / 阅简
+App source is independently implemented. Architecture references are recorded
+in docs/REFERENCE_AUDIT.md. No reference repository source is vendored.
+
+Direct dependencies:
+Readium Swift Toolkit 3.11.1 — BSD-3-Clause
+SwiftSoup 2.13.5 — MIT
+
+SPM resolution is locked in Package.resolved. Exact upstream license texts for
+all resolved packages are in QingRead/Resources/Notices and shipped in the App.
+The resolved package graph also contains optional libraries which are not linked
+by the chosen Readium products; their notices are conservatively included.
+Readium's own bundled assets retain their notices inside the package resource
+bundles. No DRM unlocking, server dependency, external AI service, or bundled
+third-party novel is included.
+
+All text and SVG content in OriginalFixture.epub was created for this project's
+tests and is covered by this project's MIT license.

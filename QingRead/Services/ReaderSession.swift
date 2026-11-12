@@ -27,7 +27,7 @@ final class ReaderSession: ObservableObject {
     init(book: Book, library: LibraryStore) {
         self.book = book; self.library = library
         self.position = library.position(for: book)
-        self.chapters = book.chapters
+        self.chapters = library.books.first(where: { $0.id == book.id })?.chapters ?? book.chapters
     }
     func report(_ newPosition: ReadingPosition, pageInfo: String = "") {
         position = newPosition; self.pageInfo = pageInfo
@@ -48,7 +48,9 @@ final class ReaderSession: ObservableObject {
     func text(at index: Int) -> String {
         if let cached = textCache[index] { return cached }
         guard chapters.indices.contains(index) else { return "" }
-        let text = library.chapterText(for: chapters[index], book: book)
+        var chapter = chapters[index]
+        if book.format == .online, chapter.file == nil { chapter.file = library.cachedChapterFile(book: book, index: index) }
+        let text = library.chapterText(for: chapter, book: book)
         textCache[index] = text
         trimCache(around: index)
         return text

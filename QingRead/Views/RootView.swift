@@ -25,7 +25,12 @@ struct RootView: View {
             Task { await library.importFile(from: url) }
             selectedTab = 0
         }
-        .alert("导入失败", isPresented: Binding(get: { library.lastError != nil }, set: { if !$0 { library.lastError = nil } })) {
+        .task {
+            #if DEBUG
+            await library.seedUITestBookIfRequested()
+            #endif
+        }
+        .alert("操作提示", isPresented: Binding(get: { library.lastError != nil }, set: { if !$0 { library.lastError = nil } })) {
             Button("知道了", role: .cancel) { library.lastError = nil }
         } message: { Text(library.lastError ?? "") }
     }

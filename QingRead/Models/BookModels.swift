@@ -63,7 +63,7 @@ enum ReaderMode: String, Codable, CaseIterable, Identifiable {
 enum ReaderFont: String, Codable, CaseIterable, Identifiable {
     case system, rounded, serif
     var id: String { rawValue }
-    var title: String { switch self { case .system: "苹方"; case .rounded: "圆体"; case .serif: "系统衬线" } }
+    var title: String { switch self { case .system: "苹方"; case .rounded: "系统圆体"; case .serif: "思源宋体" } }
 }
 struct ReaderSettings: Codable, Equatable {
     var fontSize: Double = 20
@@ -81,6 +81,10 @@ struct ReaderSettings: Codable, Equatable {
     var customBrightness = false
     var systemColorScheme: ColorScheme? { theme == .dark ? .dark : theme == .system ? nil : .light }
     var uiFont: UIFont {
+        if font == .serif {
+            let descriptor = UIFontDescriptor(fontAttributes: [.family: "Noto Serif SC", .traits: [UIFontDescriptor.TraitKey.weight: fontWeight]])
+            return UIFont(descriptor: descriptor, size: fontSize)
+        }
         let base = UIFont.systemFont(ofSize: fontSize, weight: UIFont.Weight(rawValue: fontWeight))
         let design: UIFontDescriptor.SystemDesign = font == .rounded ? .rounded : font == .serif ? .serif : .default
         return UIFont(descriptor: base.fontDescriptor.withDesign(design) ?? base.fontDescriptor, size: fontSize)

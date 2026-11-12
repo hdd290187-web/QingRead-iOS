@@ -53,7 +53,7 @@ struct RuleDocument {
                 output = try elements.map { item in
                     if attribute == "html" || (preserveLines && attribute == "text") { return try Self.cleanHTML(item.html()) }
                     if attribute == "text" || attribute == "textNodes" { return try item.text() }
-                    if attribute == "ownText" { return try item.ownText() }
+                    if attribute == "ownText" { return item.ownText() }
                     return try item.attr(attribute)
                 }.joined(separator: preserveLines ? "\n" : " ")
             }

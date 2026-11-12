@@ -27,6 +27,7 @@ private final class PrintedPage: UIViewController {
         let canvas = CoreTextCanvas()
         canvas.layout = layout; canvas.range = layout.ranges[address.page]; canvas.padding = settings.sidePadding
         canvas.backgroundColor = settings.theme.uiBackground; canvas.isOpaque = true
+        canvas.accessibilityIdentifier = "reader.content"
         canvas.accessibilityLabel = "正文"
         canvas.isAccessibilityElement = true
         canvas.accessibilityValue = (layout.attributed.string as NSString).substring(with: NSRange(location: canvas.range.start, length: canvas.range.length))
@@ -60,6 +61,9 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private var table: UITableView?
     private var scrollRows: [(chapter: Int, range: PageRange, attributed: NSAttributedString)] = []
     private var rebuilding = false
+    private var preparing = Set<Int>()
+    private var lastSave = Date.distantPast
+    private var pendingScrollPosition: ReadingPosition?
     private var lastSize = CGSize.zero
     private var loadGeneration = 0
     private var appliedPosition: ReadingPosition
@@ -77,6 +81,9 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     override func viewDidLoad() {
         super.viewDidLoad(); view.backgroundColor = settings.theme.uiBackground
         session.engine = self
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (controller: NativeReaderController, _: UITraitCollection) in
+            if controller.settings.theme == .system { controller.rebuild(at: controller.session.position) }
+        }
         let tap = UITapGestureRecognizer(target: self, action: #selector(tapped(_:)))
         tap.cancelsTouchesInView = false; tap.delegate = self; view.addGestureRecognizer(tap)
     }
@@ -84,10 +91,6 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         super.viewDidLayoutSubviews()
         guard view.bounds.width > 80, view.bounds.height > 100 else { return }
         if view.bounds.size != lastSize { lastSize = view.bounds.size; rebuild(at: session.position) }
-    }
-    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
-        super.traitCollectionDidChange(previous)
-        if previous?.userInterfaceStyle != traitCollection.userInterfaceStyle, settings.theme == .system { rebuild(at: session.position) }
     }
     func apply(settings newSettings: ReaderSettings) {
         guard newSettings != settings else { return }
@@ -101,7 +104,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         if let coverPan { view.removeGestureRecognizer(coverPan); self.coverPan = nil }
     }
     private func rebuild(at position: ReadingPosition) {
-        loadGeneration += 1; let generation = loadGeneration
+        loadGeneration += 1; preparing.removeAll(); let generation = loadGeneration
         let targetChapter = min(max(0, position.chapter), max(0, session.chapters.count - 1))
         session.isLoading = true
         Task { [weak self] in
@@ -117,24 +120,35 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
                 if settings.mode == .scroll { buildScroll() }
                 else if settings.mode == .cover { buildCover() }
                 else { buildPager() }
-                session.isLoading = false; reportCurrent(); prepareNeighbors()
+                session.isLoading = false
+                if settings.mode != .scroll { reportCurrent() }
+                prepareNeighbors()
             } catch { guard generation == loadGeneration else { return }; session.isLoading = false; session.error = error.localizedDescription }
         }
     }
     private func prepareNeighbors() {
         let chapter = current.chapter; let generation = loadGeneration
-        for index in [chapter - 1, chapter + 1] where session.chapters.indices.contains(index) {
+        for index in [chapter - 1, chapter + 1] where session.chapters.indices.contains(index) && !preparing.contains(index) && layouts[index] == nil {
+            preparing.insert(index)
             Task { [weak self] in
                 guard let self else { return }
+                defer { preparing.remove(index) }
                 do {
                     let text = try await session.loadText(at: index)
                     guard generation == loadGeneration else { return }
                     layouts[index] = TextPaginator.layout(text, size: textSize, settings: settings)
                     layouts = layouts.filter { abs($0.key - self.current.chapter) <= 1 }
                     if settings.mode == .scroll { appendScrollChapter(index) }
+                    else { refreshPagerNeighbors() }
                 } catch { /* Explicit navigation retries and presents a recoverable error. */ }
             }
         }
+    }
+    private func refreshPagerNeighbors() {
+        guard let pager, !transitioning, let visible = pager.viewControllers else { return }
+        // UIPageViewController caches a nil data-source answer at a chapter edge.
+        // Refresh after asynchronous preload so the next swipe can cross it.
+        pager.dataSource = nil; pager.setViewControllers(visible, direction: .forward, animated: false); pager.dataSource = self
     }
     private func printed(_ address: PageAddress) -> PrintedPage? {
         guard let layout = layouts[address.chapter], layout.ranges.indices.contains(address.page) else { return nil }
@@ -267,9 +281,17 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private func appendScrollChapter(_ index: Int) {
         guard let layout = layouts[index], !scrollRows.contains(where: { $0.chapter == index }), let table else { return }
         let chunks = layout.ranges.map { range in (chapter: index, range: range, attributed: layout.attributed.attributedSubstring(from: NSRange(location: range.start, length: range.length))) }
-        // Prepending is deferred until explicit previous-chapter navigation, so a later preload never moves visible text.
-        guard scrollRows.isEmpty || index > (scrollRows.last?.chapter ?? -1) else { return }
-        scrollRows.append(contentsOf: chunks); table.reloadData()
+        let anchorRow = table.indexPathsForVisibleRows?.first?.row
+        let anchor = anchorRow.flatMap { scrollRows.indices.contains($0) ? scrollRows[$0] : nil }
+        let dy = anchorRow.map { table.contentOffset.y - table.rectForRow(at: IndexPath(row: $0, section: 0)).minY } ?? 0
+        scrollRows.append(contentsOf: chunks)
+        scrollRows = scrollRows.filter { abs($0.chapter - current.chapter) <= 1 }.sorted { $0.chapter == $1.chapter ? $0.range.start < $1.range.start : $0.chapter < $1.chapter }
+        rebuilding = true; table.reloadData(); table.layoutIfNeeded()
+        if let anchor, let row = scrollRows.firstIndex(where: { $0.chapter == anchor.chapter && $0.range.start == anchor.range.start }) {
+            table.scrollToRow(at: IndexPath(row: row, section: 0), at: .top, animated: false)
+            table.layoutIfNeeded(); table.setContentOffset(CGPoint(x: 0, y: table.rectForRow(at: IndexPath(row: row, section: 0)).minY + dy), animated: false)
+        }
+        rebuilding = false
     }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { scrollRows.count }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -280,7 +302,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         cell.contentConfiguration = content; return cell
     }
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        guard let table, let row = table.indexPathsForVisibleRows?.first?.row, scrollRows.indices.contains(row) else { return }
+        guard !rebuilding, let table, let row = table.indexPathsForVisibleRows?.first?.row, scrollRows.indices.contains(row) else { return }
         let item = scrollRows[row]
         current = PageAddress(chapter: item.chapter, page: layouts[item.chapter]?.page(containing: item.range.start) ?? 0)
         let offset = table.contentOffset.y - table.rectForRow(at: IndexPath(row: row, section: 0)).minY
@@ -288,7 +310,12 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         let anchor = item.range.start + Int(fraction * Double(item.range.length))
         let preceding = session.chapters.prefix(item.chapter).reduce(0) { $0 + $1.length }
         let total = max(1, session.chapters.reduce(0) { $0 + $1.length })
-        session.report(ReadingPosition(chapter: item.chapter, characterOffset: anchor, progression: Double(preceding + anchor) / Double(total)))
-        if row >= scrollRows.count - 3 { prepareNeighbors() }
+        pendingScrollPosition = ReadingPosition(chapter: item.chapter, characterOffset: anchor, progression: Double(preceding + anchor) / Double(total))
+        if Date().timeIntervalSince(lastSave) > 1 { saveScrollPosition() }
+        if row >= scrollRows.count - 3 || row < 3 { prepareNeighbors() }
     }
+    private func saveScrollPosition() { if let pendingScrollPosition { session.report(pendingScrollPosition); lastSave = Date() } }
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) { saveScrollPosition() }
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) { if !decelerate { saveScrollPosition() } }
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) { saveScrollPosition() }
 }
