@@ -17,9 +17,9 @@ final class DocumentImportTests: XCTestCase {
         guard XCTWaiter.wait(for: [ready], timeout: 20) == .completed else {
             XCTFail("等待系统 Files 完成首次加载失败。\n" + app.debugDescription); return false
         }
-        if folder.exists && folder.isHittable { folder.press(forDuration: 0.15) }
+        if folder.exists && folder.isHittable { folder.tap() }
         guard file.waitForExistence(timeout: 15) else { XCTFail("系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription); return false }
-        file.press(forDuration: 0.15)
+        file.tap()
         let open = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Open", "打开"])).firstMatch
         if open.waitForExistence(timeout: 3) {
             let ready = NSPredicate(format: "enabled == true AND hittable == true")
