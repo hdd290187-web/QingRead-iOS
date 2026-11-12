@@ -75,6 +75,15 @@ struct LibraryView: View {
             .navigationTitle("书架")
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索书名或作者")
             .toolbar {
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--uitest-export-fixtures") {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button(imports.fixtureExportStatus ?? "准备 Files 测试文件") {
+                            imports.fixtureExportActive = true; imports.pickerPresented = true
+                        }.accessibilityIdentifier("import.fixtureExport")
+                    }
+                }
+                #endif
                 ToolbarItem(placement: .topBarLeading) {
                     Button { imports.openPicker() } label: { Image(systemName: "plus") }.accessibilityLabel("导入书籍").accessibilityIdentifier("library.import").disabled(library.isImporting || imports.awaitingImport)
                 }
@@ -85,13 +94,33 @@ struct LibraryView: View {
             .sheet(isPresented: $imports.pickerPresented, onDismiss: {
                 if !imports.awaitingImport && imports.status == nil { imports.cancelled() }
             }) {
-                BookDocumentPicker { result in
-                    query = ""
-                    imports.consume(result, library: library)
-                }
+                pickerContent
             }
             .onChange(of: imports.lastFeedback?.id) { _, _ in query = "" }
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
+        }
+    }
+
+    @ViewBuilder private var pickerContent: some View {
+        #if DEBUG
+        if imports.fixtureExportActive {
+            FixtureExportPicker(source: library.importTestFixtureDirectory) { result in
+                imports.pickerPresented = false
+                imports.fixtureExportActive = false
+                switch result {
+                case .success(let urls): imports.fixtureExportStatus = urls.isEmpty ? "未返回保存位置" : "测试文件已保存"
+                case .failure(let error): imports.fixtureExportStatus = error.localizedDescription
+                }
+            }
+        } else { bookPicker }
+        #else
+        bookPicker
+        #endif
+    }
+    private var bookPicker: some View {
+        BookDocumentPicker { result in
+            query = ""
+            imports.consume(result, library: library)
         }
     }
 

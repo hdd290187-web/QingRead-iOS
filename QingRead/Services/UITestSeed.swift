@@ -1,9 +1,12 @@
 #if DEBUG
 import Foundation
 extension LibraryStore {
+    var importTestFixtureDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("导入测试", isDirectory: true)
+    }
     func seedImportPickerDocumentsIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("--uitest-import-files") else { return }
-        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("导入测试", isDirectory: true)
+        let directory = importTestFixtureDirectory
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             func writeFixture(_ data: Data, to url: URL) throws {

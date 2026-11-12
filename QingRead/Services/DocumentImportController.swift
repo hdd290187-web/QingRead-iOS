@@ -10,6 +10,10 @@ final class DocumentImportController: ObservableObject {
     @Published private(set) var lastFeedback: ImportFeedback?
     @Published var feedback: ImportFeedback?
     private var feedbackTask: Task<Void, Never>?
+    #if DEBUG
+    @Published var fixtureExportActive = false
+    @Published var fixtureExportStatus: String?
+    #endif
 
     func openPicker() {
         guard !pickerPresented, !awaitingImport else { return }

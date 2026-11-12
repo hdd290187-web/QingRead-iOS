@@ -3,10 +3,26 @@ import XCTest
 final class DocumentImportTests: XCTestCase {
     @MainActor private func launch() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--uitest-reset", "--uitest-import-files"]
+        app.launchArguments = ["--uitest-reset", "--uitest-import-files", "--uitest-export-fixtures"]
         app.launch()
         XCTAssertTrue(app.buttons["library.import"].waitForExistence(timeout: 15))
+        prepareProviderFiles(app)
         return app
+    }
+    @MainActor private func prepareProviderFiles(_ app: XCUIApplication) {
+        app.buttons["import.fixtureExport"].tap()
+        let browse = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Browse", "浏览", "Locations", "位置"])).firstMatch
+        if browse.waitForExistence(timeout: 5) { browse.tap() }
+        let local = app.descendants(matching: .any).matching(NSPredicate(format: "label IN %@", ["On My iPhone", "在我的 iPhone 上", "在我的iPhone上"])).firstMatch
+        if local.waitForExistence(timeout: 10) { local.tap() }
+        let save = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Save", "存储", "保存", "Export", "导出", "Copy", "拷贝"])).firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 15), app.debugDescription)
+        save.press(forDuration: 0.15)
+        let replace = app.alerts.buttons.matching(NSPredicate(format: "label IN %@", ["Replace", "替换", "Merge", "合并"])).firstMatch
+        if replace.waitForExistence(timeout: 2) { replace.tap() }
+        let ready = NSPredicate(format: "label == %@", "测试文件已保存")
+        expectation(for: ready, evaluatedWith: app.buttons["import.fixtureExport"])
+        waitForExpectations(timeout: 20)
     }
     @MainActor @discardableResult private func selectFile(_ name: String, app: XCUIApplication) -> Bool {
         app.buttons["library.import"].tap()
@@ -22,8 +38,10 @@ final class DocumentImportTests: XCTestCase {
                 if back.exists { back.tap() }
             }
             if local.waitForExistence(timeout: 5) { local.tap() }
-            let appFolder = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "阅简,", "QingRead,")).firstMatch
-            if appFolder.waitForExistence(timeout: 10) { appFolder.tap() }
+            if !folder.exists {
+                let appFolder = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "阅简,", "QingRead,")).firstMatch
+                if appFolder.waitForExistence(timeout: 10) { appFolder.tap() }
+            }
         }
         if folder.waitForExistence(timeout: 10) { folder.tap() }
         guard file.waitForExistence(timeout: 15) else { XCTFail("系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription); return false }
