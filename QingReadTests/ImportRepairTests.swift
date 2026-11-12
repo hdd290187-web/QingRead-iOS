@@ -14,8 +14,11 @@ final class ImportRepairTests: XCTestCase {
     func testCoordinatedPrivateCopyAndNoScopeNeededForAppFiles() async throws {
         let (directory, source) = try fixture(); defer { try? FileManager.default.removeItem(at: directory) }
         let stage = directory.appendingPathComponent("staging")
-        let copied = try await Task.detached { try DocumentStager.copyIntoPrivateDirectory(source: source, directory: stage) }.value
-        XCTAssertFalse(copied.securityScopeGranted) // An ordinary app-owned file is still valid.
+        // iOS may return true for an ordinary app-owned URL. Exercise the false
+        // branch explicitly while retaining real NSFileCoordinator + copyItem.
+        let noScope = DocumentAccess(begin: { _ in false }, end: { _ in XCTFail("A scope that was not acquired must not be stopped") })
+        let copied = try await Task.detached { try DocumentStager.copyIntoPrivateDirectory(source: source, directory: stage, access: noScope) }.value
+        XCTAssertFalse(copied.securityScopeGranted)
         XCTAssertEqual(try Data(contentsOf: source), try Data(contentsOf: copied.fileURL))
         XCTAssertTrue(copied.fileURL.path.hasPrefix(stage.path))
         XCTAssertEqual(copied.identity.count, 64)

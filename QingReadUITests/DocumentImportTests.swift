@@ -10,8 +10,10 @@ final class DocumentImportTests: XCTestCase {
     }
     @MainActor private func selectFile(_ name: String, app: XCUIApplication) {
         app.buttons["library.import"].tap()
+        let folder = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", "导入测试,")).firstMatch
+        if folder.waitForExistence(timeout: 3) { folder.tap() }
         let file = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@ OR label == %@", name, (name as NSString).deletingPathExtension)).firstMatch
-        XCTAssertTrue(file.waitForExistence(timeout: 15), "系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription)
+        guard file.waitForExistence(timeout: 15) else { XCTFail("系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription); return }
         file.tap()
         let open = app.buttons.matching(NSPredicate(format: "label IN %@", ["Open", "打开"])).firstMatch
         if open.waitForExistence(timeout: 2), open.isEnabled { open.tap() }

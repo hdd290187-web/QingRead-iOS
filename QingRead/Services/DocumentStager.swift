@@ -7,17 +7,24 @@ struct StagedDocument: Sendable {
     let byteCount: Int
     let securityScopeGranted: Bool
 }
+struct DocumentAccess: Sendable {
+    var begin: @Sendable (URL) -> Bool
+    var end: @Sendable (URL) -> Void
+    static var live: DocumentAccess {
+        DocumentAccess(begin: { $0.startAccessingSecurityScopedResource() }, end: { $0.stopAccessingSecurityScopedResource() })
+    }
+}
 
 enum DocumentStager {
     static let maxEPUBSize = 256 * 1024 * 1024
-    static func copyIntoPrivateDirectory(source: URL, directory: URL, progress: @Sendable (ImportStage) -> Void = { _ in }) throws -> StagedDocument {
+    static func copyIntoPrivateDirectory(source: URL, directory: URL, access: DocumentAccess = .live, progress: @Sendable (ImportStage) -> Void = { _ in }) throws -> StagedDocument {
         guard source.isFileURL else {
             throw ImportPipelineError(stage: .validate, reason: "所选地址不是本地文件。", suggestion: "请在系统‘文件’中重新选择一个文件。", underlying: nil)
         }
-        let access = source.startAccessingSecurityScopedResource()
+        let scopeGranted = access.begin(source)
         progress(.permission)
-        ImportDiagnostics.event("security-scope", stage: .permission, url: source, accessGranted: access)
-        defer { if access { source.stopAccessingSecurityScopedResource() } }
+        ImportDiagnostics.event("security-scope", stage: .permission, url: source, accessGranted: scopeGranted)
+        defer { if scopeGranted { access.end(source) } }
         do { try waitForUbiquitousDownloadIfNeeded(source, progress: progress) }
         catch { if let pipeline = error as? ImportPipelineError { throw pipeline }; throw wrap(error, stage: .permission, ext: source.pathExtension.lowercased()) }
         let ext = source.pathExtension.lowercased()
@@ -58,8 +65,8 @@ enum DocumentStager {
             guard size > 0 else { throw ImportPipelineError(stage: .validate, reason: "所选文件为空。", suggestion: "请确认原文件包含正文后重新导入。", underlying: nil) }
             guard size <= limit else { throw ImportPipelineError(stage: .validate, reason: "文件大小为 \(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))，超过 \(ext == "txt" ? "64 MB" : "256 MB") 导入上限。", suggestion: "请拆分 TXT，或缩小/重新导出 EPUB 后再试。", underlying: nil) }
             let identity = try contentIdentity(at: destination)
-            ImportDiagnostics.event("staged", stage: .stage, url: source, byteCount: size, accessGranted: access)
-            return StagedDocument(fileURL: destination, identity: identity, byteCount: size, securityScopeGranted: access)
+            ImportDiagnostics.event("staged", stage: .stage, url: source, byteCount: size, accessGranted: scopeGranted)
+            return StagedDocument(fileURL: destination, identity: identity, byteCount: size, securityScopeGranted: scopeGranted)
         } catch {
             try? FileManager.default.removeItem(at: destination)
             if let pipeline = error as? ImportPipelineError { throw pipeline }
@@ -75,8 +82,9 @@ enum DocumentStager {
     }
 
     private static func waitForUbiquitousDownloadIfNeeded(_ url: URL, progress: @Sendable (ImportStage) -> Void) throws {
+        var downloadURL = url
         let values: URLResourceValues
-        do { values = try url.resourceValues(forKeys: [.isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey]) }
+        do { values = try downloadURL.resourceValues(forKeys: [.isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey]) }
         catch { throw wrap(error, stage: .permission, ext: url.pathExtension.lowercased()) }
         guard values.isUbiquitousItem == true, values.ubiquitousItemDownloadingStatus != .current else { return }
         progress(.download)
@@ -84,7 +92,8 @@ enum DocumentStager {
             try FileManager.default.startDownloadingUbiquitousItem(at: url)
             for _ in 0..<60 {
                 Thread.sleep(forTimeInterval: 1)
-                let current = try url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
+                downloadURL.removeCachedResourceValue(forKey: .ubiquitousItemDownloadingStatusKey)
+                let current = try downloadURL.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
                 if current.ubiquitousItemDownloadingStatus == .current { return }
             }
             throw NSError(domain: NSURLErrorDomain, code: NSURLErrorFileDoesNotExist, userInfo: [NSLocalizedDescriptionKey: "iCloud 文件在等待期间未完成下载。"])

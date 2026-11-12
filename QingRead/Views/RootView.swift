@@ -87,6 +87,7 @@ struct LibraryView: View {
                 imports.consume(result, library: library)
             }
             .fileDialogDefaultDirectory(importPickerInitialDirectory)
+            .onChange(of: imports.lastFeedback?.id) { _, _ in query = "" }
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
         }
     }
