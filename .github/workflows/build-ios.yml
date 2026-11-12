@@ -43,7 +43,14 @@ jobs:
         run: |
           set -euo pipefail
           simulator_id="$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if v.get("isAvailable") and v["name"].startswith("iPhone")))')"
+          printf 'SIMULATOR_DEVICE_ID=%s\n' "$simulator_id" >> "$GITHUB_ENV"
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/tests.log
+      - name: Capture document picker diagnostics
+        if: always()
+        run: |
+          if test -n "${SIMULATOR_DEVICE_ID:-}"; then
+            xcrun simctl spawn "$SIMULATOR_DEVICE_ID" log show --style compact --last 15m --debug --predicate 'subsystem == "com.hdd290187.qingread" OR subsystem CONTAINS "FileProvider" OR process CONTAINS "DocumentManager"' > delivery/document-import-system.log 2>&1 || true
+          fi
       - name: Export test screenshots and summary
         if: always()
         run: |

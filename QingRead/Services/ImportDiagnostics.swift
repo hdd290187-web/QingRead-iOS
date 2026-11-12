@@ -52,7 +52,7 @@ struct ImportFeedback: Identifiable {
     let id = UUID()
     let result: ImportBatchResult
     var title: String {
-        if result.failures.isEmpty { return result.duplicates.isEmpty ? "导入完成" : "书籍已在书架" }
+        if result.failures.isEmpty { return result.imported.isEmpty && !result.duplicates.isEmpty ? "书籍已在书架" : "导入完成" }
         return result.imported.isEmpty && result.duplicates.isEmpty ? "导入失败" : "部分导入完成"
     }
     var message: String {
@@ -106,7 +106,8 @@ enum ImportDiagnostics {
     static func userReason(_ error: NSError) -> String {
         switch (error.domain, error.code) {
         case (NSCocoaErrorDomain, NSFileNoSuchFileError), (NSCocoaErrorDomain, NSFileReadNoSuchFileError): "文件不存在或文件提供器已移除它。"
-        case (NSCocoaErrorDomain, NSFileReadNoPermissionError), (NSCocoaErrorDomain, NSFileWriteNoPermissionError): "iOS 未授予文件读取权限。"
+        case (NSCocoaErrorDomain, NSFileReadNoPermissionError): "iOS 未授予文件读取权限。"
+        case (NSCocoaErrorDomain, NSFileWriteNoPermissionError): "无法写入 App 的本机存储目录。"
         case (NSCocoaErrorDomain, NSFileReadUnknownError): "无法读取此文件。"
         case (NSCocoaErrorDomain, NSFileReadCorruptFileError): "文件内容损坏或格式无效。"
         case (NSCocoaErrorDomain, NSFileWriteOutOfSpaceError): "设备可用空间不足，无法保存导入文件。"
@@ -120,7 +121,8 @@ enum ImportDiagnostics {
         message.replacingOccurrences(of: #"(?:file://)?/(?:private|var|Users|Volumes|tmp|System|Library)/[^\s\"'，。；）)]+"#, with: "[文件路径]", options: .regularExpression)
     }
     static func suggestion(for error: NSError, stage: ImportStage, ext: String) -> String {
-        if (error.domain == NSCocoaErrorDomain && [NSFileReadNoPermissionError, NSFileWriteNoPermissionError].contains(error.code)) { return "请在系统‘文件’中重新选择文件，并允许阅简访问；也可先复制到‘在我的 iPhone 上’后再试。" }
+        if error.domain == NSCocoaErrorDomain && error.code == NSFileWriteNoPermissionError { return "请检查设备存储状态或重启 App 后重试。原始文件和已有书架已保留。" }
+        if error.domain == NSCocoaErrorDomain && error.code == NSFileReadNoPermissionError { return "请在系统‘文件’中重新选择文件，并允许阅简访问；也可先复制到‘在我的 iPhone 上’后再试。" }
         if stage == .download || error.code == NSURLErrorFileDoesNotExist { return "请先在‘文件’中打开该 iCloud 文件并等待下载完成，再返回阅简重新导入。" }
         if stage == .decode { return "请确认文件是 UTF-8、UTF-16 或 GB18030/GBK 编码的纯文本；重新另存为 UTF-8 后再试。" }
         if stage == .epub || ext == "epub" { return "请确认这是未加密、未损坏的 EPUB 文件；本地副本无法解析时请从原来源重新下载。" }

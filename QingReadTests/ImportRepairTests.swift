@@ -152,6 +152,7 @@ final class ImportRepairTests: XCTestCase {
         let library = LibraryStore(rootURL: root)
         let result = await library.importFiles(from: [source])
         XCTAssertEqual(result.failures.count, 1); XCTAssertTrue(library.books.isEmpty)
+        XCTAssertEqual(result.failures.first?.stage, .commit)
         XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent("library.json")), original)
     }
 }

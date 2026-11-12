@@ -159,7 +159,9 @@ final class LibraryStore: ObservableObject {
             ImportDiagnostics.event("advance", stage: next, url: url, byteCount: byteCount)
         }
         do {
-            guard snapshotReadable else { throw ReaderError.message("书库索引无法读取，已停止导入以保护已有数据。") }
+            guard snapshotReadable else {
+                throw ImportPipelineError(stage: .commit, reason: "书库索引无法读取，已停止导入以保护已有数据。", suggestion: "请保留原书库与原始文件，检查设备空间；不要卸载 App，以免删除可恢复的数据。", underlying: nil)
+            }
             advance(.stage)
             let document = try await importEnvironment.stage(url, staging) { [weak self] next in
                 Task { @MainActor in
@@ -179,9 +181,13 @@ final class LibraryStore: ObservableObject {
                 }.value
             } else {
                 advance(.epub)
-                try fm.createDirectory(at: payload, withIntermediateDirectories: true)
                 let original = payload.appendingPathComponent("book.epub")
-                try fm.moveItem(at: document.fileURL, to: original)
+                do {
+                    try fm.createDirectory(at: payload, withIntermediateDirectories: true)
+                    try fm.moveItem(at: document.fileURL, to: original)
+                } catch {
+                    throw ImportPipelineError(stage: .stage, reason: ImportDiagnostics.userReason(error as NSError), suggestion: "请检查设备可用空间后重试。原始文件和已有书架已保留。", underlying: error)
+                }
                 let service = EPUBService()
                 let publication = try await service.open(path: original.path)
                 let toc = (try? await publication.tableOfContents().get()) ?? []

@@ -16,7 +16,14 @@ final class DocumentImportTests: XCTestCase {
         guard file.waitForExistence(timeout: 15) else { XCTFail("系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription); return }
         file.tap()
         let open = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Open", "打开"])).firstMatch
-        if open.waitForExistence(timeout: 2), open.isEnabled { open.tap() }
+        if open.waitForExistence(timeout: 3) {
+            let ready = NSPredicate(format: "enabled == true AND hittable == true")
+            expectation(for: ready, evaluatedWith: open)
+            waitForExpectations(timeout: 5)
+            // Use one ordinary finger-length press through XCTest. Remote Files
+            // controls can ignore a synthetic 50 ms event while transitioning.
+            open.press(forDuration: 0.15)
+        }
     }
     @MainActor func testSystemFilesTXTImportRefreshDuplicateAndRestartRead() {
         let app = launch()
