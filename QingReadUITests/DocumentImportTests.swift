@@ -13,11 +13,19 @@ final class DocumentImportTests: XCTestCase {
         let fileView = app.collectionViews["File View"]
         let folder = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@", "导入测试,")).firstMatch
         let file = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", name + ",", (name as NSString).deletingPathExtension + ",")).firstMatch
-        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in file.exists || (folder.exists && folder.isHittable) }, object: nil)
-        guard XCTWaiter.wait(for: [ready], timeout: 20) == .completed else {
-            XCTFail("等待系统 Files 完成首次加载失败。\n" + app.debugDescription); return false
+        if !file.waitForExistence(timeout: 2) && !folder.exists {
+            let browse = app.tabBars.buttons.matching(NSPredicate(format: "label IN %@", ["Browse", "浏览"])).firstMatch
+            if browse.waitForExistence(timeout: 15) { browse.tap() }
+            let local = app.descendants(matching: .any).matching(NSPredicate(format: "label IN %@", ["On My iPhone", "在我的 iPhone 上", "在我的iPhone上"])).firstMatch
+            if !local.waitForExistence(timeout: 3) {
+                let back = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Browse", "浏览", "Locations", "位置"])).firstMatch
+                if back.exists { back.tap() }
+            }
+            if local.waitForExistence(timeout: 5) { local.tap() }
+            let appFolder = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "阅简,", "QingRead,")).firstMatch
+            if appFolder.waitForExistence(timeout: 10) { appFolder.tap() }
         }
-        if folder.exists && folder.isHittable { folder.tap() }
+        if folder.waitForExistence(timeout: 10) { folder.tap() }
         guard file.waitForExistence(timeout: 15) else { XCTFail("系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription); return false }
         file.tap()
         let open = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Open", "打开"])).firstMatch

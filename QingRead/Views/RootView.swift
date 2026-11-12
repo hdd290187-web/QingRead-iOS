@@ -85,7 +85,7 @@ struct LibraryView: View {
             .sheet(isPresented: $imports.pickerPresented, onDismiss: {
                 if !imports.awaitingImport && imports.status == nil { imports.cancelled() }
             }) {
-                BookDocumentPicker(initialDirectory: importPickerInitialDirectory) { result in
+                BookDocumentPicker { result in
                     query = ""
                     imports.consume(result, library: library)
                 }
@@ -97,14 +97,6 @@ struct LibraryView: View {
 
     private var emptyState: some View {
         ContentUnavailableView { Label("书架是空的", systemImage: "books.vertical") } description: { Text("导入 TXT 或 EPUB，打开后会自动保存阅读位置") } actions: { Button("导入书籍") { imports.openPicker() }.buttonStyle(.borderedProminent).disabled(library.isImporting || imports.awaitingImport) }
-    }
-    private var importPickerInitialDirectory: URL? {
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--uitest-import-files") {
-            return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("导入测试", isDirectory: true)
-        }
-        #endif
-        return nil
     }
 
     private var bookList: some View {

@@ -5,7 +5,6 @@ import UniformTypeIdentifiers
 // Explicit UIKit delegate lifetime, with File Provider materialization in copy
 // mode. The import pipeline still coordinates its own private staging copy.
 struct BookDocumentPicker: UIViewControllerRepresentable {
-    var initialDirectory: URL?
     var completion: (Result<[URL], Error>) -> Void
     func makeCoordinator() -> Coordinator { Coordinator(completion: completion) }
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
@@ -13,7 +12,6 @@ struct BookDocumentPicker: UIViewControllerRepresentable {
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = true
         picker.shouldShowFileExtensions = true
-        picker.directoryURL = initialDirectory
         return picker
     }
     func updateUIViewController(_ picker: UIDocumentPickerViewController, context: Context) {}
