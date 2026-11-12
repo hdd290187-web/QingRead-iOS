@@ -9,3 +9,5 @@ xcuserdata/
 *.cer
 *.ipa
 *.xcresult
+__pycache__/
+*.pyc

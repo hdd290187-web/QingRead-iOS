@@ -9,7 +9,9 @@ protocol ReadingEngine: AnyObject {
     func move(forward: Bool)
     func navigate(to position: ReadingPosition)
     func apply(settings: ReaderSettings)
+    func flushPosition()
 }
+extension ReadingEngine { func flushPosition() {} }
 
 @MainActor
 final class ReaderSession: ObservableObject {
@@ -41,6 +43,15 @@ final class ReaderSession: ObservableObject {
     }
     func restore(_ saved: ReadingPosition) { engine?.navigate(to: saved) }
     func applySettings() { engine?.apply(settings: library.settings) }
+    func flush() { engine?.flushPosition(); library.update(position: position, for: book) }
+    func progress(chapter: Int, offset: Int) -> Double {
+        if book.format == .online {
+            let length = chapters.indices.contains(chapter) ? max(1, chapters[chapter].length) : 1
+            return min(1, (Double(chapter) + Double(offset) / Double(length)) / Double(max(1, chapters.count)))
+        }
+        let completed = chapters.prefix(chapter).reduce(0) { $0 + $1.length }
+        return min(1, Double(completed + offset) / Double(max(1, chapters.reduce(0) { $0 + $1.length })))
+    }
     func bookmark() {
         let title = chapters.indices.contains(position.chapter) ? chapters[position.chapter].title : book.title
         library.addBookmark(Bookmark(bookID: book.id, position: position, title: title))

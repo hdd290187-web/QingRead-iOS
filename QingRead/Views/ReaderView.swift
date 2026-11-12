@@ -22,7 +22,7 @@ private struct ReaderHost: View {
             library.settings.theme.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 Text(session.chapters.indices.contains(session.position.chapter) ? session.chapters[session.position.chapter].title : session.book.title)
-                    .font(.caption).foregroundStyle(library.settings.theme.foreground.opacity(0.6)).lineLimit(1).padding(.horizontal, 24).frame(height: 28)
+                    .font(.caption).foregroundStyle(library.settings.theme.foreground.opacity(0.6)).lineLimit(1).padding(.horizontal, 24).frame(height: 28).accessibilityIdentifier("reader.chapterTitle")
                 Group {
                     if session.book.format == .epub { EPUBReader(session: session, settings: library.settings) }
                     else { NativeReader(session: session, settings: library.settings) }
@@ -44,9 +44,9 @@ private struct ReaderHost: View {
             Button("关闭", role: .cancel) { session.error = nil }
         } message: { Text(session.error ?? "") }
         .onChange(of: library.settings) { _, _ in applyBrightness() }
-        .onChange(of: scenePhase) { _, phase in if phase != .active { library.update(position: session.position, for: session.book) } }
+        .onChange(of: scenePhase) { _, phase in if phase != .active { session.flush() } }
         .onAppear { originalBrightness = UIScreen.main.brightness; applyBrightness() }
-        .onDisappear { library.update(position: session.position, for: session.book); if let originalBrightness { UIScreen.main.brightness = originalBrightness } }
+        .onDisappear { session.flush(); if let originalBrightness { UIScreen.main.brightness = originalBrightness } }
     }
     private var controls: some View {
         VStack(spacing: 0) {

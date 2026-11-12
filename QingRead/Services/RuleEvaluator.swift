@@ -107,7 +107,8 @@ struct RuleDocument {
         let document = try SwiftSoup.parse(html)
         try document.select("script,style,iframe,noscript").remove()
         let stripped = try document.body()?.html() ?? ""
-        let paragraphs = stripped.replacingOccurrences(of: #"(?i)<br\s*/?>|</(?:p|div|h[1-6]|li)\s*>"#, with: "\u{2028}", options: .regularExpression)
-        return try SwiftSoup.parse(paragraphs).text().replacingOccurrences(of: "\u{2028}", with: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        let marker = "QINGREAD" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        let paragraphs = stripped.replacingOccurrences(of: #"(?i)<br\s*/?>|</(?:p|div|h[1-6]|li)\s*>"#, with: marker, options: .regularExpression)
+        return try SwiftSoup.parse(paragraphs).text().replacingOccurrences(of: marker, with: "\n").components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

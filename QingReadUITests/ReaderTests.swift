@@ -64,6 +64,10 @@ final class ReaderTests: XCTestCase {
         app.buttons["目录"].tap()
         let chapter = app.buttons["第2章 测试"].firstMatch
         XCTAssertTrue(chapter.waitForExistence(timeout: 5)); chapter.tap()
-        XCTAssertTrue(app.staticTexts["第2章 测试"].firstMatch.waitForExistence(timeout: 10))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap()
+        let correctChapter = NSPredicate(format: "label == %@", "第2章 测试")
+        expectation(for: correctChapter, evaluatedWith: app.staticTexts["reader.chapterTitle"])
+        waitForExpectations(timeout: 10)
+        XCTAssertTrue(app.tables.firstMatch.cells.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "这是第2章")).firstMatch.exists)
     }
 }
