@@ -28,6 +28,17 @@ struct RootView: View {
             #if DEBUG
             await library.seedUITestBookIfRequested()
             library.seedImportPickerDocumentsIfRequested()
+            if let mode = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--uitest-import-result=") }) {
+                let directory = library.importTestFixtureDirectory
+                switch String(mode.dropFirst("--uitest-import-result=".count)) {
+                case "selected": imports.consume(.success([directory.appendingPathComponent("系统文件测试.txt")]), library: library)
+                case "partial": imports.consume(.success([directory.appendingPathComponent("系统文件测试.txt"), directory.appendingPathComponent("空白文件.txt")]), library: library)
+                case "failure": imports.consume(.failure(CocoaError(.fileReadNoPermission)), library: library)
+                case "empty": imports.consume(.success([]), library: library)
+                case "cancel": imports.consume(.failure(CocoaError(.userCancelled)), library: library)
+                default: break
+                }
+            }
             #endif
         }
         .sheet(item: $imports.feedback) { ImportFeedbackView(feedback: $0) }
@@ -75,17 +86,6 @@ struct LibraryView: View {
             .navigationTitle("书架")
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索书名或作者")
             .toolbar {
-                #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--uitest-export-fixtures") {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            imports.fixtureExportActive = true; imports.pickerPresented = true
-                        } label: { Image(systemName: "square.and.arrow.up") }
-                            .accessibilityLabel(imports.fixtureExportStatus ?? "准备 Files 测试文件")
-                            .accessibilityIdentifier("import.fixtureExport")
-                    }
-                }
-                #endif
                 ToolbarItem(placement: .topBarLeading) {
                     Button { imports.openPicker() } label: { Image(systemName: "plus") }.accessibilityLabel("导入书籍").accessibilityIdentifier("library.import").disabled(library.isImporting || imports.awaitingImport)
                 }
@@ -96,29 +96,13 @@ struct LibraryView: View {
             .sheet(isPresented: $imports.pickerPresented, onDismiss: {
                 if !imports.awaitingImport && imports.status == nil { imports.cancelled() }
             }) {
-                pickerContent
+                bookPicker
             }
             .onChange(of: imports.lastFeedback?.id) { _, _ in query = "" }
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
         }
     }
 
-    @ViewBuilder private var pickerContent: some View {
-        #if DEBUG
-        if imports.fixtureExportActive {
-            FixtureExportPicker(source: library.importTestFixtureDirectory) { result in
-                imports.pickerPresented = false
-                imports.fixtureExportActive = false
-                switch result {
-                case .success(let urls): imports.fixtureExportStatus = urls.isEmpty ? "未返回保存位置" : "测试文件已保存"
-                case .failure(let error): imports.fixtureExportStatus = error.localizedDescription
-                }
-            }
-        } else { bookPicker }
-        #else
-        bookPicker
-        #endif
-    }
     private var bookPicker: some View {
         BookDocumentPicker { result in
             query = ""
