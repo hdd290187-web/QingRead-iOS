@@ -69,9 +69,9 @@ struct SourceManagerView: View {
                 if let message { Text(message).font(.footnote).foregroundStyle(.secondary).textSelection(.enabled) }
             }
             Section("已导入") {
-                ForEach(library.sources) { source in
+                ForEach(Array(library.sources.enumerated()), id: \.element.id) { _, source in
                     VStack(alignment: .leading, spacing: 5) { Text(source.name).font(.headline); Text(source.compatibilityNote).font(.caption).foregroundStyle(source.issues.isEmpty ? .secondary : .orange) }
-                }.onDelete { library.sources.remove(atOffsets: $0) }
+                }
             }
         }.navigationTitle("书源管理")
             .fileImporter(isPresented: $importFile, allowedContentTypes: [.json]) { result in

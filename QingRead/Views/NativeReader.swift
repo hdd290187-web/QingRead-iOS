@@ -94,7 +94,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         settings = newSettings
         if isViewLoaded, lastSize != .zero { rebuild(at: session.position) }
     }
-    private var textSize: CGSize { CGSize(width: max(80, view.bounds.width - settings.sidePadding * 2), height: max(60, view.bounds.height - 16)) }
+    private var textSize: CGSize { CGSize(width: max(80, view.bounds.width - CGFloat(settings.sidePadding * 2)), height: max(60, view.bounds.height - 16)) }
     private func clearChildren() {
         for child in children { child.willMove(toParent: nil); child.view.removeFromSuperview(); child.removeFromParent() }
         table?.removeFromSuperview(); table = nil; pager = nil; coverCurrent = nil; coverTarget = nil
@@ -130,7 +130,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
                     let text = try await session.loadText(at: index)
                     guard generation == loadGeneration else { return }
                     layouts[index] = TextPaginator.layout(text, size: textSize, settings: settings)
-                    layouts = layouts.filter { abs($0.key - current.chapter) <= 1 }
+                    layouts = layouts.filter { abs($0.key - self.current.chapter) <= 1 }
                     if settings.mode == .scroll { appendScrollChapter(index) }
                 } catch { /* Explicit navigation retries and presents a recoverable error. */ }
             }

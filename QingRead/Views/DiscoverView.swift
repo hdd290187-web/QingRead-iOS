@@ -1,6 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
-
 struct DiscoverView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var query = ""
@@ -24,7 +22,7 @@ struct DiscoverView: View {
             }
             .navigationTitle("找书")
             .toolbar { ToolbarItem(placement: .topBarTrailing) { NavigationLink { SourceGuideView() } label: { Image(systemName: "info.circle") }.accessibilityLabel("书源说明") } }
-            .sheet(item: $selectedBook) { ReaderView(book: $0) }
+            .fullScreenCover(item: $selectedBook) { ReaderView(book: $0) }
         }
     }
 
@@ -39,9 +37,12 @@ struct DiscoverView: View {
     }
 
     private func importOnline(_ item: OnlineBook) {
-        guard let contentURL = item.contentURL else { message = "该结果没有正文地址；请在书源中提供 contentUrl。"; return }
         Task {
-            do { let (data, _) = try await URLSession.shared.data(from: contentURL); let book = Book(title: item.title, author: item.author, format: .txt, sourceURL: contentURL, chapters: TXTParser.chapters(from: data, fallbackTitle: item.title), isRemote: true); library.add(book); selectedBook = book }
+            do {
+                let chapters = try await BookSourceService().chapters(for: item)
+                let book = Book(title: item.title, author: item.author, format: .online, chapters: chapters, source: item.source, originURL: item.detailURL)
+                library.add(book); selectedBook = book
+            }
             catch { message = "在线正文读取失败：\(error.localizedDescription)" }
         }
     }

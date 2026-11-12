@@ -45,6 +45,7 @@ final class LibraryStore: ObservableObject {
     func bookmarks(for book: Book) -> [Bookmark] { bookmarks.filter { $0.bookID == book.id }.sorted { $0.createdAt > $1.createdAt } }
     func deleteBookmark(_ bookmark: Bookmark) { bookmarks.removeAll { $0.id == bookmark.id }; persist() }
     func saveSource(_ source: BookSource) { sources.removeAll { $0.id == source.id }; sources.append(source); persist() }
+    func removeSource(at index: Int) { guard sources.indices.contains(index) else { return }; sources.remove(at: index); persist() }
     func cachedChapterFile(book: Book, index: Int) -> String { (book.originalFile ?? "") + "/cached-\(index).txt" }
     func cacheChapter(book: Book, index: Int, text: String) throws { try text.data(using: .utf8)?.write(to: URL(fileURLWithPath: cachedChapterFile(book: book, index: index)), options: .atomic) }
     func chapterText(for chapter: Chapter, book: Book) -> String {

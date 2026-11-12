@@ -28,7 +28,8 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         do {
             guard let path = session.book.originalFile else { throw ReaderError.message("书籍文件已丢失，请重新导入。") }
             let publication = try await service.open(path: path); self.publication = publication
-            toc = EPUBService.flatten(publication.tableOfContents.isEmpty ? publication.readingOrder : publication.tableOfContents)
+            let tableOfContents = (try? await publication.tableOfContents().get()) ?? []
+            toc = EPUBService.flatten(tableOfContents.isEmpty ? publication.readingOrder : tableOfContents)
             session.chapters = toc.map { Chapter(title: $0.title ?? "章节", href: $0.href) }
             var locator: Locator?
             if let json = session.position.locatorJSON { locator = try Locator(json: JSONValue(jsonString: json), warnings: nil) }
@@ -57,8 +58,8 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         prefs.publisherStyles = false
         prefs.scroll = settings.mode == .scroll
         prefs.columnCount = .one
-        prefs.backgroundColor = ReadiumNavigator.Color( settings.theme.uiBackground)
-        prefs.textColor = ReadiumNavigator.Color( settings.theme.uiForeground)
+        prefs.backgroundColor = ReadiumNavigator.Color(uiColor: settings.theme.uiBackground)
+        prefs.textColor = ReadiumNavigator.Color(uiColor: settings.theme.uiForeground)
         prefs.fontFamily = FontFamily(rawValue: settings.font == .serif ? "serif" : "sans-serif")
         prefs.theme = settings.theme == .dark ? .dark : settings.theme == .cream ? .sepia : .light
         return prefs
@@ -74,7 +75,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
     }
     func navigator(_ navigator: Navigator, locationDidChange locator: Locator) {
         let href = locator.href.string.components(separatedBy: "#")[0]
-        let index = toc.lastIndex { $0.href.components(separatedBy: "#")[0] == href } ?? 0
+        let index = toc.lastIndex { $0.href.string.components(separatedBy: "#")[0] == href } ?? 0
         let json = try? locator.jsonString()
         session.report(ReadingPosition(chapter: index, locatorJSON: json, progression: locator.locations.totalProgression ?? 0), pageInfo: "\(Int((locator.locations.totalProgression ?? 0) * 100))%")
     }
