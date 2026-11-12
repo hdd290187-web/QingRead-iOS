@@ -1,20 +1,49 @@
 import Foundation
+import CryptoKit
+
+struct PreparedLocalBook {
+    let book: Book
+    let identity: String
+}
 
 struct LocalBookImporter {
-    static func importTXT(url: URL, directory: URL, id: UUID) throws -> Book {
+    static func prepareTXT(url: URL, title: String, directory: URL, id: UUID) throws -> PreparedLocalBook {
         let bytes = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard bytes <= TXTParser.maxFileSize else { throw ReaderError.message("TXT 超过 64 MB，请拆分后导入。") }
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
-        let decoded = try TXTParser.decode(data)
-        let title = url.deletingPathExtension().lastPathComponent
-        let sections = try TXTParser.sections(from: decoded.text, title: title)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let decoded: (text: String, encoding: TXTEncoding)
+        do { decoded = try TXTParser.decode(data) }
+        catch { throw ImportPipelineError(stage: .decode, reason: error.localizedDescription, suggestion: "请将原文件另存为 UTF-8 纯文本后再试。", underlying: error) }
+        let sections: [TXTSection]
+        do { sections = try TXTParser.sections(from: decoded.text, title: title) }
+        catch { throw ImportPipelineError(stage: .parse, reason: error.localizedDescription, suggestion: "请确认 TXT 不是空白文件且包含小说正文。", underlying: error) }
+        do { try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true) }
+        catch { throw ImportPipelineError(stage: .stage, reason: ImportDiagnostics.userReason(error as NSError), suggestion: "请检查设备可用空间后重试，原始文件已保留。", underlying: error) }
         var chapters: [Chapter] = []
         for (index, section) in sections.enumerated() {
             let file = "chapter-\(index).txt"
-            try Data(section.text.utf8).write(to: directory.appendingPathComponent(file), options: .atomic)
+            do { try Data(section.text.utf8).write(to: directory.appendingPathComponent(file), options: .atomic) }
+            catch { throw ImportPipelineError(stage: .stage, reason: ImportDiagnostics.userReason(error as NSError), suggestion: "正文写入失败，请检查设备空间后重试。", underlying: error) }
             chapters.append(Chapter(title: section.title, length: section.text.utf16.count, file: file))
         }
-        return Book(id: id, title: title, format: .txt, chapters: chapters, originalFile: directory.path, originURL: url)
+        return PreparedLocalBook(book: Book(id: id, title: title, format: .txt, chapters: chapters, originalFile: directory.path), identity: textIdentity(sections.map(\.text)))
+    }
+    static func textIdentity(_ fragments: [String]) -> String {
+        var hasher = SHA256()
+        for text in fragments { hasher.update(data: Data(text.utf8)) }
+        return "txt:utf8:sha256:" + hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+    static func legacyIdentity(for book: Book) -> String? {
+        guard let path = book.originalFile else { return nil }
+        if book.format == .epub { return (try? DocumentStager.contentIdentity(at: URL(fileURLWithPath: path))).map { "epub:sha256:" + $0 } }
+        guard book.format == .txt, !book.chapters.isEmpty else { return nil }
+        var hasher = SHA256()
+        for chapter in book.chapters {
+            guard let file = chapter.file, let handle = try? FileHandle(forReadingFrom: URL(fileURLWithPath: file.hasPrefix("/") ? file : path + "/" + file)) else { return nil }
+            defer { try? handle.close() }
+            do { while let data = try handle.read(upToCount: 1_048_576), !data.isEmpty { hasher.update(data: data) } }
+            catch { return nil }
+        }
+        return "txt:utf8:sha256:" + hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 }

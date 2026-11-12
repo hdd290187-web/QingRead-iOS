@@ -1,0 +1,14 @@
+{
+  "baseline": "609799399e19e5aa6f7c344e7895cb852cee9bd5",
+  "appCommit": "a11e90b5a7e1c9b34feb797bccd0fabd0e5ed27e",
+  "build": 9,
+  "run": 43212305708,
+  "clean": true,
+  "examined": [
+    "QingRead/Views/RootView.swift",
+    "QingRead/Services/LibraryStore.swift",
+    "QingRead/Services/LocalBookImporter.swift",
+    "QingReadTests/LibraryTests.swift"
+  ],
+  "deviceUnderlyingError": "not available; must not infer a specific provider error from source inspection"
+}

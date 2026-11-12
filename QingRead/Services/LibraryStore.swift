@@ -7,6 +7,16 @@ final class LibraryStore: ObservableObject {
     @Published private(set) var positions: [UUID: ReadingPosition] = [:]
     @Published private(set) var bookmarks: [Bookmark] = []
     @Published private(set) var isImporting = false
+    @Published private(set) var importProgress: ImportProgress?
+    private var importQueue: [ImportJob] = []
+    private var drainingImports = false
+    private var snapshotReadable = true
+    private var pendingLocalIdentityMigration = false
+    let importEnvironment: ImportEnvironment
+    private struct ImportJob {
+        let urls: [URL]
+        let continuation: CheckedContinuation<ImportBatchResult, Never>
+    }
     @Published var settings = ReaderSettings() { didSet { persist() } }
     @Published var sources: [BookSource] = [] { didSet { persist() } }
     @Published var lastError: String?
@@ -14,36 +24,11 @@ final class LibraryStore: ObservableObject {
     let root: URL
     private var snapshotURL: URL { root.appendingPathComponent("library.json") }
     private var loading = true
-    private struct Snapshot: Codable { var books: [Book]; var positions: [UUID: ReadingPosition]; var bookmarks: [Bookmark]; var settings: ReaderSettings; var sources: [BookSource] }
-    init(rootURL: URL? = nil) {
+    struct Snapshot: Codable { var books: [Book]; var positions: [UUID: ReadingPosition]; var bookmarks: [Bookmark]; var settings: ReaderSettings; var sources: [BookSource] }
+    init(rootURL: URL? = nil, importEnvironment: ImportEnvironment = .live) {
+        self.importEnvironment = importEnvironment
         root = rootURL ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("QingRead", isDirectory: true)
         load(); loading = false
-    }
-    @discardableResult
-    func importFile(from url: URL) async -> Book? {
-        isImporting = true; defer { isImporting = false }
-        let access = url.startAccessingSecurityScopedResource(); defer { if access { url.stopAccessingSecurityScopedResource() } }
-        let id = UUID(); let folder = root.appendingPathComponent("books/\(id.uuidString)", isDirectory: true)
-        do {
-            let ext = url.pathExtension.lowercased()
-            guard ["txt", "epub"].contains(ext) else { throw ReaderError.message("仅支持 TXT 和 EPUB 文件。") }
-            let book: Book
-            if ext == "txt" {
-                book = try await Task.detached(priority: .userInitiated) { try LocalBookImporter.importTXT(url: url, directory: folder, id: id) }.value
-            } else {
-                try fm.createDirectory(at: folder, withIntermediateDirectories: true)
-                let original = folder.appendingPathComponent("book.epub")
-                try await Task.detached(priority: .userInitiated) { try FileManager.default.copyItem(at: url, to: original) }.value
-                let service = EPUBService()
-                let publication = try await service.open(path: original.path)
-                let toc = (try? await publication.tableOfContents().get()) ?? []
-                let chapters = EPUBService.flatten(toc.isEmpty ? publication.readingOrder : toc).map { Chapter(title: $0.title ?? "章节", href: $0.href) }
-                book = Book(id: id, title: publication.metadata.title ?? url.deletingPathExtension().lastPathComponent, author: publication.metadata.authors.map(\.name).joined(separator: "、"), format: .epub, chapters: chapters, originalFile: original.path, originURL: url)
-            }
-            // A successful duplicate import opens the existing record, preserving its progress.
-            if let existing = books.first(where: { $0.originURL == url && $0.format == book.format }) { try? fm.removeItem(at: folder); return existing }
-            books.insert(book, at: 0); persist(); return book
-        } catch { try? fm.removeItem(at: folder); lastError = error.localizedDescription; return nil }
     }
     @discardableResult
     func add(_ input: Book) -> Book {
@@ -85,14 +70,154 @@ final class LibraryStore: ObservableObject {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return "" }; return String(decoding: data, as: UTF8.self)
     }
     func flush() { persist() }
+    private func writeSnapshot(_ value: Snapshot) throws {
+        guard snapshotReadable else { throw ReaderError.message("书库索引无法读取，已阻止覆盖；请保留原文件。") }
+        try fm.createDirectory(at: root, withIntermediateDirectories: true)
+        // Preserve the exact previous index once, before the optional identity migration.
+        if pendingLocalIdentityMigration, fm.fileExists(atPath: snapshotURL.path) {
+            let backup = root.appendingPathComponent("library-before-import-repair.json")
+            if !fm.fileExists(atPath: backup.path) { try fm.copyItem(at: snapshotURL, to: backup) }
+        }
+        try JSONEncoder().encode(value).write(to: snapshotURL, options: .atomic)
+        pendingLocalIdentityMigration = false
+    }
     private func load() {
         guard fm.fileExists(atPath: snapshotURL.path) else { return }
         do { let value = try JSONDecoder().decode(Snapshot.self, from: Data(contentsOf: snapshotURL)); books = value.books; positions = value.positions; bookmarks = value.bookmarks; settings = value.settings; sources = value.sources }
-        catch { lastError = "本地书库索引无法读取，请保留原文件并检查存储空间。" }
+        catch { snapshotReadable = false; lastError = "本地书库索引无法读取，已阻止写入以保护原书架。请保留原文件并检查存储空间。" }
     }
     private func persist() {
-        guard !loading else { return }
-        do { try fm.createDirectory(at: root, withIntermediateDirectories: true); let value = Snapshot(books: books, positions: positions, bookmarks: bookmarks, settings: settings, sources: sources); try JSONEncoder().encode(value).write(to: snapshotURL, options: .atomic) }
+        guard !loading, snapshotReadable else { return }
+        do { try fm.createDirectory(at: root, withIntermediateDirectories: true); let value = Snapshot(books: books, positions: positions, bookmarks: bookmarks, settings: settings, sources: sources); try writeSnapshot(value) }
         catch { lastError = "保存书库失败：\(error.localizedDescription)" }
+    }
+    @discardableResult
+    func importFile(from url: URL) async -> Book? {
+        let result = await importFiles(from: [url])
+        if let failure = result.failures.first { lastError = failure.message; return nil }
+        // Callers historically use the returned record for tests/reader setup. Queue
+        // results carry stable IDs, not temporary external URLs.
+        guard let id = result.bookIDs.first else { return nil }
+        return books.first { $0.id == id }
+    }
+
+    func importFiles(from urls: [URL]) async -> ImportBatchResult {
+        await withCheckedContinuation { continuation in
+            importQueue.append(ImportJob(urls: urls, continuation: continuation))
+            if !drainingImports {
+                drainingImports = true
+                isImporting = true
+                Task { await drainImportQueue() }
+            }
+        }
+    }
+
+    private func drainImportQueue() async {
+        while !importQueue.isEmpty {
+            let job = importQueue.removeFirst()
+            var result = ImportBatchResult()
+            if job.urls.isEmpty {
+                let error = ImportPipelineError(stage: .picker, reason: "文件选择器没有返回文件。", suggestion: "请重新点击加号，选中 TXT 或 EPUB 后点击‘打开’。", underlying: nil)
+                result.failures = [ImportDiagnostics.failure(error, stage: .picker, url: URL(fileURLWithPath: "/所选文件"))]
+            }
+            for (index, url) in job.urls.enumerated() {
+                importProgress = ImportProgress(current: index + 1, total: job.urls.count, fileName: ImportDiagnostics.safeDisplayName(url), stage: .permission)
+                switch await performImport(url) {
+                case .success(let success):
+                    result.bookIDs.append(success.book.id)
+                    if success.duplicate { result.duplicates.append(success.book.title) }
+                    else { result.imported.append(success.book.title) }
+                case .failure(let failure): result.failures.append(failure)
+                }
+            }
+            job.continuation.resume(returning: result)
+        }
+        importProgress = nil; isImporting = false; drainingImports = false
+    }
+
+    private struct ImportSuccess { let book: Book; let duplicate: Bool }
+    private enum ImportOutcome { case success(ImportSuccess), failure(ImportFailure) }
+    private func performImport(_ url: URL) async -> ImportOutcome {
+        let id = UUID()
+        let staging = root.appendingPathComponent("import-staging/\(id.uuidString)", isDirectory: true)
+        let payload = staging.appendingPathComponent("payload", isDirectory: true)
+        let finalDirectory = root.appendingPathComponent("books/\(id.uuidString)", isDirectory: true)
+        var stage = ImportStage.permission
+        var byteCount: Int?
+        var moved = false
+        var committed = false
+        defer {
+            try? fm.removeItem(at: staging)
+            if moved && !committed { try? fm.removeItem(at: finalDirectory) }
+        }
+        func advance(_ next: ImportStage) {
+            stage = next
+            if var progress = importProgress { progress.stage = next; importProgress = progress }
+            ImportDiagnostics.event("advance", stage: next, url: url, byteCount: byteCount)
+        }
+        do {
+            guard snapshotReadable else { throw ReaderError.message("书库索引无法读取，已停止导入以保护已有数据。") }
+            advance(.stage)
+            let document = try await importEnvironment.stage(url, staging) { [weak self] next in
+                Task { @MainActor in
+                    guard let self, var progress = self.importProgress else { return }
+                    progress.stage = next; self.importProgress = progress
+                }
+            }
+            byteCount = document.byteCount
+            let ext = url.pathExtension.lowercased()
+            advance(.validate)
+            let prepared: PreparedLocalBook
+            if ext == "txt" {
+                advance(.decode)
+                prepared = try await Task.detached(priority: .userInitiated) {
+                    try LocalBookImporter.prepareTXT(url: document.fileURL, title: url.deletingPathExtension().lastPathComponent, directory: payload, id: id)
+                }.value
+            } else {
+                advance(.epub)
+                try fm.createDirectory(at: payload, withIntermediateDirectories: true)
+                let original = payload.appendingPathComponent("book.epub")
+                try fm.moveItem(at: document.fileURL, to: original)
+                let service = EPUBService()
+                let publication = try await service.open(path: original.path)
+                let toc = (try? await publication.tableOfContents().get()) ?? []
+                let chapters = EPUBService.flatten(toc.isEmpty ? publication.readingOrder : toc).map { Chapter(title: $0.title ?? "章节", href: $0.href) }
+                prepared = PreparedLocalBook(book: Book(id: id, title: publication.metadata.title ?? url.deletingPathExtension().lastPathComponent, author: publication.metadata.authors.map(\.name).joined(separator: "、"), format: .epub, chapters: chapters, originalFile: original.path), identity: "epub:sha256:" + document.identity)
+            }
+            advance(.parse)
+            var updatedBooks = books
+            // Migrate old local records in memory. The previous index is backed up
+            // before the next successful atomic write; IDs, files and progress stay.
+            for index in updatedBooks.indices where updatedBooks[index].format != .online && updatedBooks[index].sourceIdentity == nil {
+                var identity: String?
+                let record = updatedBooks[index]
+                identity = await Task.detached(priority: .utility) { LocalBookImporter.legacyIdentity(for: record) }.value
+                updatedBooks[index].sourceIdentity = identity
+                if identity != nil { updatedBooks[index].originURL = nil; pendingLocalIdentityMigration = true }
+            }
+            if let existing = updatedBooks.first(where: { $0.format == prepared.book.format && $0.sourceIdentity == prepared.identity }) {
+                advance(.commit)
+                try importEnvironment.beforeCommit(root)
+                try writeSnapshot(Snapshot(books: updatedBooks, positions: positions, bookmarks: bookmarks, settings: settings, sources: sources))
+                books = updatedBooks
+                return .success(ImportSuccess(book: existing, duplicate: true))
+            }
+            advance(.commit)
+            try fm.createDirectory(at: finalDirectory.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try fm.moveItem(at: payload, to: finalDirectory); moved = true
+            var book = prepared.book
+            book.sourceIdentity = prepared.identity
+            book.originURL = nil
+            book.originalFile = book.format == .epub ? finalDirectory.appendingPathComponent("book.epub").path : finalDirectory.path
+            updatedBooks.insert(book, at: 0)
+            try importEnvironment.beforeCommit(root)
+            try writeSnapshot(Snapshot(books: updatedBooks, positions: positions, bookmarks: bookmarks, settings: settings, sources: sources))
+            committed = true
+            books = updatedBooks
+            advance(.complete)
+            return .success(ImportSuccess(book: book, duplicate: false))
+        } catch {
+            return .failure(ImportDiagnostics.failure(error, stage: stage, url: url, byteCount: byteCount))
+        }
     }
 }

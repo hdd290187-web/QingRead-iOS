@@ -5,11 +5,11 @@ import UIKit
 struct RootView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var selectedTab = 0
-    @State private var pendingURL: URL?
+    @StateObject private var imports = DocumentImportController()
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            LibraryView()
+            LibraryView(imports: imports)
                 .tabItem { Label("书架", systemImage: "books.vertical.fill") }
                 .tag(0)
             DiscoverView()
@@ -21,15 +21,16 @@ struct RootView: View {
         }
         .tint(.primary)
         .onOpenURL { url in
-            pendingURL = url
-            Task { await library.importFile(from: url) }
+            imports.openURL(url, library: library)
             selectedTab = 0
         }
         .task {
             #if DEBUG
             await library.seedUITestBookIfRequested()
+            library.seedImportPickerDocumentsIfRequested()
             #endif
         }
+        .sheet(item: $imports.feedback) { ImportFeedbackView(feedback: $0) }
         .alert("操作提示", isPresented: Binding(get: { library.lastError != nil }, set: { if !$0 { library.lastError = nil } })) {
             Button("知道了", role: .cancel) { library.lastError = nil }
         } message: { Text(library.lastError ?? "") }
@@ -39,7 +40,7 @@ struct RootView: View {
 struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var query = ""
-    @State private var showImporter = false
+    @ObservedObject var imports: DocumentImportController
     @State private var selectedBook: Book?
     @State private var showGrid = false
 
@@ -50,29 +51,56 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if filteredBooks.isEmpty { emptyState } else { bookList }
+            VStack(spacing: 0) {
+                if let status = imports.status, !library.isImporting {
+                    HStack {
+                        Text(status).font(.subheadline).accessibilityIdentifier("import.status")
+                        Spacer()
+                        if let feedback = imports.lastFeedback { Button("查看结果") { imports.feedback = feedback }.accessibilityIdentifier("import.showResult") }
+                    }.padding(.horizontal, 16).padding(.vertical, 8)
+                }
+                Group { if filteredBooks.isEmpty { emptyState } else { bookList } }
             }
-            .overlay { if library.isImporting { ProgressView("正在导入…").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) } }
+            .overlay {
+                if library.isImporting || imports.awaitingImport {
+                    VStack(spacing: 8) {
+                        ProgressView("正在导入…")
+                        if let progress = library.importProgress {
+                            Text("\(progress.current) / \(progress.total) · \(progress.stage.rawValue)").font(.caption)
+                            Text(progress.fileName).font(.caption).lineLimit(1)
+                        }
+                    }.padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)).accessibilityIdentifier("import.progress")
+                }
+            }
             .navigationTitle("书架")
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索书名或作者")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { showImporter = true } label: { Image(systemName: "plus") }.accessibilityLabel("导入书籍")
+                    Button { imports.openPicker() } label: { Image(systemName: "plus") }.accessibilityLabel("导入书籍").accessibilityIdentifier("library.import").disabled(library.isImporting || imports.awaitingImport)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { withAnimation { showGrid.toggle() } } label: { Image(systemName: showGrid ? "list.bullet" : "square.grid.2x2") }.accessibilityLabel(showGrid ? "列表视图" : "网格视图")
                 }
             }
-            .fileImporter(isPresented: $showImporter, allowedContentTypes: [.plainText, .epub], allowsMultipleSelection: true) { result in
-                if case .success(let urls) = result { Task { for url in urls { await library.importFile(from: url) } } }
+            .fileImporter(isPresented: $imports.pickerPresented, allowedContentTypes: [.plainText, .epub], allowsMultipleSelection: true) { result in
+                query = ""
+                imports.consume(result, library: library)
             }
+            .fileDialogDefaultDirectory(importPickerInitialDirectory)
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
         }
     }
 
     private var emptyState: some View {
-        ContentUnavailableView { Label("书架是空的", systemImage: "books.vertical") } description: { Text("导入 TXT 或 EPUB，打开后会自动保存阅读位置") } actions: { Button("导入书籍") { showImporter = true }.buttonStyle(.borderedProminent) }
+        ContentUnavailableView { Label("书架是空的", systemImage: "books.vertical") } description: { Text("导入 TXT 或 EPUB，打开后会自动保存阅读位置") } actions: { Button("导入书籍") { imports.openPicker() }.buttonStyle(.borderedProminent).disabled(library.isImporting || imports.awaitingImport) }
+    }
+    private var importPickerInitialDirectory: URL? {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-import-files") {
+            return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("导入测试", isDirectory: true)
+        }
+        #endif
+        return nil
     }
 
     private var bookList: some View {
