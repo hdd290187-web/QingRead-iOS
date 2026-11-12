@@ -21,3 +21,15 @@ xcodebuild -resolvePackageDependencies -project QingRead.xcodeproj -scheme QingR
 ```
 
 未签名 IPA 不能直接安装到普通 iPhone，需要有效的 Apple 开发者签名和描述文件。真机上的翻页跟手、屏幕亮度和不同尺寸安全区域仍需人工验收。
+
+## 已完成的验证与交付
+
+GitHub Actions [run 43212305708](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43212305708) 已通过 iPhone arm64 Release 和 24 项模拟器测试（19 单元 + 5 UI），产出 1.0.0 / build 9 unsigned IPA。对应 App 源码提交为 a11e90b5a7e1c9b34feb797bccd0fabd0e5ed27e。本仓库同时保留成功构建生成的 QingRead.xcodeproj，可直接在 Mac 打开；project.yml 为可重复生成的工程定义。
+
+- [参考审计与许可证取舍](docs/REFERENCE_AUDIT.md)
+- [真实测试报告](docs/TEST_REPORT.md)
+- [下载、重签和安装说明](docs/INSTALL.md)
+- [书源兼容矩阵](docs/SOURCE_COMPATIBILITY.md)
+- [HUMAN_PENDING 真机验收清单](docs/DEVICE_CHECKLIST.md)
+
+没有有效签名和真机验证时，不宣称 IPA 可直接安装或真实翻页手感已验收。

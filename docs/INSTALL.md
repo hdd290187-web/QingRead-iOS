@@ -23,10 +23,16 @@ cd /opt/projects/QingRead-iOS
 
 unsigned IPA 无法直接安装到普通 iPhone。这是尚未由 Apple 签名的 arm64 应用包。需要用户自己的有效 Apple 开发者账号/证书/描述文件和目标设备授权，或使用受信任的重签工具。
 
-- 方式一：在 Mac 用 Xcode 打开生成工程，Signing & Capabilities 中选择自己的 Team、设置唯一 Bundle Identifier，连接 iPhone 后 Run。按设备提示开启开发者模式并信任开发者。个人免费签名可能短期失效，按工具/Apple 实际限制处理。
+- 方式一：在 Mac 用 Xcode 打开生成工程，Signing & Capabilities 中选择自己的 Team、设置唯一 Bundle Identifier，并在 Build Settings 将 CODE_SIGNING_ALLOWED 改为 YES（或删去 project.yml 中的禁用签名项并重新生成工程），连接 iPhone 后 Run。按设备提示开启开发者模式并信任开发者。个人免费签名可能短期失效，按工具/Apple 实际限制处理。
 - 方式二：使用 Sideloadly、AltStore 等你信任的工具，以自己的 Apple ID 为 QingRead.ipa 重签并安装。按该工具流程配对/刷新。不要把 Apple ID、Token、证书私钥提交到本仓库。
 - 如使用证书签名：证书私钥与 profile 必须匹配、profile 包含设备 UDID、Bundle ID 和有效期；重签后验证包和所有嵌入组件。项目不提供或伪造签名材料。
 
 导入：文件 App 选择 TXT/EPUB → 分享 → 阅简（或“用阅简打开”）；也可在书架点击加号。系统文档打开入口依赖重签后 iOS 对文件类型的注册，需真机验证。书源在设置 → 书源管理中导入 JSON 文件、粘贴 JSON 或 HTTPS URL。
 
 未设置自定义亮度时保留系统亮度；退出阅读后恢复进入阅读器之前的亮度。应用卸载会删除本机数据，请保留书籍原文件。
+
+## 已验证产物
+
+1.0.0 / build 9，成功 run 43212305708，App 源码提交 a11e90b5a7e1c9b34feb797bccd0fabd0e5ed27e。
+
+SHA256：23a09654ba48923c845a7903d074c2b7c3837a8fb410506e84d8e5fadf019bbc。完整测试报告见 TEST_REPORT.md。
