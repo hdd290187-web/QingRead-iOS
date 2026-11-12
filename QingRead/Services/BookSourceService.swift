@@ -32,19 +32,20 @@ struct BookSourceService {
                 return result
             }
             let search = rules("ruleSearch"), info = rules("ruleBookInfo"), toc = rules("ruleToc"), content = rules("ruleContent")
-            for (field, rule) in search.merging(info, uniquingKeysWith: { $1 }).merging(toc, uniquingKeysWith: { $1 }).merging(content, uniquingKeysWith: { $1 }) where !rule.isEmpty {
+            for (field, rule) in [search, info, toc, content].flatMap({ Array($0) }) where !rule.isEmpty {
                 if rule.contains("@js:") || rule.contains("<js>") || rule.contains("{{") { issues.append("\(field)：不支持 JavaScript 或动态模板。") }
                 if rule.hasPrefix("//") || rule.contains("@XPath:") || rule.contains("@xpath:") { issues.append("\(field)：不支持 XPath。") }
                 if rule.contains("&&") || rule.contains("@put:") || rule.contains("@get:") || rule.contains("$..") || rule.contains("[?(") { issues.append("\(field)：不支持规则变量、并联或复杂 JSONPath。") }
                 if field == "nextContentUrl" || field == "nextTocUrl" { issues.append("\(field)：不支持网页分页抓取，请使用单页完整章节的书源。") }
             }
+            if let type = object["bookSourceType"] as? Int, type != 0 { issues.append("仅支持文字书源，不支持音频等其他类型。") }
             if object["loginUrl"] != nil || object["loginUi"] != nil { issues.append("不支持登录、验证码或 Cookie 书源。") }
             if searchURL.contains(",{\"") || searchURL.contains("<js>") || searchURL.contains("@js:") { issues.append("搜索仅支持 GET URL，不支持 POST 或签名脚本。") }
             let remainingTemplate = searchURL.replacingOccurrences(of: "{{key}}", with: "").replacingOccurrences(of: "{{page}}", with: "")
             if remainingTemplate.contains("{{") { issues.append("搜索模板仅支持 {{key}} 和 {{page}}。") }
             var headers = object["header"] as? [String: String] ?? [:]
             if let encoded = object["header"] as? String, let headerData = encoded.data(using: .utf8), let parsed = try? JSONDecoder().decode([String: String].self, from: headerData) { headers = parsed }
-            if headers.keys.contains(where: { ["cookie", "authorization"].contains($0.lowercased()) }) { issues.append("不支持含登录凭据的请求头。") }
+            if headers.keys.contains(where: { ["cookie", "authorization"].contains($0.lowercased()) }) { issues.append("不支持含登录凭据的请求头。"); headers = headers.filter { !["cookie", "authorization"].contains($0.key.lowercased()) } }
             return BookSource(name: name, baseURL: base, searchURL: searchURL, headers: headers, search: search, info: info, toc: toc, content: content, issues: Array(Set(issues)).sorted(), enabled: issues.isEmpty && (object["enabled"] as? Bool ?? true))
         }
     }
@@ -108,10 +109,15 @@ struct BookSourceService {
     func chapterText(url: URL, source: BookSource) async throws -> String {
         let data = try await fetch(url: url, headers: source.headers)
         let document = try RuleDocument(data: data, baseURL: url.absoluteString)
-        let content: String
+        var content: String
         if let rule = source.content["content"], !rule.isEmpty { content = try document.value(rule, preserveLines: true) }
         else if case .json(let object) = document.root { content = (object as? [String: Any])?["content"] as? String ?? (object as? [String: Any])?["text"] as? String ?? "" }
         else { content = try RuleDocument.cleanHTML(TXTParser.decode(data).text) }
+        if let replace = source.content["replaceRegex"], !replace.isEmpty {
+            let pieces = replace.components(separatedBy: "##")
+            let regex = try NSRegularExpression(pattern: pieces[0])
+            content = regex.stringByReplacingMatches(in: content, range: NSRange(content.startIndex..., in: content), withTemplate: pieces.count > 1 ? pieces[1] : "")
+        }
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ReaderError.message("正文为空，请检查书源正文规则。") }
         return content
     }

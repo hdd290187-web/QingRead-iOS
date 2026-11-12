@@ -90,12 +90,12 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         guard view.bounds.width > 80, view.bounds.height > 100 else { return }
-        if view.bounds.size != lastSize { lastSize = view.bounds.size; rebuild(at: session.position) }
+        if view.bounds.size != lastSize { lastSize = view.bounds.size; rebuild(at: pendingScrollPosition ?? session.position) }
     }
     func apply(settings newSettings: ReaderSettings) {
         guard newSettings != settings else { return }
         settings = newSettings
-        if isViewLoaded, lastSize != .zero { rebuild(at: session.position) }
+        if isViewLoaded, lastSize != .zero { rebuild(at: pendingScrollPosition ?? session.position) }
     }
     private var textSize: CGSize { CGSize(width: max(80, view.bounds.width - CGFloat(settings.sidePadding * 2)), height: max(60, view.bounds.height - 16)) }
     private func clearChildren() {
@@ -277,11 +277,19 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private func buildScroll() {
         let table = UITableView(frame: view.bounds, style: .plain)
         table.autoresizingMask = [.flexibleWidth, .flexibleHeight]; table.dataSource = self; table.delegate = self
-        table.separatorStyle = .none; table.backgroundColor = settings.theme.uiBackground; table.estimatedRowHeight = 600
-        table.contentInsetAdjustmentBehavior = .never; table.register(UITableViewCell.self, forCellReuseIdentifier: "paragraph")
+        table.separatorStyle = .none; table.backgroundColor = settings.theme.uiBackground; table.estimatedRowHeight = 600; table.rowHeight = UITableView.automaticDimension
+        table.contentInsetAdjustmentBehavior = .never; table.register(ScrollTextCell.self, forCellReuseIdentifier: "paragraph")
         self.table = table; scrollRows = []; appendScrollChapter(current.chapter); view.addSubview(table)
         let row = scrollRows.firstIndex { $0.chapter == current.chapter && $0.range.end > appliedPosition.characterOffset } ?? 0
-        if !scrollRows.isEmpty { table.scrollToRow(at: IndexPath(row: row, section: 0), at: .top, animated: false) }
+        if !scrollRows.isEmpty {
+            let path = IndexPath(row: row, section: 0)
+            table.scrollToRow(at: path, at: .top, animated: false); table.layoutIfNeeded()
+            if let cell = table.cellForRow(at: path) as? ScrollTextCell {
+                let localOffset = max(0, appliedPosition.characterOffset - scrollRows[row].range.start)
+                let y = table.rectForRow(at: path).minY + max(0, cell.y(for: localOffset) - 8)
+                table.setContentOffset(CGPoint(x: 0, y: min(y, max(0, table.contentSize.height - table.bounds.height))), animated: false)
+            }
+        }
     }
     private func appendScrollChapter(_ index: Int) {
         guard let layout = layouts[index], !scrollRows.contains(where: { $0.chapter == index }), let table else { return }
@@ -301,25 +309,25 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { scrollRows.count }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "paragraph", for: indexPath)
-        cell.selectionStyle = .none; cell.backgroundColor = settings.theme.uiBackground
-        var content = UIListContentConfiguration.cell(); content.attributedText = scrollRows[indexPath.row].attributed
-        content.textProperties.numberOfLines = 0; content.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 8, leading: settings.sidePadding, bottom: 8, trailing: settings.sidePadding)
-        cell.contentConfiguration = content; return cell
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "paragraph", for: indexPath) as? ScrollTextCell else { return UITableViewCell() }
+        cell.configure(text: scrollRows[indexPath.row].attributed, settings: settings)
+        return cell
     }
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard !rebuilding, let table, let row = table.indexPathsForVisibleRows?.first?.row, scrollRows.indices.contains(row) else { return }
         let item = scrollRows[row]
         current = PageAddress(chapter: item.chapter, page: layouts[item.chapter]?.page(containing: item.range.start) ?? 0)
-        let offset = table.contentOffset.y - table.rectForRow(at: IndexPath(row: row, section: 0)).minY
-        let fraction = min(1, max(0, offset / max(1, table.rectForRow(at: IndexPath(row: row, section: 0)).height)))
-        let anchor = item.range.start + Int(fraction * Double(item.range.length))
+        let path = IndexPath(row: row, section: 0)
+        let point = CGPoint(x: settings.sidePadding, y: table.contentOffset.y + 8)
+        let local = table.convert(point, to: table.cellForRow(at: path))
+        let offset = (table.cellForRow(at: path) as? ScrollTextCell)?.character(at: local) ?? 0
+        let anchor = min(item.range.end, item.range.start + offset)
         pendingScrollPosition = ReadingPosition(chapter: item.chapter, characterOffset: anchor, progression: session.progress(chapter: item.chapter, offset: anchor))
         if Date().timeIntervalSince(lastSave) > 1 { saveScrollPosition() }
         if row >= scrollRows.count - 3 || row < 3 { prepareNeighbors() }
     }
     private func saveScrollPosition() { if let pendingScrollPosition { session.report(pendingScrollPosition); lastSave = Date() } }
-    func flushPosition() { saveScrollPosition() }
+    func flushPosition() { if settings.mode == .scroll { saveScrollPosition() } }
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) { saveScrollPosition() }
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) { if !decelerate { saveScrollPosition() } }
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) { saveScrollPosition() }

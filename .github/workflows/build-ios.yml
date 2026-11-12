@@ -38,25 +38,35 @@ jobs:
       - name: Device Release build
         run: |
           set -euo pipefail
-          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Release -destination 'generic/platform=iOS' -sdk iphoneos -derivedDataPath "$RUNNER_TEMP/device" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" ARCHS=arm64 CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build 2>&1 | tee delivery/device-release.log
+          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Release -destination 'generic/platform=iOS' -sdk iphoneos -derivedDataPath "$RUNNER_TEMP/device" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" ARCHS=arm64 CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build 2>&1 | tee delivery/device-release.log
       - name: Run tests on iPhone Simulator
         run: |
           set -euo pipefail
           simulator_id="$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if v.get("isAvailable") and v["name"].startswith("iPhone")))')"
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/tests.log
+      - name: Export test screenshots and summary
+        if: always()
+        run: |
+          if test -d delivery/Tests.xcresult; then
+            xcrun xcresulttool get test-results summary --path delivery/Tests.xcresult > delivery/test-summary.json
+            xcrun xcresulttool export attachments --path delivery/Tests.xcresult --output-path delivery/screenshots
+          fi
       - name: Package unsigned arm64 IPA
         run: |
           set -euo pipefail
           app="$RUNNER_TEMP/device/Build/Products/Release-iphoneos/QingRead.app"
           test -f "$app/QingRead"
           test ! -e "$app/_CodeSignature/CodeResources"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")" = QingRead
+          test -f "$app/NotoSerifSC.ttf"
+          test -f "$app/Assets.car"
           lipo -archs "$app/QingRead" | tee delivery/architectures.txt
           lipo -archs "$app/QingRead" | grep -qw arm64
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           ditto "$app" "$RUNNER_TEMP/ipa/Payload/QingRead.app"
           (cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/delivery/QingRead.ipa" Payload)
           unzip -t delivery/QingRead.ipa
-          { printf 'version=1.0.0\nbuild=1\nminimum_ios=17.0\nsigning=unsigned\n'; printf 'commit=%s\nrun=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID"; xcodebuild -version; } > delivery/build-info.txt
+          { printf 'version=1.0.0\nbuild=%s\nminimum_ios=17.0\nsigning=unsigned\n' "$GITHUB_RUN_NUMBER"; printf 'commit=%s\nrun=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID"; xcodebuild -version; } > delivery/build-info.txt
           (cd delivery && shasum -a 256 QingRead.ipa > SHA256SUMS)
       - name: Upload build, logs and test evidence
         if: always()

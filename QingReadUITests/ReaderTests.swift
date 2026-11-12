@@ -68,6 +68,6 @@ final class ReaderTests: XCTestCase {
         let correctChapter = NSPredicate(format: "label == %@", "第2章 测试")
         expectation(for: correctChapter, evaluatedWith: app.staticTexts["reader.chapterTitle"])
         waitForExpectations(timeout: 10)
-        XCTAssertTrue(app.tables.firstMatch.cells.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "这是第2章")).firstMatch.exists)
+        XCTAssertTrue(app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "这是第2章")).firstMatch.exists)
     }
 }

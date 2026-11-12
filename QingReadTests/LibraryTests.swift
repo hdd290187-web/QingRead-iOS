@@ -55,3 +55,19 @@ final class LibraryTests: XCTestCase {
         XCTAssertNotNil(library.lastError)
     }
 }
+
+extension LibraryTests {
+    func testOversizedTXTIsRejectedBeforeDecoding() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let file = root.appendingPathComponent("oversized.txt")
+        XCTAssertTrue(FileManager.default.createFile(atPath: file.path, contents: Data()))
+        let handle = try FileHandle(forWritingTo: file)
+        try handle.truncate(atOffset: UInt64(TXTParser.maxFileSize + 1)); try handle.close()
+        let library = LibraryStore(rootURL: root.appendingPathComponent("library"))
+        let imported = await library.importFile(from: file)
+        XCTAssertNil(imported); XCTAssertTrue(library.books.isEmpty)
+        XCTAssertTrue(library.lastError?.contains("64 MB") ?? false)
+    }
+}

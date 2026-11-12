@@ -46,3 +46,18 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(ReadingPosition.self, from: JSONEncoder().encode(position)), position)
     }
 }
+
+extension CoreTests {
+    @MainActor func testFontAndTextKitCharacterAnchor() {
+        var settings = ReaderSettings(); settings.font = .serif
+        XCTAssertTrue(settings.uiFont.familyName.contains("Noto"))
+        let cell = ScrollTextCell(style: .default, reuseIdentifier: nil)
+        cell.frame = CGRect(x: 0, y: 0, width: 320, height: 900)
+        let text = String(repeating: "这是段落中的中文文字。\n", count: 12)
+        cell.configure(text: TextPaginator.attributed(text, settings: settings), settings: settings)
+        cell.layoutIfNeeded()
+        let y = cell.y(for: 40)
+        let offset = cell.character(at: CGPoint(x: settings.sidePadding, y: y + 3))
+        XCTAssertLessThanOrEqual(abs(offset - 40), 18)
+    }
+}
