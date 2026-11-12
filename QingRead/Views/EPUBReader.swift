@@ -75,7 +75,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
     }
     func navigator(_ navigator: Navigator, locationDidChange locator: Locator) {
         let href = locator.href.string.components(separatedBy: "#")[0]
-        let index = toc.lastIndex(where: { $0.href.url.absoluteString.components(separatedBy: "#")[0] == href }) ?? 0
+        let index = toc.lastIndex(where: { $0.href.components(separatedBy: "#")[0] == href }) ?? 0
         let json = try? locator.jsonString()
         session.report(ReadingPosition(chapter: index, locatorJSON: json, progression: locator.locations.totalProgression ?? 0), pageInfo: "\(Int((locator.locations.totalProgression ?? 0) * 100))%")
     }

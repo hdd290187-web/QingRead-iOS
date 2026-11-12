@@ -1,59 +1,76 @@
 import SwiftUI
+
 struct DiscoverView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var query = ""
     @State private var selectedSource: BookSource?
     @State private var results: [OnlineBook] = []
-    @State private var isSearching = false
+    @State private var busy = false
     @State private var message: String?
-    @State private var showSourceImporter = false
     @State private var selectedBook: Book?
-
     var body: some View {
         NavigationStack {
             List {
-                Section { HStack { Image(systemName: "magnifyingglass").foregroundStyle(.secondary); TextField("搜索小说", text: $query).submitLabel(.search).onSubmit { search() }; if isSearching { ProgressView() } else { Button { search() } label: { Image(systemName: "arrow.right.circle.fill") }.disabled(query.trimmingCharacters(in: .whitespaces).isEmpty || selectedSource == nil) } }.listRowBackground(Color.clear) }
-                Section("书源") {
-                    if library.sources.isEmpty { Text("请在设置中导入书源 JSON").foregroundStyle(.secondary) }
-                    ForEach(library.sources) { source in Button { selectedSource = source } label: { HStack { VStack(alignment: .leading) { Text(source.name); if !source.issues.isEmpty { Text("不兼容，已禁用").font(.caption).foregroundStyle(.orange) } }; Spacer(); if selectedSource?.id == source.id { Image(systemName: "checkmark") } } } }.disabled(!source.enabled)
+                Section {
+                    HStack {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        TextField("搜索小说", text: $query).submitLabel(.search).onSubmit(search)
+                        if busy { ProgressView() }
+                        else { Button(action: search) { Image(systemName: "arrow.right.circle.fill") }.accessibilityLabel("开始搜索").disabled(query.trimmingCharacters(in: .whitespaces).isEmpty || selectedSource == nil) }
+                    }
                 }
-                if !results.isEmpty { Section("搜索结果") { ForEach(results) { result in OnlineBookRow(result: result) { importOnline(result) } } } }
+                Section("书源") {
+                    if library.sources.isEmpty { NavigationLink("导入书源 JSON") { SourceManagerView() } }
+                    ForEach(library.sources) { source in
+                        Button { selectedSource = source } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(source.name)
+                                    if !source.issues.isEmpty { Text("不兼容，已禁用").font(.caption).foregroundStyle(.orange) }
+                                }
+                                Spacer()
+                                if selectedSource?.id == source.id { Image(systemName: "checkmark") }
+                            }
+                        }.disabled(!source.enabled || busy)
+                    }
+                }
+                if !results.isEmpty { Section("搜索结果") { ForEach(results) { result in OnlineBookRow(result: result) { open(result) }.disabled(busy) } } }
                 if let message { Section { Text(message).font(.footnote).foregroundStyle(.secondary) } }
             }
             .navigationTitle("找书")
             .toolbar { ToolbarItem(placement: .topBarTrailing) { NavigationLink { SourceGuideView() } label: { Image(systemName: "info.circle") }.accessibilityLabel("书源说明") } }
             .fullScreenCover(item: $selectedBook) { ReaderView(book: $0) }
+            .onAppear { if selectedSource == nil { selectedSource = library.sources.first(where: { $0.enabled }) } }
         }
     }
-
     private func search() {
-        guard let source = selectedSource else { return }
-        isSearching = true; message = nil
-        Task {
-            do { results = try await BookSourceService().search(query.trimmingCharacters(in: .whitespacesAndNewlines), source: source) }
-            catch { message = error.localizedDescription }
-            isSearching = false
-        }
+        guard !busy, let source = selectedSource, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        busy = true; message = nil; results = []
+        Task { defer { busy = false }; do { results = try await BookSourceService().search(query.trimmingCharacters(in: .whitespacesAndNewlines), source: source); if results.isEmpty { message = "没有找到结果，请检查关键字或书源规则。" } } catch { message = error.localizedDescription } }
     }
-
-    private func importOnline(_ item: OnlineBook) {
+    private func open(_ item: OnlineBook) {
+        busy = true; message = nil
         Task {
+            defer { busy = false }
             do {
                 let chapters = try await BookSourceService().chapters(for: item)
-                let book = Book(title: item.title, author: item.author, format: .online, chapters: chapters, source: item.source, originURL: item.detailURL)
+                let book = Book(title: item.title, author: item.author, format: .online, chapters: chapters, source: item.source, originURL: item.detailURL ?? item.contentURL)
                 selectedBook = library.add(book)
-            }
-            catch { message = "在线正文读取失败：\(error.localizedDescription)" }
+            } catch { message = "在线目录读取失败：\(error.localizedDescription)" }
         }
     }
 }
-
 struct OnlineBookRow: View {
     let result: OnlineBook
     let action: () -> Void
-    var body: some View { Button(action: action) { HStack { VStack(alignment: .leading, spacing: 4) { Text(result.title).font(.headline); Text(result.author).font(.subheadline).foregroundStyle(.secondary) }; Spacer(); Image(systemName: "arrow.down.circle") }.contentShape(Rectangle()) }.buttonStyle(.plain) }
+    var body: some View { Button(action: action) { HStack { VStack(alignment: .leading, spacing: 4) { Text(result.title).font(.headline); Text(result.author).font(.subheadline).foregroundStyle(.secondary) }; Spacer(); Image(systemName: "book") } }.buttonStyle(.plain) }
 }
-
 struct SourceGuideView: View {
-    var body: some View { List { Section("支持范围") { Text("支持简单 JSON 数组或 {books:[...]} 返回值，每项可包含 title、author、contentUrl。searchUrl 可使用 {{key}} 占位符。") }; Section("不兼容") { Text("复杂 XPath/CSS 规则、JavaScript 执行、登录态、动态签名、分页脚本和加密正文不会被执行，导入时会提示。") } }.navigationTitle("书源说明") }
+    var body: some View {
+        List {
+            Section("支持范围") { Text("Legado/阅读 3.0 的 CSS、class/id/tag 简写、@text/@href/@html、基础 JSONPath、## 正则清洗和 || 备选规则。支持 GET 搜索 {{key}} / {{page}}；目录和正文支持完整单页内容。") }
+            Section("不兼容") { Text("JavaScript、XPath、变量存取、POST、动态签名、登录/验证码、复杂 JSONPath 和网页多页拼接。导入时逐条标注并禁用相关书源。") }
+            Section("资源使用") { Text("只导入你有权访问的资源。阅读器尊重站点 robots.txt 禁止路径和 HTTP 限流；未内置盗版书源或完整小说。站点改版可能导致规则失效。") }
+        }.navigationTitle("书源说明")
+    }
 }
