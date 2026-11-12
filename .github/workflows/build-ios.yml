@@ -55,9 +55,9 @@ jobs:
           python3 scripts/stream-import-logs.py delivery/import-logs &
           monitor_pid=$!
           trap 'kill "$monitor_pid" 2>/dev/null || true; wait "$monitor_pid" 2>/dev/null || true' EXIT
-          test_args=()
+          test_args=(-parallel-testing-enabled NO)
           if test "$IMPORT_ONLY" = true; then test_args+=(-only-testing:QingReadUITests/DocumentImportTests); fi
-          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -parallel-testing-enabled NO -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" "${test_args[@]}" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/tests.log
+          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" "${test_args[@]}" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/tests.log
       - name: Export test screenshots and summary
         if: always()
         run: |

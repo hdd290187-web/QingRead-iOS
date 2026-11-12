@@ -88,7 +88,7 @@ struct LibraryView: View {
                 BookDocumentPicker(initialDirectory: importPickerInitialDirectory) { result in
                     query = ""
                     imports.consume(result, library: library)
-                }.interactiveDismissDisabled()
+                }
             }
             .onChange(of: imports.lastFeedback?.id) { _, _ in query = "" }
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }

@@ -35,8 +35,13 @@ try:
                 for device in devices:
                     uid = device['udid']
                     if uid in streams:
-                        continue
-                    output = (folder / (uid + '.log')).open('wb')
+                        old_process, old_output = streams[uid]
+                        if old_process.poll() is None:
+                            continue
+                        old_output.close()
+                    # XCTest can reboot the same device after the stream starts.
+                    # Reattach and append instead of losing the rest of the run.
+                    output = (folder / (uid + '.log')).open('ab')
                     command = ['xcrun', 'simctl', 'spawn', uid, 'log', 'stream',
                                '--style', 'compact', '--level', 'debug', '--predicate',
                                'subsystem == "com.hdd290187.qingread" OR subsystem CONTAINS "FileProvider" OR process CONTAINS "DocumentManager"']
