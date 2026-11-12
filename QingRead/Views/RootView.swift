@@ -82,11 +82,14 @@ struct LibraryView: View {
                     Button { withAnimation { showGrid.toggle() } } label: { Image(systemName: showGrid ? "list.bullet" : "square.grid.2x2") }.accessibilityLabel(showGrid ? "列表视图" : "网格视图")
                 }
             }
-            .fileImporter(isPresented: $imports.pickerPresented, allowedContentTypes: [.plainText, .epub], allowsMultipleSelection: true) { result in
-                query = ""
-                imports.consume(result, library: library)
+            .sheet(isPresented: $imports.pickerPresented, onDismiss: {
+                if !imports.awaitingImport && imports.status == nil { imports.cancelled() }
+            }) {
+                BookDocumentPicker(initialDirectory: importPickerInitialDirectory) { result in
+                    query = ""
+                    imports.consume(result, library: library)
+                }.interactiveDismissDisabled()
             }
-            .fileDialogDefaultDirectory(importPickerInitialDirectory)
             .onChange(of: imports.lastFeedback?.id) { _, _ in query = "" }
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
         }
