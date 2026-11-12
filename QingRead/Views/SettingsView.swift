@@ -70,7 +70,7 @@ struct SourceManagerView: View {
             }
             Section("已导入") {
                 ForEach(Array(library.sources.enumerated()), id: \.element.id) { _, source in
-                    VStack(alignment: .leading, spacing: 5) { Text(source.name).font(.headline); Text(source.compatibilityNote).font(.caption).foregroundStyle(source.issues.isEmpty ? .secondary : .orange) }
+                    VStack(alignment: .leading, spacing: 5) { Text(source.name).font(.headline); Text(source.compatibilityNote).font(.caption).foregroundStyle(source.issues.isEmpty ? Color.secondary : Color.orange) }
                 }
             }
         }.navigationTitle("书源管理")
