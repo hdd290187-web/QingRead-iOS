@@ -10,9 +10,10 @@ final class DocumentImportTests: XCTestCase {
     }
     @MainActor private func selectFile(_ name: String, app: XCUIApplication) {
         app.buttons["library.import"].tap()
-        let folder = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", "导入测试,")).firstMatch
+        let fileView = app.collectionViews["File View"]
+        let folder = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@", "导入测试,")).firstMatch
         if folder.waitForExistence(timeout: 3) { folder.tap() }
-        let file = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@ OR label == %@", name, (name as NSString).deletingPathExtension)).firstMatch
+        let file = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", name + ",", (name as NSString).deletingPathExtension + ",")).firstMatch
         guard file.waitForExistence(timeout: 15) else { XCTFail("系统 Files 选择器应展示 Documents 中的测试文件。\n" + app.debugDescription); return }
         file.tap()
         let open = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Open", "打开"])).firstMatch
@@ -41,7 +42,7 @@ final class DocumentImportTests: XCTestCase {
         app.buttons["返回书架"].tap()
         selectFile("系统文件测试.txt", app: app)
         XCTAssertTrue(done.waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts["import.result.message"].label.contains("阅读进度已保留"))
+        XCTAssertTrue(app.staticTexts["import.result.message"].label.contains("阅读进度已保留"), app.staticTexts["import.result.message"].label)
         done.tap()
         app.terminate(); app.launchArguments = []; app.launch()
         XCTAssertTrue(app.staticTexts["系统文件测试"].firstMatch.waitForExistence(timeout: 10))
