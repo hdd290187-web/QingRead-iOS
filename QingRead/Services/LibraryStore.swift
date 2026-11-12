@@ -12,6 +12,7 @@ final class LibraryStore: ObservableObject {
     private var drainingImports = false
     private var snapshotReadable = true
     private var pendingLocalIdentityMigration = false
+    private var activeImportID: UUID?
     let importEnvironment: ImportEnvironment
     private struct ImportJob {
         let urls: [URL]
@@ -139,6 +140,7 @@ final class LibraryStore: ObservableObject {
     private enum ImportOutcome { case success(ImportSuccess), failure(ImportFailure) }
     private func performImport(_ url: URL) async -> ImportOutcome {
         let id = UUID()
+        activeImportID = id
         let staging = root.appendingPathComponent("import-staging/\(id.uuidString)", isDirectory: true)
         let payload = staging.appendingPathComponent("payload", isDirectory: true)
         let finalDirectory = root.appendingPathComponent("books/\(id.uuidString)", isDirectory: true)
@@ -147,6 +149,7 @@ final class LibraryStore: ObservableObject {
         var moved = false
         var committed = false
         defer {
+            activeImportID = nil
             try? fm.removeItem(at: staging)
             if moved && !committed { try? fm.removeItem(at: finalDirectory) }
         }
@@ -160,7 +163,8 @@ final class LibraryStore: ObservableObject {
             advance(.stage)
             let document = try await importEnvironment.stage(url, staging) { [weak self] next in
                 Task { @MainActor in
-                    guard let self, var progress = self.importProgress else { return }
+                    guard let self, self.activeImportID == id, var progress = self.importProgress,
+                          [.permission, .download, .coordinate, .stage].contains(progress.stage) else { return }
                     progress.stage = next; self.importProgress = progress
                 }
             }
@@ -185,15 +189,21 @@ final class LibraryStore: ObservableObject {
                 prepared = PreparedLocalBook(book: Book(id: id, title: publication.metadata.title ?? url.deletingPathExtension().lastPathComponent, author: publication.metadata.authors.map(\.name).joined(separator: "、"), format: .epub, chapters: chapters, originalFile: original.path), identity: "epub:sha256:" + document.identity)
             }
             advance(.parse)
-            var updatedBooks = books
+            var identities: [UUID: String] = [:]
             // Migrate old local records in memory. The previous index is backed up
             // before the next successful atomic write; IDs, files and progress stay.
-            for index in updatedBooks.indices where updatedBooks[index].format != .online && updatedBooks[index].sourceIdentity == nil {
-                var identity: String?
-                let record = updatedBooks[index]
-                identity = await Task.detached(priority: .utility) { LocalBookImporter.legacyIdentity(for: record) }.value
-                updatedBooks[index].sourceIdentity = identity
-                if identity != nil { updatedBooks[index].originURL = nil; pendingLocalIdentityMigration = true }
+            for record in books where record.format != .online && record.sourceIdentity == nil {
+                identities[record.id] = await Task.detached(priority: .utility) { LocalBookImporter.legacyIdentity(for: record) }.value
+            }
+            // Only merge identity fields into the current library after awaits;
+            // a deletion or setting change during preparation must not be undone.
+            var updatedBooks = books
+            for index in updatedBooks.indices {
+                if let identity = identities[updatedBooks[index].id] {
+                    updatedBooks[index].sourceIdentity = identity
+                    updatedBooks[index].originURL = nil
+                    pendingLocalIdentityMigration = true
+                }
             }
             if let existing = updatedBooks.first(where: { $0.format == prepared.book.format && $0.sourceIdentity == prepared.identity }) {
                 advance(.commit)

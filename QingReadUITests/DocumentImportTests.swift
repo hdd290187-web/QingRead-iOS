@@ -26,7 +26,7 @@ final class DocumentImportTests: XCTestCase {
         let book = app.staticTexts["系统文件测试"].firstMatch
         XCTAssertTrue(book.waitForExistence(timeout: 5))
         book.tap()
-        let content = app.descendants(matching: .any)["reader.content"].firstMatch
+        let content = app.descendants(matching: .any).matching(identifier: "reader.content").firstMatch
         XCTAssertTrue(content.waitForExistence(timeout: 15))
         XCTAssertTrue((content.value as? String)?.contains("系统文件选择器") ?? false)
         app.buttons["返回书架"].tap()

@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import Combine
 
 @MainActor
 final class DocumentImportController: ObservableObject {
@@ -18,6 +19,7 @@ final class DocumentImportController: ObservableObject {
         pickerPresented = false
         switch result {
         case .success(let urls):
+            for url in urls { ImportDiagnostics.event("picker-selected", stage: .picker, url: url) }
             awaitingImport = true; status = "已选择文件，正在导入…"
             Task {
                 let result = await library.importFiles(from: urls)
@@ -37,6 +39,7 @@ final class DocumentImportController: ObservableObject {
     func cancelled() {
         pickerPresented = false; awaitingImport = false; status = "已取消导入"
         feedbackTask?.cancel(); feedback = nil
+        lastFeedback = nil
     }
     static func isCancellation(_ error: Error) -> Bool {
         if error is CancellationError { return true }

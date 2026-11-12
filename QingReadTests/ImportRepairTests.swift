@@ -152,3 +152,49 @@ final class ImportRepairTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent("library.json")), original)
     }
 }
+
+extension ImportRepairTests {
+    func testUnavailableCloudPlaceholderReportsDownloadStage() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let environment = ImportEnvironment(stage: { _, _, _ in
+            throw ImportPipelineError(stage: .download, reason: "iCloud 文件在等待期间未完成下载。", suggestion: "请先在‘文件’中下载到本机。", underlying: NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut))
+        }, beforeCommit: { _ in })
+        let library = LibraryStore(rootURL: directory, importEnvironment: environment)
+        let result = await library.importFiles(from: [directory.appendingPathComponent("未下载.txt")])
+        XCTAssertEqual(result.failures.first?.stage, .download)
+        XCTAssertEqual(result.failures.first?.errorCode, NSURLErrorTimedOut)
+        XCTAssertTrue(result.failures.first?.message.contains("下载到本机") ?? false)
+        XCTAssertTrue(library.books.isEmpty)
+    }
+    func testBinaryTextIsRejectedWithDecodeAdvice() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appendingPathComponent("binary.txt")
+        try Data([0, 1, 2, 3, 4, 5, 6, 7]).write(to: file)
+        let library = LibraryStore(rootURL: directory.appendingPathComponent("library"))
+        let result = await library.importFiles(from: [file])
+        XCTAssertEqual(result.failures.first?.stage, .decode)
+        XCTAssertTrue(result.failures.first?.message.contains("UTF-8") ?? false)
+        XCTAssertTrue(library.books.isEmpty)
+    }
+    func testEPUBDuplicateAcrossProviderCopiesKeepsLocator() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let fixture = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "OriginalFixture", withExtension: "epub"))
+        let renamed = directory.appendingPathComponent("另一个位置.epub")
+        try FileManager.default.copyItem(at: fixture, to: renamed)
+        let library = LibraryStore(rootURL: directory.appendingPathComponent("library"))
+        let result = await library.importFile(from: fixture)
+        let book = try XCTUnwrap(result)
+        let position = ReadingPosition(chapter: 1, locatorJSON: "saved-locator", progression: 0.5)
+        library.update(position: position, for: book)
+        let second = await library.importFiles(from: [renamed])
+        XCTAssertEqual(second.duplicates, [book.title]); XCTAssertEqual(library.books.count, 1)
+        XCTAssertEqual(library.position(for: book), position)
+        XCTAssertNil(book.originURL); XCTAssertNotNil(book.sourceIdentity)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: try XCTUnwrap(book.originalFile)))
+    }
+}

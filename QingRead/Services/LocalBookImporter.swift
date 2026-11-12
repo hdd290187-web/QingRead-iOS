@@ -14,6 +14,10 @@ struct LocalBookImporter {
         let decoded: (text: String, encoding: TXTEncoding)
         do { decoded = try TXTParser.decode(data) }
         catch { throw ImportPipelineError(stage: .decode, reason: error.localizedDescription, suggestion: "请将原文件另存为 UTF-8 纯文本后再试。", underlying: error) }
+        let controls = decoded.text.unicodeScalars.filter { CharacterSet.controlCharacters.contains($0) && $0 != "\n" && $0 != "\r" && $0 != "\t" }
+        if decoded.text.contains("\0") || controls.count > max(2, decoded.text.unicodeScalars.count / 50) {
+            throw ImportPipelineError(stage: .decode, reason: "文件包含过多二进制控制字符，无法作为小说正文读取。", suggestion: "请确认文件不是改后缀的 PDF/压缩包，并将纯文本另存为 UTF-8 后再试。", underlying: nil)
+        }
         let sections: [TXTSection]
         do { sections = try TXTParser.sections(from: decoded.text, title: title) }
         catch { throw ImportPipelineError(stage: .parse, reason: error.localizedDescription, suggestion: "请确认 TXT 不是空白文件且包含小说正文。", underlying: error) }

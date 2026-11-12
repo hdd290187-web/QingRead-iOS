@@ -86,7 +86,7 @@ enum ImportDiagnostics {
         let nsError = pipeline?.nsError ?? error as NSError
         let resolvedStage = pipeline?.stage ?? stage
         let reason = pipeline?.reason ?? userReason(nsError)
-        let suggestion = pipeline?.suggestion ?? suggestion(for: nsError, stage: resolvedStage, ext: url.pathExtension.lowercased())
+        let suggestion = pipeline?.suggestion ?? Self.suggestion(for: nsError, stage: resolvedStage, ext: url.pathExtension.lowercased())
         let token = String(SHA256Token.value(url.absoluteString).prefix(10))
         #if DEBUG
         logger.error("result=failure stage=\(resolvedStage.rawValue, privacy: .public) extension=\(url.pathExtension.lowercased(), privacy: .public) bytes=\(byteCount ?? -1) domain=\(nsError.domain, privacy: .public) code=\(nsError.code) file=\(token, privacy: .public)")
@@ -105,7 +105,7 @@ enum ImportDiagnostics {
     }
     static func userReason(_ error: NSError) -> String {
         switch (error.domain, error.code) {
-        case (NSCocoaErrorDomain, NSFileNoSuchFileError): "文件不存在或文件提供器已移除它。"
+        case (NSCocoaErrorDomain, NSFileNoSuchFileError), (NSCocoaErrorDomain, NSFileReadNoSuchFileError): "文件不存在或文件提供器已移除它。"
         case (NSCocoaErrorDomain, NSFileReadNoPermissionError), (NSCocoaErrorDomain, NSFileWriteNoPermissionError): "iOS 未授予文件读取权限。"
         case (NSCocoaErrorDomain, NSFileReadUnknownError): "无法读取此文件。"
         case (NSCocoaErrorDomain, NSFileReadCorruptFileError): "文件内容损坏或格式无效。"
