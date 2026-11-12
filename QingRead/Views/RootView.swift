@@ -77,10 +77,12 @@ struct LibraryView: View {
             .toolbar {
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--uitest-export-fixtures") {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button(imports.fixtureExportStatus ?? "准备 Files 测试文件") {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
                             imports.fixtureExportActive = true; imports.pickerPresented = true
-                        }.accessibilityIdentifier("import.fixtureExport")
+                        } label: { Image(systemName: "square.and.arrow.up") }
+                            .accessibilityLabel(imports.fixtureExportStatus ?? "准备 Files 测试文件")
+                            .accessibilityIdentifier("import.fixtureExport")
                     }
                 }
                 #endif
