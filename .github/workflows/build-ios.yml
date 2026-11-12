@@ -50,7 +50,8 @@ jobs:
           IMPORT_ONLY: ${{ inputs.import_only || false }}
         run: |
           set -euo pipefail
-          simulator_id="$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for a in d["devices"].values() for v in a if v.get("isAvailable") and v["name"].startswith("iPhone")))')"
+          xcrun simctl list devices available --json > delivery/available-simulators.json
+          simulator_id="$(python3 scripts/select-simulator.py delivery/available-simulators.json)"
           printf 'SIMULATOR_DEVICE_ID=%s\n' "$simulator_id" >> "$GITHUB_ENV"
           python3 scripts/stream-import-logs.py delivery/import-logs &
           monitor_pid=$!
