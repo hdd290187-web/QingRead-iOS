@@ -1,0 +1,14 @@
+{
+  "run": "43275314601",
+  "commit": "522029c45ddda10f5e0b5e2e4f3a342a0a39c00a",
+  "version": "1.0.0",
+  "build": "24",
+  "sdk": "iphoneos26.2",
+  "unsigned": true,
+  "arch": "arm64",
+  "testCount": 45,
+  "passed": 42,
+  "skippedHumanPending": 3,
+  "sha256": "6aed664b4dae148e410989598ea6a991e9166344c37de1c4666b216e8f0baedc",
+  "bytes": 23008841
+}

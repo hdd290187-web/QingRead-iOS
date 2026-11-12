@@ -1,4 +1,6 @@
-# 真实构建与测试报告
+# Build 9 历史构建与测试报告
+
+当前导入修复交付为 Build 24，请阅读 [本次报告](import-repair/BUILD24_REPORT.md)：42 通过、0 失败、3 个系统 Files 诊断跳过/HUMAN_PENDING。下面 24 项全通过仅是历史结果，不代表真实文件选择器已验证。
 
 日期：2026-11-12 UTC。App：阅简 QingRead 1.0.0，构建号 9，最低 iOS 17.0。
 

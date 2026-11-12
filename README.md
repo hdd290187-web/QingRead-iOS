@@ -1,5 +1,7 @@
 # 阅简 QingRead
 
+当前交付：1.0.0 Build 24，定点修复文件导入。真实 device Release 成功，42 项测试通过、0 失败、3 项系统 Files 诊断明确跳过并列 HUMAN_PENDING。用户原 TXT 和 iCloud/第三方提供器仍需真机复测。详见 [Build 24 报告](docs/import-repair/BUILD24_REPORT.md)。
+
 阅简是个人使用的原生中文 iPhone 小说阅读器。界面只保留书架、找书、设置三处入口；书籍、进度、书签、排版设置和已缓存正文保存在本机。
 
 ## 能力
@@ -22,7 +24,7 @@ xcodebuild -resolvePackageDependencies -project QingRead.xcodeproj -scheme QingR
 
 未签名 IPA 不能直接安装到普通 iPhone，需要有效的 Apple 开发者签名和描述文件。真机上的翻页跟手、屏幕亮度和不同尺寸安全区域仍需人工验收。
 
-## 已完成的验证与交付
+## Build 9 历史验证与交付
 
 GitHub Actions [run 43212305708](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43212305708) 已通过 iPhone arm64 Release 和 24 项模拟器测试（19 单元 + 5 UI），产出 1.0.0 / build 9 unsigned IPA。对应 App 源码提交为 a11e90b5a7e1c9b34feb797bccd0fabd0e5ed27e。本仓库同时保留成功构建生成的 QingRead.xcodeproj，可直接在 Mac 打开；project.yml 为可重复生成的工程定义。
 

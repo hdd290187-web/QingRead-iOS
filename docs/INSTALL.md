@@ -1,5 +1,7 @@
 # 构建、下载和安装
 
+当前新包：1.0.0 Build 24，成功 run 43275314601。请按与旧包一致的 Bundle ID/签名方式覆盖安装，保留数据，不要先卸载旧 App。IPA 为 unsigned，仍需有效签名。导入复测见 [三步复测](import-repair/RETEST.md)，实际测试限制见 [Build 24 报告](import-repair/BUILD24_REPORT.md)。
+
 源码：私有仓库 `hdd290187-web/QingRead-iOS`。最低 iOS 17.0，支持 iPhone 竖屏/横屏；无需 VPS 服务、云账号或服务器 API。
 
 ## 重新构建
@@ -31,7 +33,7 @@ unsigned IPA 无法直接安装到普通 iPhone。这是尚未由 Apple 签名�
 
 未设置自定义亮度时保留系统亮度；退出阅读后恢复进入阅读器之前的亮度。应用卸载会删除本机数据，请保留书籍原文件。
 
-## 已验证产物
+## Build 9 历史产物
 
 1.0.0 / build 9，成功 run 43212305708，App 源码提交 a11e90b5a7e1c9b34feb797bccd0fabd0e5ed27e。
 

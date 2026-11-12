@@ -1,0 +1,13 @@
+2026-11-12 17:19:10.153 Db LocalStorageFileProvider[6508:735c] [com.apple.FileProvider:com.apple.FileProvider.LocalStorage] [DEBUG] can't resolve did=3 [2: No such file or directory]
+2026-11-12 17:19:10.160 E  com.apple.DocumentManager.Service[6495:6df6] [com.apple.DocumentManager:Picker] Error while fetching item : The file doesn’t exist.
+2026-11-12 17:19:10.167 Db com.apple.DocumentManager.Service[6495:6dcd] [com.apple.DocumentManager:DocumentManager] DOCServiceDocumentBrowserViewController did Pick URLs []
+2026-11-12 17:19:10.167 Db com.apple.DocumentManager.Service[6495:6dcd] [com.apple.DocumentManager:DocumentManager] Notifying host about the picked documents []
+2026-11-12 17:20:36.425 Db QingRead[10804:a1ad] [com.hdd290187.qingread:document-import] event=picker-selected stage=选择文件 extension=txt bytes=-1 access=nil file=9de3ea7b
+2026-11-12 17:20:36.431 Db QingRead[10804:a1ad] [com.hdd290187.qingread:document-import] event=advance stage=复制到本机 extension=txt bytes=-1 access=nil file=9de3ea7b
+2026-11-12 17:20:36.434 Db QingRead[10804:b3c0] [com.hdd290187.qingread:document-import] event=security-scope stage=访问授权 extension=txt bytes=-1 access=Optional(true) file=9de3ea7b
+2026-11-12 17:20:36.445 Db QingRead[10804:b3c0] [com.hdd290187.qingread:document-import] event=staged stage=复制到本机 extension=txt bytes=122 access=Optional(true) file=9de3ea7b
+2026-11-12 17:20:36.502 Db QingRead[10804:a1ad] [com.hdd290187.qingread:document-import] event=advance stage=检查文件 extension=txt bytes=122 access=nil file=9de3ea7b
+2026-11-12 17:20:36.502 Db QingRead[10804:a1ad] [com.hdd290187.qingread:document-import] event=advance stage=识别文字编码 extension=txt bytes=122 access=nil file=9de3ea7b
+2026-11-12 17:20:36.540 Db QingRead[10804:a1ad] [com.hdd290187.qingread:document-import] event=advance stage=解析正文 extension=txt bytes=122 access=nil file=9de3ea7b
+2026-11-12 17:20:36.540 Db QingRead[10804:a1ad] [com.hdd290187.qingread:document-import] event=advance stage=保存到书架 extension=txt bytes=122 access=nil file=9de3ea7b
+2026-11-12 17:20:36.553 Db QingRead[10804:a1ad] [com.hdd290187.qingread:document-import] event=advance stage=导入完成 extension=txt bytes=122 access=nil file=9de3ea7b
