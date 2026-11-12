@@ -49,7 +49,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
     }
     private func preferences() -> EPUBPreferences {
         var prefs = EPUBPreferences()
-        prefs.fontSize = settings.fontSize / 16 * 100
+        prefs.fontSize = settings.fontSize / 16
         prefs.fontWeight = 1 + settings.fontWeight
         prefs.lineHeight = (settings.fontSize + settings.lineSpacing) / settings.fontSize
         prefs.paragraphSpacing = settings.paragraphSpacing / settings.fontSize
@@ -75,7 +75,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
     }
     func navigator(_ navigator: Navigator, locationDidChange locator: Locator) {
         let href = locator.href.string.components(separatedBy: "#")[0]
-        let index = toc.lastIndex(where: { $0.href.string.components(separatedBy: "#")[0] == href }) ?? 0
+        let index = toc.lastIndex(where: { $0.href.components(separatedBy: "#")[0] == href }) ?? 0
         let json = try? locator.jsonString()
         session.report(ReadingPosition(chapter: index, locatorJSON: json, progression: locator.locations.totalProgression ?? 0), pageInfo: "\(Int((locator.locations.totalProgression ?? 0) * 100))%")
     }

@@ -22,7 +22,7 @@ struct RootView: View {
         .tint(.primary)
         .onOpenURL { url in
             pendingURL = url
-            library.importFile(from: url)
+            Task { await library.importFile(from: url) }
             selectedTab = 0
         }
         .alert("导入失败", isPresented: Binding(get: { library.lastError != nil }, set: { if !$0 { library.lastError = nil } })) {
@@ -48,6 +48,7 @@ struct LibraryView: View {
             Group {
                 if filteredBooks.isEmpty { emptyState } else { bookList }
             }
+            .overlay { if library.isImporting { ProgressView("正在导入…").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) } }
             .navigationTitle("书架")
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索书名或作者")
             .toolbar {
@@ -59,7 +60,7 @@ struct LibraryView: View {
                 }
             }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [.plainText, .epub], allowsMultipleSelection: true) { result in
-                if case .success(let urls) = result { urls.forEach { library.importFile(from: $0) } }
+                if case .success(let urls) = result { Task { for url in urls { await library.importFile(from: url) } } }
             }
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
         }

@@ -15,7 +15,7 @@ struct DiscoverView: View {
                 Section { HStack { Image(systemName: "magnifyingglass").foregroundStyle(.secondary); TextField("搜索小说", text: $query).submitLabel(.search).onSubmit { search() }; if isSearching { ProgressView() } else { Button { search() } label: { Image(systemName: "arrow.right.circle.fill") }.disabled(query.trimmingCharacters(in: .whitespaces).isEmpty || selectedSource == nil) } }.listRowBackground(Color.clear) }
                 Section("书源") {
                     if library.sources.isEmpty { Text("请在设置中导入书源 JSON").foregroundStyle(.secondary) }
-                    ForEach(library.sources) { source in Button { selectedSource = source } label: { HStack { Text(source.name); Spacer(); if selectedSource?.id == source.id { Image(systemName: "checkmark") } } } }
+                    ForEach(library.sources) { source in Button { selectedSource = source } label: { HStack { VStack(alignment: .leading) { Text(source.name); if !source.issues.isEmpty { Text("不兼容，已禁用").font(.caption).foregroundStyle(.orange) } }; Spacer(); if selectedSource?.id == source.id { Image(systemName: "checkmark") } } } }.disabled(!source.enabled)
                 }
                 if !results.isEmpty { Section("搜索结果") { ForEach(results) { result in OnlineBookRow(result: result) { importOnline(result) } } } }
                 if let message { Section { Text(message).font(.footnote).foregroundStyle(.secondary) } }
@@ -41,7 +41,7 @@ struct DiscoverView: View {
             do {
                 let chapters = try await BookSourceService().chapters(for: item)
                 let book = Book(title: item.title, author: item.author, format: .online, chapters: chapters, source: item.source, originURL: item.detailURL)
-                library.add(book); selectedBook = book
+                selectedBook = library.add(book)
             }
             catch { message = "在线正文读取失败：\(error.localizedDescription)" }
         }

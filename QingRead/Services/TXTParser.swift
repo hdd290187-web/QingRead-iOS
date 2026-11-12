@@ -8,10 +8,10 @@ enum ReaderError: LocalizedError {
 enum TXTEncoding: String { case utf8 = "UTF-8", utf16 = "UTF-16", gb18030 = "GB18030/GBK" }
 struct TXTSection { var title: String; var text: String }
 struct TXTParser {
-    static let maxFileSize = 200 * 1024 * 1024
+    static let maxFileSize = 64 * 1024 * 1024
     static let chunkLimit = 24000
     static func decode(_ data: Data) throws -> (text: String, encoding: TXTEncoding) {
-        guard data.count <= maxFileSize else { throw ReaderError.message("文件超过 200 MB，请先拆分后导入。") }
+        guard data.count <= maxFileSize else { throw ReaderError.message("文件超过 64 MB，请先拆分后导入。") }
         if data.starts(with: [0xFF, 0xFE]) || data.starts(with: [0xFE, 0xFF]), let s = String(data: data, encoding: .utf16) { return (s, .utf16) }
         // BOM-less UTF-16 is detected from zero-byte distribution, before UTF-8.
         let sample = Array(data.prefix(1024))
