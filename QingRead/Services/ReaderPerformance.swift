@@ -45,7 +45,7 @@ final class ReaderPerformanceRecorder {
     func recordViewport(width: CGFloat, height: CGFloat, visibleLines: Int) {
         guard enabled else { return }
         lock.lock(); defer { lock.unlock() }
-        viewport = ["width": width, "height": height, "initialVisibleLines": visibleLines]
+        viewport = ["width": Double(width), "height": Double(height), "initialVisibleLines": visibleLines]
     }
     func begin(_ work: ReaderWork) -> OSSignpostIntervalState {
         signposter.beginInterval("ReaderWork", "operation=\(work.rawValue, privacy: .public)")
@@ -61,7 +61,8 @@ final class ReaderPerformanceRecorder {
         lock.lock(); defer { lock.unlock() }
         func summarize(_ samples: [Double]) -> [String: Any] {
             let sorted = samples.sorted()
-            return ["count": samples.count, "totalMs": samples.reduce(0, +), "maxMs": sorted.last ?? 0,
+            let maximum: Double = sorted.last ?? 0
+            return ["count": samples.count, "totalMs": samples.reduce(0, +), "maxMs": maximum,
                     "p95Ms": sorted.isEmpty ? 0 : sorted[min(sorted.count - 1, Int(Double(sorted.count - 1) * 0.95))]]
         }
         return ["operations": operations.mapValues(summarize), "mainThreadOperations": mainOperations.mapValues(summarize), "viewport": viewport]
@@ -113,9 +114,11 @@ final class ReaderFrameProbe: NSObject {
         guard ReaderPerformanceRecorder.shared.enabled else { return }
         var report = ReaderPerformanceRecorder.shared.snapshot()
         let sorted = frames.sorted()
+        let frameMaximum: Double = sorted.last ?? 0
+        let frameP95: Double = sorted.isEmpty ? 0 : sorted[min(sorted.count - 1, Int(Double(sorted.count - 1) * 0.95))]
         report["activeScrollFrames"] = frames.count
-        report["frameP95Ms"] = sorted.isEmpty ? 0 : sorted[min(sorted.count - 1, Int(Double(sorted.count - 1) * 0.95))]
-        report["frameMaxMs"] = sorted.last ?? 0
+        report["frameP95Ms"] = frameP95
+        report["frameMaxMs"] = frameMaximum
         report["framesOver1_5Budgets"] = zip(frames, budgets).filter { $0.0 > $0.1 * 1.5 }.count
         report["peakResidentBytes"] = peakResidentBytes
         report["environment"] = "\(UIDevice.current.model) / iOS \(UIDevice.current.systemVersion)"
@@ -127,7 +130,8 @@ final class ReaderFrameProbe: NSObject {
         report["fixture"] = ProcessInfo.processInfo.arguments.first { $0.hasPrefix("--uitest-performance=") }?.components(separatedBy: "=").last ?? "manual"
         report["baseline"] = ProcessInfo.processInfo.arguments.contains("--reader-baseline")
         let immutableReport = report
-        guard let data = try? JSONSerialization.data(withJSONObject: immutableReport, options: [.prettyPrinted, .sortedKeys]) else { return }
+        guard JSONSerialization.isValidJSONObject(immutableReport),
+              let data = try? JSONSerialization.data(withJSONObject: immutableReport, options: [.prettyPrinted, .sortedKeys]) else { return }
         let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("ReaderPerformance", isDirectory: true)
         let fixture = immutableReport["fixture"] as? String ?? "manual"
         let variant = immutableReport["baseline"] as? Bool == true ? "baseline" : "optimized"

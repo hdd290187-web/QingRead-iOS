@@ -28,7 +28,11 @@ final class ReaderPerformanceTests: XCTestCase {
         XCTAssertEqual(layout.length, text.utf16.count)
         XCTAssertLessThan(layout.chunks.count, 100)
         XCTAssertEqual(layout.chunks.map(\.attributed.string).joined(), text)
+        ReaderPerformanceRecorder.shared.recordViewport(width: 375, height: 640, visibleLines: 18)
         let report = ReaderPerformanceRecorder.shared.snapshot()
+        let validReport = JSONSerialization.isValidJSONObject(report)
+        XCTAssertTrue(validReport, "性能报告必须仅包含可序列化的数值和容器")
+        if validReport { _ = try JSONSerialization.data(withJSONObject: report) }
         let main = try XCTUnwrap(report["mainThreadOperations"] as? [String: Any])
         let all = try XCTUnwrap(report["operations"] as? [String: Any])
         XCTAssertNil(main["scrollLayout"]); XCTAssertNil(main["attributedText"])
@@ -47,6 +51,7 @@ final class ReaderPerformanceTests: XCTestCase {
             let manager = cell.textView.layoutManager
             let tail = chunk.range.end < layout.length ? manager.extraLineFragmentRect.minY : manager.extraLineFragmentRect.maxY
             let measured = ceil(max(manager.usedRect(for: cell.textView.textContainer).maxY, tail))
+            print("ReaderTextKit: workerHeight=\(chunk.height) visibleHeight=\(measured) width=\(cell.textView.textContainer.size.width) leading=\(manager.usesFontLeading) lines=\(chunk.lines.count)")
             XCTAssertEqual(chunk.height, measured, accuracy: 1.1)
             if let line = chunk.lines.dropFirst(3).first {
                 XCTAssertEqual(chunk.character(atY: line.y + 1), line.start)

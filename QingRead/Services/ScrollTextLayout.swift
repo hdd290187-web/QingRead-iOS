@@ -52,6 +52,8 @@ struct ScrollChapterLayout {
                     let immutable = NSAttributedString(attributedString: substring)
                     let storage = NSTextStorage(attributedString: immutable)
                     let manager = NSLayoutManager()
+                    manager.usesFontLeading = false
+                    manager.allowsNonContiguousLayout = false
                     let container = NSTextContainer(size: CGSize(width: max(80, width - settings.sidePadding * 2), height: .greatestFiniteMagnitude))
                     container.lineFragmentPadding = 0
                     manager.addTextContainer(container); storage.addLayoutManager(manager)

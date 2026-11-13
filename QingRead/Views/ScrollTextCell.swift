@@ -7,6 +7,8 @@ final class ScrollTextCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         selectionStyle = .none
         textView.isEditable = false; textView.isSelectable = false; textView.isScrollEnabled = false
+        textView.layoutManager.usesFontLeading = false
+        textView.layoutManager.allowsNonContiguousLayout = false
         textView.textContainer.lineFragmentPadding = 0
         textView.backgroundColor = .clear
         textView.translatesAutoresizingMaskIntoConstraints = false

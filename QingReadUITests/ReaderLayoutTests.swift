@@ -7,6 +7,15 @@ final class ReaderLayoutTests: XCTestCase {
     @MainActor private func reveal(_ app: XCUIApplication) {
         if !app.buttons["返回书架"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap() }
     }
+    @MainActor private func scrollAnchor(_ table: XCUIElement) -> (chapter: Int, offset: Int) {
+        let parts = (table.value as? String ?? "").split(separator: ":").compactMap { Int($0) }
+        XCTAssertEqual(parts.count, 2, "滚动视口必须提供实际提交的字符锚点")
+        return (parts.first ?? -1, parts.last ?? -1)
+    }
+    @MainActor private func scrollTo(_ element: XCUIElement, app: XCUIApplication) {
+        for _ in 0..<4 { if element.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(element.isHittable)
+    }
     @MainActor func testAllModesImmersionOverlayAndLandscape() {
         defer { XCUIDevice.shared.orientation = .portrait }
         for mode in ["slide", "cover", "curl", "scroll"] {
@@ -78,5 +87,42 @@ final class ReaderLayoutTests: XCTestCase {
         app.terminate(); app.launchArguments = []; app.launch()
         XCTAssertTrue(book.waitForExistence(timeout: 15)); book.tap()
         XCTAssertTrue(content.waitForExistence(timeout: 15)); XCTAssertEqual(content.value as? String, reflowed)
+
+        reveal(app); app.buttons["reader.settings"].tap()
+        let scrollMode = app.buttons["settings.mode.scroll"]
+        scrollTo(scrollMode, app: app); scrollMode.tap()
+        app.buttons["reader.settings.done"].tap()
+        let table = app.tables.firstMatch
+        XCTAssertTrue(table.waitForExistence(timeout: 15))
+        if app.buttons["返回书架"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap() }
+        let initial = table.value as? String
+        table.swipeUp()
+        expectation(for: NSPredicate { _, _ in (table.value as? String) != initial }, evaluatedWith: nil)
+        waitForExpectations(timeout: 15)
+        let scrollBefore = scrollAnchor(table)
+
+        reveal(app); app.buttons["reader.settings"].tap()
+        XCTAssertTrue(app.sliders["settings.fontSize"].waitForExistence(timeout: 5))
+        app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition: 0.35)
+        let relaxed = app.buttons["settings.line.12"]
+        scrollTo(relaxed, app: app); relaxed.tap()
+        let cream = app.buttons["settings.theme.cream"]
+        scrollTo(cream, app: app); cream.tap()
+        app.buttons["reader.settings.done"].tap()
+        XCTAssertTrue(table.waitForExistence(timeout: 15))
+        let scrollAfter = scrollAnchor(table)
+        XCTAssertEqual(scrollAfter.chapter, scrollBefore.chapter)
+        XCTAssertLessThanOrEqual(scrollAfter.offset, scrollBefore.offset)
+        XCTAssertLessThanOrEqual(scrollBefore.offset - scrollAfter.offset, 40, "字号和行距重排应恢复到原锚点所在行")
+        XCUIDevice.shared.press(.home); app.activate()
+        XCTAssertEqual(scrollAnchor(table).offset, scrollAfter.offset)
+        attach(app, "滚动-字号行距主题-字符锚点恢复")
+        reveal(app); app.buttons["返回书架"].tap()
+        app.terminate(); app.launchArguments = []; app.launch()
+        XCTAssertTrue(book.waitForExistence(timeout: 15)); book.tap()
+        XCTAssertTrue(table.waitForExistence(timeout: 15))
+        let reopened = scrollAnchor(table)
+        XCTAssertEqual(reopened.chapter, scrollAfter.chapter)
+        XCTAssertEqual(reopened.offset, scrollAfter.offset)
     }
 }

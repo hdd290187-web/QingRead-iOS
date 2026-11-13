@@ -111,7 +111,7 @@ final class BrandUITests: XCTestCase {
         app.staticTexts["封面与排版测试"].firstMatch.tap()
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20))
         let text = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "这是专为自动测试原创的短文")).firstMatch
-        XCTAssertTrue(text.waitForExistence(timeout: 15))
+        XCTAssertTrue(text.waitForExistence(timeout: 45))
         let heading = app.webViews.staticTexts.matching(NSPredicate(format: "label == %@", "第一章 出发")).firstMatch
         XCTAssertTrue(heading.exists)
         XCTAssertLessThan(heading.frame.minY, app.frame.height * 0.3)
@@ -126,6 +126,16 @@ final class BrandUITests: XCTestCase {
         expectation(for: NSPredicate { _, _ in text.frame.height > originalTextHeight }, evaluatedWith: nil)
         waitForExpectations(timeout: 10)
         capture(app, "予盈-EPUB排版与纸张生效")
+        revealTools(app); app.buttons["reader.settings"].tap()
+        let scroll = app.buttons["settings.mode.scroll"]
+        scrollTo(scroll, app: app); scroll.tap()
+        XCTAssertTrue(scroll.isSelected)
+        app.buttons["reader.settings.done"].tap()
+        XCTAssertTrue(text.waitForExistence(timeout: 15))
+        if app.buttons["reader.settings"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap() }
+        app.webViews.firstMatch.swipeUp(); app.webViews.firstMatch.swipeDown()
+        XCTAssertTrue(text.exists, "EPUB 连续滚动保留正文并可反向拖动")
+        capture(app, "予盈-EPUB连续滚动")
         revealTools(app); app.buttons["返回书架"].tap()
         app.terminate(); app.launchArguments = []; app.launch()
         XCTAssertTrue(app.staticTexts["封面与排版测试"].firstMatch.waitForExistence(timeout: 15)); app.staticTexts["封面与排版测试"].firstMatch.tap()

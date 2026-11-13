@@ -1,18 +1,17 @@
 {
-  "status": "IMPLEMENTED_PENDING_IOS_VALIDATION",
+  "status": "FIXES_PENDING_TARGETED_MACOS_REGRESSION",
   "baselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
   "repoVisibility": "Public",
   "publicationAudit": "APPROVED_FOR_PUBLICATION",
   "newActionsRun": {
-    "id": 43387462670,
-    "build": 33,
-    "headSha": "d8b730a0f0cec70eda2a1ef2d599927249f85dcd",
-    "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43387462670",
-    "status": "CANCELLED_FOR_TEST_FIX",
+    "id": 43388748089,
+    "build": 34,
+    "headSha": "7934a48d5e1a31a5b94d2c58520ad20588992c47",
+    "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43388748089",
+    "status": "CANCELLED_WITH_REAL_TEST_FAILURES_OBSERVED",
     "deviceReleaseCompilation": "PASS",
     "runner": "macos-15",
-    "import_only": false,
-    "reason": "Release compilation passed. Correct the new row-height test to select scroll mode before repeating full validation; no production failure is inferred from the cancellation."
+    "import_only": false
   },
   "newIPA": null,
   "baselineIPA": {
@@ -38,13 +37,13 @@
       "status": "PASS"
     },
     "repositoryResourcesAndScripts": "PASS",
-    "xcodeCompilation": "NOT_RUN",
-    "xctest": "NOT_RUN",
+    "xcodeCompilation": "PASS_RELEASE_AND_DEBUG_BUILD34",
+    "xctest": "FAILED_PARTIAL_BUILD34",
     "workflowYAMLAndShell": "PASS",
     "criticalImportAndStorageFilesUnchanged": 7
   },
   "performanceComparison": {
-    "status": "NOT_RUN",
+    "status": "NOT_COMPLETED_REPORT_SERIALIZATION_FIX_REQUIRED",
     "sameDeviceWorkloads": [
       "short",
       "long",
@@ -59,5 +58,11 @@
     "real iPhone scroll/frame/thermal/touch profiling",
     "same-signature upgrade data preservation"
   ],
-  "implementationCommit": "b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970"
+  "implementationCommit": "b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970",
+  "observedFailures": [
+    "Worker/display TextKit row-height mismatch",
+    "Character anchor drift during repeated font-size reflow",
+    "DEBUG performance report JSON serialization exception on reader exit",
+    "EPUB cold-start content appeared after initial 15-second UI wait"
+  ]
 }

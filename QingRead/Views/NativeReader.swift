@@ -75,6 +75,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private var lastSize = CGSize.zero
     private var loadGeneration = 0
     private var appliedPosition: ReadingPosition
+    private var reflowAnchor: ReadingPosition?
     private var transitioning = false
     private var coverCurrent: PrintedPage?
     private var coverTarget: PrintedPage?
@@ -94,7 +95,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         super.viewDidLoad(); view.backgroundColor = settings.theme.uiBackground
         session.engine = self
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (controller: NativeReaderController, _: UITraitCollection) in
-            if controller.settings.theme == .system { controller.rebuild(at: controller.session.position) }
+            if controller.settings.theme == .system { controller.reflow() }
         }
         let tap = UITapGestureRecognizer(target: self, action: #selector(tapped(_:)))
         tap.cancelsTouchesInView = false; tap.delegate = self; view.addGestureRecognizer(tap)
@@ -102,7 +103,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         guard view.bounds.width > 80, view.bounds.height > 100 else { return }
-        if view.bounds.size != lastSize { lastSize = view.bounds.size; rebuild(at: pendingScrollPosition ?? session.position) }
+        if view.bounds.size != lastSize { lastSize = view.bounds.size; reflow() }
     }
     func apply(settings newSettings: ReaderSettings) {
         guard newSettings != settings else { return }
@@ -115,7 +116,12 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             table?.visibleCells.compactMap { $0 as? ScrollTextCell }.forEach { $0.applyTheme(settings) }
             return
         }
-        if isViewLoaded, lastSize != .zero { rebuild(at: pendingScrollPosition ?? session.position) }
+        if isViewLoaded, lastSize != .zero { reflow() }
+    }
+    private func reflow() {
+        let anchor = reflowAnchor ?? pendingScrollPosition ?? session.position
+        reflowAnchor = anchor
+        rebuild(at: anchor)
     }
     private var textSize: CGSize { CGSize(width: max(80, view.bounds.width - CGFloat(settings.sidePadding * 2)), height: max(60, view.bounds.height - 16)) }
     private func clearChildren() {
@@ -163,7 +169,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
                 if let pages = chapter.pages, let first = pages.ranges.first {
                     let frame = CTFramesetterCreateFrame(pages.framesetter, CFRange(location: first.start, length: first.length), CGPath(rect: CGRect(origin: .zero, size: pages.size), transform: nil), nil)
                     visibleLines = CFArrayGetCount(CTFrameGetLines(frame))
-                } else { visibleLines = chapter.scroll?.chunks.first?.lines.filter { $0.y < view.bounds.height - 16 }.count ?? 0 }
+                } else { visibleLines = chapter.scroll?.chunks.first?.lines.filter { $0.y < self.view.bounds.height - 16 }.count ?? 0 }
                 ReaderPerformanceRecorder.shared.recordViewport(width: view.bounds.width, height: view.bounds.height, visibleLines: visibleLines)
                 #endif
                 rebuilding = true
@@ -251,10 +257,11 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) { transitioning = true }
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
         transitioning = false
-        if completed, let page = pageViewController.viewControllers?.first as? PrintedPage { current = page.address; reportCurrent(); prepareNeighbors() }
+        if completed, let page = pageViewController.viewControllers?.first as? PrintedPage { reflowAnchor = nil; current = page.address; reportCurrent(); prepareNeighbors() }
     }
     func move(forward: Bool) {
         guard !transitioning else { return }
+        reflowAnchor = nil
         if settings.mode == .scroll, let table { table.setContentOffset(CGPoint(x: 0, y: min(max(-table.adjustedContentInset.top, table.contentOffset.y + (forward ? 1 : -1) * table.bounds.height * 0.85), max(0, table.contentSize.height - table.bounds.height))), animated: true); return }
         guard let target = neighbor(of: current, forward: forward), let page = printed(target) else {
             let chapter = current.chapter + (forward ? 1 : -1)
@@ -269,7 +276,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             }
         } else { startCover(target: page, forward: forward); finishCover(commit: true, duration: 0.24) }
     }
-    func navigate(to position: ReadingPosition) { rebuild(at: position) }
+    func navigate(to position: ReadingPosition) { reflowAnchor = nil; rebuild(at: position) }
     private func reportCurrent() {
         guard let layout = layouts[current.chapter], layout.ranges.indices.contains(current.page) else { return }
         let range = layout.ranges[current.page]
@@ -328,7 +335,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         } completion: { _ in
             let removed = commit ? self.coverCurrent : target
             removed?.willMove(toParent: nil); removed?.view.removeFromSuperview(); removed?.removeFromParent()
-            if commit { self.coverCurrent = target; self.current = target.address; self.reportCurrent(); self.prepareNeighbors() }
+            if commit { self.reflowAnchor = nil; self.coverCurrent = target; self.current = target.address; self.reportCurrent(); self.prepareNeighbors() }
             self.coverCurrent?.view.transform = .identity; self.coverTarget = nil; self.transitioning = false
         }
     }
@@ -405,6 +412,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         ReaderPerformance.measure(.scrollCallback) { updateScrollPosition() }
     }
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { reflowAnchor = nil }
     private func updateScrollPosition() {
         guard !rebuilding, let table, let path = table.indexPathsForVisibleRows?.min(), scrollRows.indices.contains(path.row) else { return }
         let item = scrollRows[path.row]
@@ -423,6 +431,11 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private func saveScrollPosition() {
         guard let pendingScrollPosition else { return }
         session.report(pendingScrollPosition)
+        #if DEBUG
+        // Stable, text-free position diagnostic for restoration regressions.
+        // Updated only at commit boundaries, never for every scrolling frame.
+        table?.accessibilityValue = "\(pendingScrollPosition.chapter):\(pendingScrollPosition.characterOffset)"
+        #endif
     }
     func flushPosition() {
         if settings.mode == .scroll { updateScrollPosition(); saveScrollPosition() }
