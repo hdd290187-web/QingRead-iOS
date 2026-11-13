@@ -23,6 +23,7 @@ final class CloudAPIClient: @unchecked Sendable {
         self.configuration = configuration
         session = URLSession(configuration: configuration, delegate: CloudRedirectGuard(), delegateQueue: nil)
     }
+    deinit { session.invalidateAndCancel() }
     static func isValidToken(_ token: String) -> Bool {
         token.hasPrefix("yy_") && (50...200).contains(token.count) &&
         token.utf8.allSatisfy { (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || $0 == 45 || $0 == 95 }
@@ -31,7 +32,12 @@ final class CloudAPIClient: @unchecked Sendable {
         guard path.hasPrefix("/api/v1/"), !path.contains("?"), !path.contains("#"), !path.contains("..") else { throw CloudError.invalidResponse }
         var parts = URLComponents(url: Self.origin, resolvingAgainstBaseURL: false)!
         parts.path = path
-        if !query.isEmpty { parts.queryItems = query }
+        if !query.isEmpty {
+            parts.queryItems = query
+            // The server decodes form-style query parameters. Preserve literal +
+            // in returned ISO8601 cursor offsets and in book search terms.
+            parts.percentEncodedQuery = parts.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        }
         guard let url = parts.url, url.scheme == "https", url.host == Self.origin.host else { throw CloudError.invalidResponse }
         guard let credential = try token ?? tokens.read(), Self.isValidToken(credential) else { throw CloudError.disconnected }
         var request = URLRequest(url: url)

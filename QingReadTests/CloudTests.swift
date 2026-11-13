@@ -183,10 +183,11 @@ final class CloudTests: XCTestCase {
     }
 
     func testChangesUsesBothCursorFields() async throws {
-        let client = client(); let id = UUID(); let since = "2026-11-13T12:00:00.123Z"
+        let client = client(); let id = UUID(); let since = "2026-11-13T12:00:00.123456+00:00"
         let payload = try json(CloudChanges(items: [.init(id: id, updatedAt: since, deletedAt: since, revision: 3)], hasMore: false, next: .init(since: since, afterId: id)))
         CloudStubProtocol.reply = { request in
             XCTAssertEqual(request.url!.path, "/api/v1/changes")
+            XCTAssertTrue(request.url!.absoluteString.contains("%2B"))
             let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!.queryItems!
             XCTAssertEqual(query.first(where: { $0.name == "since" })?.value, since)
             XCTAssertEqual(query.first(where: { $0.name == "after_id" })?.value, id.uuidString)
