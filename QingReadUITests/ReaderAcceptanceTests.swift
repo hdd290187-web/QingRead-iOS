@@ -1,6 +1,15 @@
 import XCTest
 
+@MainActor
 final class ReaderAcceptanceTests: XCTestCase {
+    override func setUpWithError() throws { continueAfterFailure = false; XCUIDevice.shared.orientation = .portrait }
+    private func awaitOrientation(_ app: XCUIApplication, landscape: Bool) {
+        expectation(for: NSPredicate { _, _ in
+            let frame = app.frame
+            return landscape ? frame.width > frame.height : frame.height > frame.width
+        }, evaluatedWith: nil)
+        waitForExpectations(timeout: 15)
+    }
     @MainActor private func element(_ app: XCUIApplication, _ id: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: id).firstMatch
     }
@@ -30,8 +39,10 @@ final class ReaderAcceptanceTests: XCTestCase {
     }
     @MainActor private func open(_ mode: String) -> XCUIApplication {
         let app = XCUIApplication()
+        XCUIDevice.shared.orientation = .portrait
         app.launchArguments = ["--uitest-reset", "--uitest-seed", "--uitest-mode=" + mode]
         app.launch()
+        awaitOrientation(app, landscape: false)
         let book = app.staticTexts["原创阅读测试"].firstMatch
         XCTAssertTrue(book.waitForExistence(timeout: 20)); book.tap()
         XCTAssertTrue(element(app, mode == "scroll" ? "reader.scrollViewport" : "reader.content").waitForExistence(timeout: 30))
@@ -75,8 +86,8 @@ final class ReaderAcceptanceTests: XCTestCase {
     }
     @MainActor private func progressAndViewport(mode: String, landscape: Bool) {
         let app = open(mode)
-        if landscape { XCUIDevice.shared.orientation = .landscapeLeft }
-        defer { XCUIDevice.shared.orientation = .portrait }
+        if landscape { XCUIDevice.shared.orientation = .landscapeLeft; awaitOrientation(app, landscape: true) }
+        defer { XCUIDevice.shared.orientation = .portrait; awaitOrientation(app, landscape: false) }
         let viewport = element(app, mode == "scroll" ? "reader.scrollViewport" : "reader.content")
         let progress = element(app,"reader.compactProgress")
         XCTAssertTrue(progress.waitForExistence(timeout: 10))
@@ -106,7 +117,7 @@ final class ReaderAcceptanceTests: XCTestCase {
     @MainActor func testOpenPanelLiveTextLayoutThemeAndRealFontPicker() {
         let app=XCUIApplication()
         app.launchArguments=["--uitest-reset","--uitest-integrity=short","--reader-integrity"]
-        app.launch(); let book=app.staticTexts["滚动顺序回归样本"].firstMatch
+        app.launch(); awaitOrientation(app, landscape: false); let book=app.staticTexts["滚动顺序回归样本"].firstMatch
         XCTAssertTrue(book.waitForExistence(timeout:30));book.tap()
         let table=app.tables.matching(identifier:"reader.scrollViewport").firstMatch
         XCTAssertTrue(table.waitForExistence(timeout:30))

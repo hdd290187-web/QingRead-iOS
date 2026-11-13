@@ -10,6 +10,7 @@ private struct ReaderHost: View {
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var showContents = false
     @State private var showSettings = false
     @State private var showBookmarks = false
@@ -66,6 +67,9 @@ private struct ReaderHost: View {
         } message: { Text(session.error ?? "") }
         .onChange(of: library.settings) { _, _ in applyBrightness(); session.applySettings() }
         .onChange(of: scenePhase) { _, phase in if phase != .active { session.flush() } }
+        .onChange(of: verticalSizeClass) { _, size in
+            if size == .compact { settingsDetent = .fraction(0.78) }
+        }
         .onAppear { library.readerOpened(session.book.id); originalBrightness = UIScreen.main.brightness; applyBrightness() }
         .onDisappear { library.readerClosed(session.book.id); session.flush(); if let originalBrightness { UIScreen.main.brightness = originalBrightness } }
     }
@@ -75,7 +79,7 @@ private struct ReaderHost: View {
                 tool("返回书架", icon: "chevron.left") { dismiss() }
                 Text(session.book.title).font(.system(size: 12)).foregroundStyle(foreground.opacity(0.5)).lineLimit(1).padding(.horizontal, 8)
                 Spacer(minLength: 4)
-                Button { session.settingsPreviewActive = true; showSettings = true } label: { Text("Aa").font(.system(size: 20, weight: .regular)).frame(width: 44, height: 44) }
+                Button { openSettings() } label: { Text("Aa").font(.system(size: 20, weight: .regular)).frame(width: 44, height: 44) }
                     .accessibilityLabel("阅读设置").accessibilityIdentifier("reader.settings")
                 tool(session.hasBookmark ? "取消书签" : "添加书签", icon: session.hasBookmark ? "bookmark.fill" : "bookmark") { session.bookmark() }
                     .accessibilityIdentifier("reader.bookmark").accessibilityValue(session.hasBookmark ? "已收藏" : "未收藏")
@@ -92,6 +96,11 @@ private struct ReaderHost: View {
     }
     private func tool(_ label: String, icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { Image(systemName: icon).font(.system(size: 19, weight: .regular)).frame(width: 44, height: 44) }.accessibilityLabel(label)
+    }
+    private func openSettings() {
+        settingsDetent = verticalSizeClass == .compact ? .fraction(0.78) : .fraction(0.55)
+        session.settingsPreviewActive = true
+        showSettings = true
     }
     private var compactProgress: some View {
         VStack(spacing: 4) {
@@ -121,7 +130,7 @@ private struct ReaderHost: View {
             HStack {
                 Button { showContents = true } label: { Label("目录", systemImage: "list.bullet") }
                 Spacer()
-                Button { session.settingsPreviewActive = true; showSettings = true } label: { Label("排版", systemImage: "textformat.size") }
+                Button { openSettings() } label: { Label("排版", systemImage: "textformat.size") }
                 Spacer()
                 Button { showBookmarks = true } label: { Label("书签", systemImage: "bookmark") }
             }.font(.system(size: 13)).frame(height: 44)

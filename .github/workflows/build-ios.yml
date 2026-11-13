@@ -16,6 +16,10 @@ on:
         description: 'Run native cloud and reader setting regressions; never package an IPA'
         type: boolean
         default: false
+      phone15_diagnostics:
+        description: 'Use the existing iPhone 15 destination for targeted diagnostics'
+        type: boolean
+        default: false
       standard_runner:
         description: 'Standard hosted macOS runner; Intel is available when arm64 capacity is constrained'
         type: choice
@@ -71,10 +75,14 @@ jobs:
           IMPORT_ONLY: ${{ inputs.import_only || false }}
           READER_DIAGNOSTICS: ${{ inputs.reader_diagnostics || false }}
           CLOUD_DIAGNOSTICS: ${{ inputs.cloud_diagnostics || false }}
+          PHONE15_DIAGNOSTICS: ${{ inputs.phone15_diagnostics || false }}
         run: |
           set -euo pipefail
           xcrun simctl list devices available --json > delivery/available-simulators.json
           simulator_id="$(python3 scripts/select-simulator.py delivery/available-simulators.json)"
+          if test "$PHONE15_DIAGNOSTICS" = true; then
+            simulator_id="$(python3 scripts/create-brand-simulator.py 'iPhone 15')"
+          fi
           printf 'SIMULATOR_DEVICE_ID=%s\n' "$simulator_id" >> "$GITHUB_ENV"
           python3 scripts/boot-test-simulator.py "$simulator_id" --shutdown-others
           python3 scripts/stream-import-logs.py delivery/import-logs &
@@ -87,7 +95,7 @@ jobs:
           fi
           if test "$CLOUD_DIAGNOSTICS" = true; then
             xcodebuild -project QingRead.xcodeproj -scheme QingRead -testPlan QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Cloud-Unit.xcresult" "${test_args[@]}" -only-testing:QingReadTests/CloudTests CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- AD_HOC_CODE_SIGNING_ALLOWED=YES test 2>&1 | tee delivery/cloud-unit.log
-            test_args+=(-only-testing:QingReadUITests/CloudLibraryTests -only-testing:QingReadUITests/BrandUITests -only-testing:QingReadUITests/ReaderAcceptanceTests/testOpenPanelLiveTextLayoutThemeAndRealFontPicker -only-testing:QingReadUITests/ReaderAcceptanceTests/testProfileKeepsTechnicalDetailsInsideAbout -only-testing:QingReadUITests/ReaderAcceptanceTests/testAllTXTModeProgressToggleActuallyExpandsViewport -only-testing:QingReadUITests/ReaderAcceptanceTests/testEPUBProgressAndOpenPanelLivePreferences -only-testing:QingReadUITests/NavigationTests)
+            test_args+=(-only-testing:QingReadUITests/CloudLibraryTests -only-testing:QingReadUITests/BrandUITests -only-testing:QingReadUITests/ReaderAcceptanceTests -only-testing:QingReadUITests/NavigationTests)
           fi
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -testPlan QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" "${test_args[@]}" CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- AD_HOC_CODE_SIGNING_ALLOWED=YES test 2>&1 | tee delivery/tests.log
           if test "$IMPORT_ONLY" != true && test "$READER_DIAGNOSTICS" != true && test "$CLOUD_DIAGNOSTICS" != true; then python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-se optimized; fi
