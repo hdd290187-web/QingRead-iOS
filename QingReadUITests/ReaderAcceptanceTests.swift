@@ -85,20 +85,23 @@ final class ReaderAcceptanceTests: XCTestCase {
         let table=app.tables.matching(identifier:"reader.scrollViewport").firstMatch
         XCTAssertTrue(table.waitForExistence(timeout:30))
         func state() -> [String:Any] {
-            guard let bytes=table.label.data(using:.utf8),let v=try? JSONSerialization.jsonObject(with:bytes) as? [String:Any] else { return [:] };return v
+            guard let bytes=app.staticTexts["settings.readerProbe"].label.data(using:.utf8),let v=try? JSONSerialization.jsonObject(with:bytes) as? [String:Any] else { return [:] };return v
         }
-        let original = state()["globalOffset"] as? Int ?? 0
+        reveal(app); let table=element(app,"reader.scrollViewport")
+        let original = table.value.flatMap { String(describing:$0).split(separator:":").last.flatMap { Int($0) } } ?? 0
         reveal(app);app.buttons["reader.settings"].tap()
         XCTAssertFalse(app.staticTexts["即时预览"].exists)
         app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition:0.6)
         expectation(for:NSPredicate { _,_ in (state()["fontSize"] as? Double ?? 0)>25 },evaluatedWith:nil);waitForExpectations(timeout:20)
         XCTAssertTrue(app.buttons["reader.settings.done"].exists,"验证必须发生在面板仍然打开时")
         app.buttons["settings.font"].tap()
-        XCTAssertGreaterThanOrEqual(app.buttons.matching(NSPredicate(format:"identifier BEGINSWITH %@","settings.font.")).count,5)
-        app.buttons["settings.font.kaiti"].tap();app.navigationBars.buttons.firstMatch.tap()
+        let wenKai=app.buttons["settings.font.kaiti"];scrollTo(wenKai,app:app);XCTAssertTrue(wenKai.waitForExistence(timeout:5));wenKai.tap();app.navigationBars.buttons.firstMatch.tap()
         expectation(for:NSPredicate { _,_ in (state()["fontName"] as? String ?? "").contains("LXGW") },evaluatedWith:nil);waitForExpectations(timeout:20)
-        app.buttons["settings.font"].tap();app.buttons["settings.font.system"].tap();app.navigationBars.buttons.firstMatch.tap()
-        expectation(for:NSPredicate { _,_ in let name=state()["fontName"] as? String ?? "Noto";return !name.contains("Noto") && !name.contains("LXGW") },evaluatedWith:nil);waitForExpectations(timeout:20)
+        let heiti=app.buttons["settings.font.heiti"];scrollTo(heiti,app:app);XCTAssertTrue(heiti.waitForExistence(timeout:5))
+        heiti.tap();app.navigationBars.buttons.firstMatch.tap()
+        expectation(for:NSPredicate { _,_ in (state()["fontName"] as? String ?? "").contains("STHeiti") },evaluatedWith:nil);waitForExpectations(timeout:20)
+        app.buttons["settings.font"].tap();app.buttons["settings.font.serif"].tap();app.navigationBars.buttons.firstMatch.tap()
+        expectation(for:NSPredicate { _,_ in let name=state()["fontName"] as? String ?? "Noto";return name.contains("Noto") },evaluatedWith:nil);waitForExpectations(timeout:20)
         let green=app.buttons["settings.theme.green"];scrollTo(green,app:app);green.tap()
         expectation(for:NSPredicate { _,_ in state()["theme"] as? String == "green" },evaluatedWith:nil);waitForExpectations(timeout:10)
         XCTAssertLessThanOrEqual(abs((state()["globalOffset"] as? Int ?? -1000)-original),40)

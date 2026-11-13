@@ -270,6 +270,7 @@ extension EnvironmentValues {
 private struct ReaderSettingsSurface: ViewModifier {
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.readerSettingsOverlay) private var overlay
+    @Environment(\.readerIntegrityProbe) private var probe
     func body(content: Content) -> some View {
         content.scrollContentBackground(.hidden)
             .background { if !overlay { library.settings.theme.background.ignoresSafeArea() } }
@@ -277,6 +278,14 @@ private struct ReaderSettingsSurface: ViewModifier {
             .tint(YYTheme.accent).preferredColorScheme(library.settings.systemColorScheme)
             .toolbarBackground(overlay ? library.settings.theme.background.opacity(0.25) : library.settings.theme.background, for: .navigationBar)
             .onDisappear { library.flushSettingsIfNeeded() }
+            #if DEBUG
+            .overlay(alignment: .bottomLeading) {
+                if ProcessInfo.processInfo.arguments.contains("--reader-integrity") {
+                    Text(probe).font(.system(size: 1)).frame(width: 1, height: 1).clipped()
+                        .accessibilityIdentifier("settings.readerProbe")
+                }
+            }
+            #endif
     }
 }
 private extension View {

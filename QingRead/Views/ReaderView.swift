@@ -51,6 +51,7 @@ private struct ReaderHost: View {
             NavigationStack {
                 ReaderSettingsForm().toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showSettings = false }.accessibilityIdentifier("reader.settings.done") } }
             }.environment(\.readerSettingsOverlay, true)
+                .environment(\.readerIntegrityProbe, session.readerDiagnosticJSON ?? "")
                 .presentationDetents([.fraction(0.55), .fraction(0.78)], selection: $settingsDetent)
                 .presentationDragIndicator(.visible).presentationCompactAdaptation(.none)
                 .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.78)))
@@ -164,5 +165,13 @@ private struct ContentsSheet: View {
             }.searchable(text: $query, prompt: "查找章节").navigationTitle("目录").navigationBarTitleDisplayMode(.inline).yyPage()
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } }; if session.book.format == .online { ToolbarItem(placement: .bottomBar) { Button("缓存全部章节") { Task { await session.downloadAll() } }.disabled(session.isLoading) } } }
         }
+    }
+}
+
+private struct ReaderIntegrityProbeKey: EnvironmentKey { static let defaultValue = "" }
+extension EnvironmentValues {
+    var readerIntegrityProbe: String {
+        get { self[ReaderIntegrityProbeKey.self] }
+        set { self[ReaderIntegrityProbeKey.self] = newValue }
     }
 }

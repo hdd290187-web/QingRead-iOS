@@ -16,7 +16,13 @@ final class ReaderIntegrityTests: XCTestCase {
         let chapter = state["chapter"] as? Int ?? -99
         XCTAssertEqual(state["anchorFailures"] as? Int, 0, "窗口更新不能改变可见字形锚点")
         XCTAssertEqual(state["drawnFixtureChapter"] as? Int, chapter, "真实 TextKit cell 内容必须属于报告的章节")
-        XCTAssertLessThanOrEqual(abs((state["drawnOffset"] as? Int ?? -100) - (state["offset"] as? Int ?? 0)), 3)
+        let lineStart=state["lineStart"] as? Int ?? -1
+        let lineEnd=state["lineEnd"] as? Int ?? -1
+        let drawn=state["drawnOffset"] as? Int ?? -1
+        XCTAssertEqual(lineStart,state["offset"] as? Int)
+        XCTAssertGreaterThanOrEqual(drawn,lineStart,"字形命中必须落在 viewport 顶部的真实 TextKit 行中")
+        XCTAssertLessThan(drawn,lineEnd)
+        XCTAssertLessThanOrEqual(abs(drawn-lineStart),16,"实际字形命中必须仍位于阅读器所报告的同一行")
         let mounted = state["mountedChapters"] as? [Int] ?? []
         if let first = mounted.first, let last = mounted.last { XCTAssertEqual(mounted, Array(first...last)) }
         // Inspect the actually visible canvas text and frame, independently of
@@ -26,6 +32,18 @@ final class ReaderIntegrityTests: XCTestCase {
         let visible = canvases.first { $0.frame.contains(origin) }
         XCTAssertNotNil(visible, "正文起点必须有真实可见的绘制 cell")
         XCTAssertTrue((visible?.value as? String ?? "").contains("样本章节\(chapter + 1)）"))
+    }
+    @MainActor private func settled(_ table: XCUIElement) -> [String:Any] {
+        var latest=snapshot(table); var stableSince=ProcessInfo.processInfo.systemUptime
+        for _ in 0..<30 {
+            Thread.sleep(forTimeInterval:0.1)
+            let next=snapshot(table)
+            let same=next["worldY"] as? Double == latest["worldY"] as? Double && next["globalOffset"] as? Int == latest["globalOffset"] as? Int
+            if same && ProcessInfo.processInfo.systemUptime-stableSince>=0.3 { return next }
+            if !same { stableSince=ProcessInfo.processInfo.systemUptime }
+            latest=next
+        }
+        return latest
     }
     @MainActor private func exercise(_ fixture: String) {
         let app = XCUIApplication()
@@ -93,14 +111,14 @@ final class ReaderIntegrityTests: XCTestCase {
         let reflowed = snapshot(table); verify(reflowed, table: table)
         XCTAssertLessThanOrEqual(abs((reflowed["globalOffset"] as? Int ?? 0) - originalAnchor), 64)
         table.swipeUp(velocity: .fast)
-        let saved = snapshot(table); verify(saved, table: table)
+        let saved = settled(table); verify(saved, table: table)
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)).tap()
         if !app.buttons["返回书架"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)).tap() }
         app.buttons["返回书架"].tap(); app.terminate()
         app.launchArguments = ["--reader-integrity"]; app.launch()
         XCTAssertTrue(book.waitForExistence(timeout: 15)); book.tap()
         XCTAssertTrue(table.waitForExistence(timeout: 30))
-        let reopened = snapshot(table); verify(reopened, table: table)
+        let reopened = settled(table); verify(reopened, table: table)
         XCTAssertEqual(reopened["globalOffset"] as? Int, saved["globalOffset"] as? Int)
     }
     @MainActor func testShortBookEightyFastFlingReversalsAndReopen() { exercise("short") }

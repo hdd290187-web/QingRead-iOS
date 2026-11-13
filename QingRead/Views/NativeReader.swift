@@ -79,6 +79,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private var lastSize = CGSize.zero
     private var loadGeneration = 0
     private var appliedPosition: ReadingPosition
+    private var requestedPosition: ReadingPosition?
     private var reflowAnchor: ReadingPosition?
     private var acceptsScrollPosition = true
     private var needsResumeBuild = false
@@ -143,12 +144,13 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         if isViewLoaded, lastSize != .zero { reflow(debounce: true) }
     }
     private func reflow(debounce: Bool = false) {
-        let anchor = reflowAnchor ?? pendingScrollPosition ?? session.position
+        let anchor = reflowAnchor ?? requestedPosition ?? pendingScrollPosition ?? session.position
         reflowAnchor = anchor
         rebuild(at: anchor, debounce: debounce)
     }
     private var textSize: CGSize { CGSize(width: max(80, view.bounds.width - CGFloat(settings.sidePadding * 2)), height: max(60, view.bounds.height - 16)) }
     private func clearChildren() {
+        transitioning = false
         table?.delegate = nil; table?.dataSource = nil
         for child in children { child.willMove(toParent: nil); child.view.removeFromSuperview(); child.removeFromParent() }
         table?.removeFromSuperview(); table = nil; pager = nil; coverCurrent = nil; coverTarget = nil
@@ -206,13 +208,14 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             session.error = "阅读位置对应的章节暂不可用，原位置已保留。"; return
         }
         buildTask?.cancel()
+        requestedPosition = position
         preloadTasks.values.forEach { $0.cancel() }; preloadTasks.removeAll()
         loadGeneration += 1; preparing.removeAll(); let generation = loadGeneration
         let targetChapter = min(max(0, position.chapter), max(0, session.chapters.count - 1))
         session.isLoading = true
         buildTask = Task { [weak self] in
             guard let self else { return }
-            defer { if generation == loadGeneration { buildTask = nil } }
+            defer { if generation == loadGeneration { buildTask = nil; requestedPosition = nil } }
             do {
                 if debounce { try await Task.sleep(nanoseconds: 140_000_000) }
                 let chapter = try await prepared(targetChapter)
@@ -249,7 +252,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
                 else { reportCurrent() }
                 prepareNeighbors()
             } catch is CancellationError { }
-            catch { guard generation == loadGeneration else { return }; session.isLoading = false; session.error = error.localizedDescription }
+            catch { guard generation == loadGeneration else { return }; rebuilding = false; session.isLoading = false; session.error = error.localizedDescription }
         }
     }
     private func prepareNeighbors() {
@@ -320,8 +323,11 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
         guard let page = viewController as? PrintedPage, let address = neighbor(of: page.address, forward: true) else { return nil }; return printed(address)
     }
-    func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) { transitioning = true }
+    func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) {
+        guard pageViewController === pager else { return }; transitioning = true
+    }
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
+        guard pageViewController === pager else { return }
         transitioning = false
         if completed, let page = pageViewController.viewControllers?.first as? PrintedPage { reflowAnchor = nil; session.menuVisible = false; current = page.address; reportCurrent(); prepareNeighbors() }
     }
@@ -337,8 +343,9 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         }
         transitioning = true
         if let pager {
+            let generation = loadGeneration
             pager.setViewControllers([page], direction: forward ? .forward : .reverse, animated: true) { [weak self] completed in
-                guard let self else { return }; self.transitioning = false
+                guard let self, generation == self.loadGeneration, self.pager === pager else { return }; self.transitioning = false
                 if completed { self.current = target; self.reportCurrent(); self.prepareNeighbors() }
             }
         } else { startCover(target: page, forward: forward); finishCover(commit: true, duration: 0.24) }
@@ -400,10 +407,12 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     }
     private func finishCover(commit: Bool, duration: Double) {
         guard let target = coverTarget else { transitioning = false; return }
+        let generation = loadGeneration
         UIView.animate(withDuration: duration, delay: 0, options: [.curveEaseOut]) {
             if self.coverForward { self.coverCurrent?.view.transform = commit ? CGAffineTransform(translationX: -self.view.bounds.width, y: 0) : .identity }
             else { target.view.transform = commit ? .identity : CGAffineTransform(translationX: -self.view.bounds.width, y: 0) }
         } completion: { _ in
+            guard generation == self.loadGeneration, self.coverTarget === target else { return }
             let removed = commit ? self.coverCurrent : target
             removed?.willMove(toParent: nil); removed?.view.removeFromSuperview(); removed?.removeFromParent()
             if commit { self.reflowAnchor = nil; self.session.menuVisible = false; self.coverCurrent = target; self.current = target.address; self.reportCurrent(); self.prepareNeighbors() }
@@ -636,6 +645,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         record["event"] = event; record["deleted"] = deleted; record["inserted"] = inserted
         if let data = try? JSONSerialization.data(withJSONObject: record, options: .sortedKeys), let text = String(data: data, encoding: .utf8) {
             table?.accessibilityLabel = text
+            if event != "scroll" { session.updateReaderDiagnostic(text) }
             print("ReaderIntegrity " + text)
         }
     }
@@ -644,7 +654,11 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
               let cell = table.cellForRow(at: path) as? ScrollTextCell else { return nil }
         let row = scrollRows[path.row]
         let localY = max(0, table.contentOffset.y + table.contentInset.top - table.rectForRow(at: path).minY)
-        let drawn = row.chunk.range.start + cell.character(at: CGPoint(x: settings.sidePadding + 0.1, y: localY + 1))
+        let bodyFont = row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont
+        let probeX = settings.sidePadding + (bodyFont?.pointSize ?? settings.fontSize) * 2.2
+        let drawn = row.chunk.range.start + cell.character(at: CGPoint(x: probeX, y: localY + 10))
+        let relativeLineStart = row.chunk.character(atY: localY)
+        let relativeLineEnd = row.chunk.lines.first(where: { $0.start > relativeLineStart })?.start ?? row.chunk.range.length
         let logical = row.chunk.range.start + row.chunk.character(atY: localY)
         let prefix = session.chapters.prefix(row.chapter).reduce(0) { $0 + $1.length }
         let actualText = cell.renderedText
@@ -661,6 +675,8 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             if range.length > styleLength, let style = value as? NSParagraphStyle { bodyStyle = style; styleLength = range.length }
         }
         return ["chapter": row.chapter, "offset": logical, "drawnOffset": drawn,
+                "lineStart": row.chunk.range.start + relativeLineStart,
+                "lineEnd": row.chunk.range.start + relativeLineEnd,
                 "drawnFixtureChapter": marker.map { $0 - 1 } ?? -1,
                 "globalOffset": prefix + logical, "rowID": row.id,
                 "y": Double(table.contentOffset.y), "worldY": Double(table.contentOffset.y + scrollWorldBase), "size": Double(table.contentSize.height),
@@ -679,6 +695,10 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         clearChildren(); scrollLayouts = layouts; appliedPosition = position
         current = PageAddress(chapter: position.chapter, page: 0); rebuilding = true
         try buildScroll(); rebuilding = false; table?.layoutIfNeeded()
+    }
+    func beginIntegrityFixture() {
+        integrityFixtureMode = true
+        loadViewIfNeeded()
     }
     func completeIntegrityPreload(_ layout: ScrollChapterLayout, chapter: Int, generation: Int) {
         guard generation == loadGeneration else { stalePreloads += 1; return }

@@ -37,9 +37,10 @@ import UIKit
         }
         let book = library.add(Book(title: "合成锚点回归", format: .txt, chapters: chapters))
         let controller = NativeReaderController(session: ReaderSession(book: book, library: library), settings: library.settings)
-        try controller.installIntegrityFixture([5: try XCTUnwrap(layouts[5]), 6: try XCTUnwrap(layouts[6])], at: ReadingPosition(chapter: 5, characterOffset: 100))
+        controller.beginIntegrityFixture()
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 393, height: 731)); window.rootViewController = controller; window.makeKeyAndVisible()
         defer { window.isHidden = true; window.rootViewController = nil }
+        try controller.installIntegrityFixture([5: try XCTUnwrap(layouts[5]), 6: try XCTUnwrap(layouts[6])], at: ReadingPosition(chapter: 5, characterOffset: 100))
         controller.view.layoutIfNeeded()
         let before = try XCTUnwrap(controller.integritySnapshot())
         XCTAssertTrue(JSONSerialization.isValidJSONObject(before))

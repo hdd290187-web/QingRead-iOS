@@ -25,6 +25,8 @@ final class ReaderSession: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var pageInfo = ""
+    @Published var readerDiagnosticJSON: String?
+    func updateReaderDiagnostic(_ text: String) { if readerDiagnosticJSON != text { readerDiagnosticJSON = text } }
     var settingsPreviewActive = false
     let book: Book
     let library: LibraryStore
