@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import UIKit
+import ImageIO
 
 enum CloudDownloadState: Equatable {
     case downloading(Int64, Int64), importing, cancelled, failed(String)
@@ -27,7 +28,7 @@ final class CloudLibraryStore: ObservableObject {
     private var generation = UUID()
     private var authGeneration = UUID()
     private var jobs: [UUID: (task: Task<Void, Never>, cancellation: CloudCancellation)] = [:]
-    private let coverCache = NSCache<NSString, NSData>()
+    private let coverCache = NSCache<NSString, UIImage>()
     private let downloadDirectory: URL
 
     init(client: CloudAPIClient? = nil, downloadDirectory: URL? = nil) {
@@ -104,16 +105,28 @@ final class CloudLibraryStore: ObservableObject {
         guard connected else { return nil }
         let authorization = authGeneration
         let key = "\(book.id.uuidString)-\(book.revision)" as NSString
-        if let data = coverCache.object(forKey: key) { return UIImage(data: data as Data) }
+        if let image = coverCache.object(forKey: key) { return image }
         do {
-            guard let data = try await client.cover(book), let image = UIImage(data: data) else { return nil }
+            guard let data = try await client.cover(book) else { return nil }
+            let decoded = await Task.detached(priority: .utility) { Self.thumbnail(data) }.value
+            guard let decoded else { return nil }
             guard authorization == authGeneration, connected else { return nil }
-            coverCache.setObject(data as NSData, forKey: key, cost: data.count)
+            let image = UIImage(cgImage: decoded)
+            coverCache.setObject(image, forKey: key, cost: decoded.bytesPerRow * decoded.height)
             return image
         } catch {
             if authorization == authGeneration, (error as? CloudError) == .status(401) { receive(error) }
             return nil
         }
+    }
+
+    private nonisolated static func thumbnail(_ data: Data) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
+                                       kCGImageSourceCreateThumbnailWithTransform: true,
+                                       kCGImageSourceThumbnailMaxPixelSize: 320,
+                                       kCGImageSourceShouldCacheImmediately: true]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }
 
     func needsUpdate(_ book: CloudBook, library: LibraryStore) -> Bool {

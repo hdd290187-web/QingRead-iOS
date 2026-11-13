@@ -7,12 +7,15 @@ struct PreparedLocalBook {
 }
 
 struct LocalBookImporter {
-    static func prepareTXT(url: URL, title: String, directory: URL, id: UUID) throws -> PreparedLocalBook {
+    static func prepareTXT(url: URL, title: String, directory: URL, id: UUID, preferredEncoding: String? = nil) throws -> PreparedLocalBook {
         let bytes = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard bytes <= TXTParser.maxFileSize else { throw ReaderError.message("TXT 超过 64 MB，请拆分后导入。") }
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
         let decoded: (text: String, encoding: TXTEncoding)
-        do { decoded = try TXTParser.decode(data) }
+        do {
+            if let preferredEncoding { decoded = try CloudTXTDecoder.decode(data, encoding: preferredEncoding) }
+            else { decoded = try TXTParser.decode(data) }
+        }
         catch { throw ImportPipelineError(stage: .decode, reason: error.localizedDescription, suggestion: "请将原文件另存为 UTF-8 纯文本后再试。", underlying: error) }
         let controls = decoded.text.unicodeScalars.filter { CharacterSet.controlCharacters.contains($0) && $0 != "\n" && $0 != "\r" && $0 != "\t" }
         if decoded.text.contains("\0") || controls.count > max(2, decoded.text.unicodeScalars.count / 50) {

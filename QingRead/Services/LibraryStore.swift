@@ -240,8 +240,9 @@ final class LibraryStore: ObservableObject {
             if ext == "txt" {
                 advance(.decode)
                 let title = cloud?.book.title ?? url.deletingPathExtension().lastPathComponent
+                let preferredEncoding = cloud?.book.encoding
                 prepared = try await Task.detached(priority: .userInitiated) {
-                    try LocalBookImporter.prepareTXT(url: document.fileURL, title: title, directory: payload, id: id)
+                    try LocalBookImporter.prepareTXT(url: document.fileURL, title: title, directory: payload, id: id, preferredEncoding: preferredEncoding)
                 }.value
             } else {
                 advance(.epub)

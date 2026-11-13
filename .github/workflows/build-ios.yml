@@ -12,6 +12,10 @@ on:
         description: 'Run targeted reader failure regressions; never package an IPA'
         type: boolean
         default: false
+      cloud_diagnostics:
+        description: 'Run native cloud and reader setting regressions; never package an IPA'
+        type: boolean
+        default: false
       standard_runner:
         description: 'Standard hosted macOS runner; Intel is available when arm64 capacity is constrained'
         type: choice
@@ -58,7 +62,7 @@ jobs:
           app_build="$(python3 -c 'import re; from pathlib import Path; print(re.search(r"CURRENT_PROJECT_VERSION: ([0-9]+)", Path("project.yml").read_text()).group(1))')"
           printf 'APP_BUILD=%s\n' "$app_build" >> "$GITHUB_ENV"
       - name: Device Release build
-        if: ${{ !inputs.import_only && !inputs.reader_diagnostics }}
+        if: ${{ !inputs.import_only && !inputs.reader_diagnostics && !inputs.cloud_diagnostics }}
         run: |
           set -euo pipefail
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Release -destination 'generic/platform=iOS' -sdk iphoneos -derivedDataPath "$RUNNER_TEMP/device" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" ARCHS=arm64 CURRENT_PROJECT_VERSION="$APP_BUILD" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build 2>&1 | tee delivery/device-release.log
@@ -66,6 +70,7 @@ jobs:
         env:
           IMPORT_ONLY: ${{ inputs.import_only || false }}
           READER_DIAGNOSTICS: ${{ inputs.reader_diagnostics || false }}
+          CLOUD_DIAGNOSTICS: ${{ inputs.cloud_diagnostics || false }}
         run: |
           set -euo pipefail
           xcrun simctl list devices available --json > delivery/available-simulators.json
@@ -76,12 +81,15 @@ jobs:
           monitor_pid=$!
           trap 'kill "$monitor_pid" 2>/dev/null || true; wait "$monitor_pid" 2>/dev/null || true' EXIT
           test_args=(-parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 600 -maximum-test-execution-time-allowance 900 -retry-tests-on-failure -test-iterations 2)
-          if test "$IMPORT_ONLY" = true; then test_args+=(-only-testing:QingReadUITests/DocumentImportTests "SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG SYSTEM_FILES_DIAGNOSTICS"); fi
+          if test "$IMPORT_ONLY" = true; then test_args+=(-only-testing:QingReadUITests/DocumentImportTests 'OTHER_SWIFT_FLAGS=$(inherited) -D SYSTEM_FILES_DIAGNOSTICS'); fi
           if test "$READER_DIAGNOSTICS" = true; then
             test_args+=(-only-testing:QingReadTests/ScrollWindowTests -only-testing:QingReadTests/ReaderRepairTests -only-testing:QingReadTests/ReaderPerformanceTests -only-testing:QingReadTests/CoreTests/testFontAndTextKitCharacterAnchor -only-testing:QingReadUITests/ReaderLayoutTests/testChapterBoundaryFontChangeAndBackgroundRestore -only-testing:QingReadUITests/ReaderAcceptanceTests -only-testing:QingReadUITests/ReaderIntegrityTests/testShortBookEightyFastFlingReversalsAndReopen -only-testing:QingReadUITests/BrandUITests/testEPUBOriginalCoverReadingAndPreferences -only-testing:QingReadUITests/ReaderScrollPerformanceTests/testShortTXTRepeatedFlingAndRestore)
           fi
+          if test "$CLOUD_DIAGNOSTICS" = true; then
+            test_args+=(-only-testing:QingReadTests/CloudTests -only-testing:QingReadUITests/CloudLibraryTests -only-testing:QingReadUITests/ReaderAcceptanceTests -only-testing:QingReadUITests/NavigationTests)
+          fi
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -testPlan QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" "${test_args[@]}" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/tests.log
-          if test "$IMPORT_ONLY" != true && test "$READER_DIAGNOSTICS" != true; then python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-se optimized; fi
+          if test "$IMPORT_ONLY" != true && test "$READER_DIAGNOSTICS" != true && test "$CLOUD_DIAGNOSTICS" != true; then python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-se optimized; fi
       - name: Export test screenshots and summary
         if: always()
         run: |
@@ -100,7 +108,7 @@ jobs:
             fi
           done
       - name: Package unsigned arm64 IPA
-        if: ${{ !inputs.import_only && !inputs.reader_diagnostics }}
+        if: ${{ !inputs.import_only && !inputs.reader_diagnostics && !inputs.cloud_diagnostics }}
         run: |
           set -euo pipefail
           app="$RUNNER_TEMP/device/Build/Products/Release-iphoneos/QingRead.app"
@@ -131,9 +139,9 @@ jobs:
           retention-days: 30
   layouts:
     name: Layouts (${{ matrix.label }})
-    if: ${{ !inputs.import_only && !inputs.reader_diagnostics }}
+    if: ${{ !inputs.import_only && !inputs.reader_diagnostics && !inputs.cloud_diagnostics }}
     runs-on: ${{ inputs.standard_runner || 'macos-15' }}
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:

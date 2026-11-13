@@ -1,5 +1,6 @@
 import XCTest
 import CryptoKit
+import UIKit
 @testable import QingRead
 
 private struct CloudStubReply {
@@ -99,6 +100,24 @@ final class CloudTests: XCTestCase {
             XCTAssertTrue(request.url!.path.hasSuffix("/cover")); return .init(code: 404)
         }
         let cover = try await client.cover(book); XCTAssertNil(cover)
+    }
+
+    func testAuthenticatedCoverUsesBoundedThumbnailAndDisconnectHidesIt() async throws {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1200, height: 1800))
+        let image = renderer.image { context in UIColor.brown.setFill(); context.fill(CGRect(x: 0, y: 0, width: 1200, height: 1800)) }
+        let data = try XCTUnwrap(image.jpegData(compressionQuality: 0.9))
+        let client = client(); let cloud = CloudLibraryStore(client: client)
+        CloudStubProtocol.reply = { request in
+            XCTAssertNotNil(request.value(forHTTPHeaderField: "Authorization"))
+            return .init(headers: ["Content-Type": "image/jpeg"], data: data)
+        }
+        let first = await cloud.cover(book); let thumbnail = try XCTUnwrap(first)
+        XCTAssertLessThanOrEqual(max(thumbnail.size.width, thumbnail.size.height), 320)
+        XCTAssertGreaterThan(thumbnail.size.width, 0)
+        CloudStubProtocol.reply = nil
+        let cached = await cloud.cover(book); XCTAssertNotNil(cached)
+        cloud.disconnect()
+        let afterRemoval = await cloud.cover(book); XCTAssertNil(afterRemoval)
     }
 
     func testAPIStatusMessagesAndMalformedPayload() async throws {
@@ -361,5 +380,34 @@ final class CloudTests: XCTestCase {
         XCTAssertEqual(local.format, .epub); XCTAssertEqual(local.chapters.map(\.title), ["第一章 出发", "第二章 归来"])
         XCTAssertEqual(try DocumentStager.contentIdentity(at: URL(fileURLWithPath: XCTUnwrap(local.originalFile))), remote.sha256)
         let restart = LibraryStore(rootURL: library.root); XCTAssertEqual(restart.localBook(cloudID: remote.id)?.id, local.id)
+    }
+
+    func testConfirmedEPUBUpdateRefreshesCachedCoverWithoutChangingBookID() async throws {
+        let library = LibraryStore(rootURL: root.appendingPathComponent("library"))
+        let source = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "CoverFixture", withExtension: "epub"))
+        let replacement = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "OriginalFixture", withExtension: "epub"))
+        var remote = book; remote.id = UUID(); remote.format = .epub; remote.fileSize = Int64(try Data(contentsOf: source).count)
+        remote.sha256 = try DocumentStager.contentIdentity(at: source)
+        let first = try await library.importCloudFile(from: source, context: context(remote))
+        let cache = BookCoverCache(directory: root.appendingPathComponent("covers"))
+        let originalCover = await cache.cover(for: first); XCTAssertEqual(originalCover.kind, .epub)
+        remote.sha256 = try DocumentStager.contentIdentity(at: replacement); remote.fileSize = Int64(try Data(contentsOf: replacement).count); remote.revision = 2
+        let updated = try await library.importCloudFile(from: replacement, context: context(remote, update: true))
+        XCTAssertEqual(updated.id, first.id)
+        let updatedCover = await cache.cover(for: updated); XCTAssertEqual(updatedCover.kind, .generated)
+    }
+
+    func testCloudManualUTF16ByteOrderIsRespectedAndDeduplicated() async throws {
+        let text = "春风照林海，星月满山河。清晨花影，归来灯火。"
+        let library = LibraryStore(rootURL: root.appendingPathComponent("library"))
+        for (name, encoding) in [("utf-16-be", String.Encoding.utf16BigEndian), ("utf-16-le", .utf16LittleEndian)] {
+            let raw = try XCTUnwrap(text.data(using: encoding)); let source = try file(raw)
+            var remote = book; remote.id = UUID(); remote.encoding = name; remote.fileSize = Int64(raw.count)
+            remote.sha256 = try DocumentStager.contentIdentity(at: source)
+            let local = try await library.importCloudFile(from: source, context: context(remote))
+            XCTAssertEqual(local.chapters.map { library.chapterText(for: $0, book: local) }.joined(), text)
+            XCTAssertEqual(library.localBook(cloudID: remote.id)?.id, local.id)
+        }
+        XCTAssertEqual(library.books.count, 1)
     }
 }

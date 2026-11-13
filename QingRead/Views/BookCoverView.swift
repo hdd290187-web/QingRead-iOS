@@ -21,7 +21,7 @@ struct CoverView: View {
             .accessibilityLabel("\(book.title)的封面")
             .accessibilityValue(cover == nil ? "正在准备" : cover?.kind == .epub ? "书籍原封面" : "自然图案")
             .accessibilityIdentifier("book.cover.\(book.title)")
-            .task(id: book.id) {
+            .task(id: BookCoverCache.key(for: book)) {
                 let result = await BookCoverCache.shared.cover(for: book)
                 guard !Task.isCancelled else { return }; cover = result
             }

@@ -61,7 +61,10 @@ final class BookCoverCache {
     }
 
     nonisolated static func key(for book: Book) -> String {
-        SHA256.hash(data: Data("v1|\(book.id.uuidString)|\(book.title)|\(book.format.rawValue)".utf8)).map { String(format: "%02x", $0) }.joined()
+        let base = "v1|\(book.id.uuidString)|\(book.title)|\(book.format.rawValue)"
+        let versions = (book.cloudLinks ?? []).map { "\($0.id):\($0.sha256):\($0.revision)" }.sorted().joined(separator: "|")
+        let key = versions.isEmpty ? base : base + "|cloud:" + versions
+        return SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
     }
     private nonisolated static func readDisk(_ directory: URL, key: String) -> BookCover? {
         for kind in [BookCover.Kind.epub, .generated] {

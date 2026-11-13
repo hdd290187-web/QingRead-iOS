@@ -17,6 +17,7 @@ struct CloudBook: Codable, Identifiable, Equatable, Sendable {
     var revision: Int
     var coverUrl: String?
     var downloadUrl: String
+    var encoding: String? = nil
 
     var validFile: Bool {
         fileSize > 0 && fileSize <= (format == .txt ? Int64(TXTParser.maxFileSize) : Int64(DocumentStager.maxEPUBSize)) &&
