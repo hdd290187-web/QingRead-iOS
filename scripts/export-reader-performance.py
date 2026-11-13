@@ -25,6 +25,14 @@ for path in sorted(source.glob('*-' + variant + '.json')):
     assert report['fixture'] in {'short', 'long', 'monolith'}
     assert report['baseline'] == (variant == 'baseline')
     assert report['activeScrollFrames'] > 0, 'No real scrolling was sampled'
+    metadata_file = source / (report['fixture'] + '-fixture.json')
+    metadata = json.loads(metadata_file.read_text())
+    expected_chapters = {'short': 5, 'long': 80, 'monolith': 1}[report['fixture']]
+    assert metadata['engineChapterCount'] == expected_chapters, 'Fixture chapter structure is not the labelled workload'
+    assert sum(metadata['chapterUTF16Lengths']) == metadata['totalUTF16']
+    if report['fixture'] == 'monolith':
+        assert metadata['chapterUTF16Lengths'][0] > 300000, 'Single-chapter stress content is too short'
+    report['fixtureMetadata'] = metadata
     report['simulatorTargetID'] = device
     (destination / path.name).write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     count += 1

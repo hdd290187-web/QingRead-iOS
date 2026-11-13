@@ -7,9 +7,16 @@ import json
 import plistlib
 import struct
 import sys
+import argparse
+import subprocess
 
 repo = Path(__file__).resolve().parents[1]
-folder = repo / 'releases' / ('run' + sys.argv[1])
+parser = argparse.ArgumentParser()
+parser.add_argument('run')
+parser.add_argument('--benchmark-run', help='Separate verified-fixture benchmark; packaged Release source must be unchanged')
+args = parser.parse_args()
+folder = repo / 'releases' / ('run' + args.run)
+performance_folder = repo / 'releases' / ('run' + args.benchmark_run) if args.benchmark_run else folder
 metadata = dict(line.split('=', 1) for line in (folder / 'build-info.txt').read_text().splitlines() if '=' in line)
 ipa = folder / 'QingRead.ipa'
 summary = json.loads((folder / 'test-summary.json').read_text())
@@ -18,10 +25,21 @@ assert summary['failedTests'] == 0 and summary['skippedTests'] == 3
 assert summary['passedTests'] >= 62 and summary['totalTestCount'] >= 65
 assert brand['failedTests'] == 0 and brand['skippedTests'] == 0 and brand['passedTests'] >= 10
 large = json.loads((folder / 'Reader-Large-summary.json').read_text())
-baseline = json.loads((folder / 'Baseline-summary.json').read_text())
+baseline = json.loads((performance_folder / 'Baseline-summary.json').read_text())
 assert large['passedTests'] == 2 and large['failedTests'] == 0 and large['skippedTests'] == 0
 assert baseline['passedTests'] == 3 and baseline['failedTests'] == 0 and baseline['skippedTests'] == 0
-assert (folder / 'performance-comparison/comparison.json').is_file()
+comparison = json.loads((performance_folder / 'performance-comparison/comparison.json').read_text())
+if args.benchmark_run:
+    benchmark = json.loads((performance_folder / 'Benchmark-iPhone15-summary.json').read_text())
+    assert benchmark['passedTests'] == 3 and benchmark['failedTests'] == 0 and benchmark['skippedTests'] == 0
+    changes = subprocess.check_output(['git', 'diff', '--name-only', metadata['commit'], 'HEAD', '--', 'QingRead'], cwd=repo, text=True).splitlines()
+    assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
+    seed = (repo / 'QingRead/Services/ReaderPerformanceSeed.swift').read_text().strip()
+    assert seed.startswith('#if DEBUG\n') and seed.endswith('#endif') and '#else' not in seed
+for row in comparison['workloads']:
+    before, after = row['baseline'], row['optimized']
+    assert before['fixtureMetadata'] == after['fixtureMetadata']
+    assert after['fixtureMetadata']['engineChapterCount'] == {'short': 5, 'long': 80, 'monolith': 1}[row['fixture']]
 assert 'BUILD SUCCEEDED' in (folder / 'device-release.log').read_text()
 assert 'TEST SUCCEEDED' in (folder / 'tests.log').read_text()
 assert 'TEST SUCCEEDED' in (folder / 'brand-iphone15.log').read_text()
@@ -53,7 +71,7 @@ icon_lock = json.loads((repo / 'design/yuying-vector/asset-lock.json').read_text
 assert hashlib.sha256(source_icon.read_bytes()).hexdigest() == icon_lock['pngSHA256']
 assert hashlib.sha256((repo / icon_lock['source']).read_bytes()).hexdigest() == icon_lock['sourceSHA256']
 print(json.dumps({
-    'run': sys.argv[1], 'commit': metadata['commit'], 'brand': info['CFBundleDisplayName'],
+    'run': args.run, 'benchmarkRun': args.benchmark_run, 'commit': metadata['commit'], 'brand': info['CFBundleDisplayName'],
     'bundleID': info['CFBundleIdentifier'], 'version': info['CFBundleShortVersionString'],
     'build': info['CFBundleVersion'], 'sdk': info['DTSDKName'], 'unsigned': True, 'arch': 'arm64',
     'mainTests': {k: summary[k] for k in ['passedTests', 'failedTests', 'skippedTests', 'totalTestCount']},

@@ -1,0 +1,79 @@
+name: Reader benchmark
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: reader-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  benchmark:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare pinned project and dependencies
+        run: |
+          set -euo pipefail
+          mkdir -p delivery
+          { sw_vers; xcodebuild -version; swift --version; xcodebuild -showsdks; } > delivery/environment.txt
+          curl -fsSL https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip -o "$RUNNER_TEMP/xcodegen.zip"
+          printf '4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806  %s\n' "$RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP/generator"
+          generator="$(find "$RUNNER_TEMP/generator" -type f -name xcodegen | head -1)"
+          chmod +x "$generator"
+          printf 'XCODEGEN_BIN=%s\n' "$generator" >> "$GITHUB_ENV"
+          "$generator" generate
+          mkdir -p QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+          cp Package.resolved QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          xcodebuild -resolvePackageDependencies -onlyUsePackageVersionsFromResolvedFile -project QingRead.xcodeproj -scheme QingRead -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" 2>&1 | tee delivery/dependencies.log
+      - name: Optimized scrolling with verified workload structure
+        run: |
+          set -euo pipefail
+          simulator_id="$(python3 scripts/create-brand-simulator.py)"
+          printf 'BENCHMARK_SIMULATOR_DEVICE_ID=%s\n' "$simulator_id" >> "$GITHUB_ENV"
+          printf 'iPhone 15 simulator=%s\n' "$simulator_id" > delivery/benchmark-simulator.txt
+          python3 scripts/boot-test-simulator.py "$simulator_id"
+          xcrun simctl io "$simulator_id" recordVideo --codec=h264 delivery/scroll-optimized.mp4 &
+          video_pid=$!
+          trap 'kill -INT "$video_pid" 2>/dev/null || true; wait "$video_pid" 2>/dev/null || true' EXIT
+          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/optimized-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Benchmark-iPhone15.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/benchmark-iphone15.log
+          python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-iphone15 optimized
+      - name: Baseline scrolling on the same iPhone 15
+        run: |
+          set -euo pipefail
+          baseline_dir="$RUNNER_TEMP/reader-baseline"
+          git worktree add --detach "$baseline_dir" d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9
+          python3 scripts/prepare-reader-baseline.py "$baseline_dir"
+          (cd "$baseline_dir" && "$XCODEGEN_BIN" generate)
+          mkdir -p "$baseline_dir/QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm"
+          cp Package.resolved "$baseline_dir/QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          python3 scripts/boot-test-simulator.py "$BENCHMARK_SIMULATOR_DEVICE_ID"
+          xcrun simctl io "$BENCHMARK_SIMULATOR_DEVICE_ID" recordVideo --codec=h264 delivery/scroll-baseline.mp4 &
+          video_pid=$!
+          trap 'kill -INT "$video_pid" 2>/dev/null || true; wait "$video_pid" 2>/dev/null || true' EXIT
+          xcodebuild -project "$baseline_dir/QingRead.xcodeproj" -scheme QingRead -configuration Debug -destination "id=$BENCHMARK_SIMULATOR_DEVICE_ID" -derivedDataPath "$RUNNER_TEMP/baseline-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Baseline.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/baseline-tests.log
+          python3 scripts/export-reader-performance.py "$BENCHMARK_SIMULATOR_DEVICE_ID" delivery/performance-baseline baseline
+          python3 scripts/compare-reader-performance.py delivery/performance-baseline delivery/performance-iphone15 delivery/performance-comparison
+      - name: Export benchmark reports and screenshots
+        if: always()
+        run: |
+          for result in Benchmark-iPhone15 Baseline; do
+            if test -d "delivery/$result.xcresult"; then
+              xcrun xcresulttool get test-results summary --path "delivery/$result.xcresult" > "delivery/$result-summary.json"
+              xcrun xcresulttool export attachments --path "delivery/$result.xcresult" --output-path "delivery/$result-screenshots"
+            fi
+          done
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Yuying-reader-benchmark
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 30

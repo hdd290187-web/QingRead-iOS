@@ -48,7 +48,7 @@
     }
   },
   "performanceComparison": {
-    "status": "PENDING_FULL_SAME_DEVICE_RUN",
+    "status": "CALIBRATING_VERIFIED_FIXTURES",
     "sameDeviceWorkloads": [
       "short",
       "long",
@@ -56,7 +56,18 @@
     ],
     "before": null,
     "after": null,
-    "recordedVideos": []
+    "recordedVideos": [],
+    "sourceValidation": {
+      "expectedEngineChapters": {
+        "short": 5,
+        "long": 80,
+        "monolith": 1
+      },
+      "requireIdenticalContentSHA256": true,
+      "monolithMinimumUTF16": 300000,
+      "singleChapterFixture": "DEBUG-only coalesced stress chapter; production TXT partitioning is unchanged"
+    },
+    "previousFixtureMeasurementsAccepted": false
   },
   "humanPending": [
     "real iPhone scroll/frame/thermal/touch profiling",

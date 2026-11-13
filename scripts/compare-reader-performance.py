@@ -13,6 +13,7 @@ for fixture in ['short', 'long', 'monolith']:
     assert before['environment'] == after['environment']
     assert before['simulatorTargetID'] == after['simulatorTargetID']
     assert before['simulator'] is True and after['simulator'] is True
+    assert before['fixtureMetadata'] == after['fixtureMetadata'], 'The exact same verified content and chapter structure are required'
     # Architectural regressions fail independently of noisy virtual frame timing.
     main = after['mainThreadOperations']
     assert not main.get('fileRead') and not main.get('pagination') and not main.get('scrollLayout')
@@ -28,11 +29,12 @@ output.mkdir(parents=True, exist_ok=True)
 (output / 'comparison.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
 lines = ['# Continuous scrolling: measured Simulator comparison', '',
          'Both versions run the same original fixtures and identical touch gestures on the same iPhone 15 simulator. Values are observed, not an assertion of real-device smoothness.', '',
-         '| Fixture | Frame p95 ms before / after | Max frame ms before / after | Frames over 1.5 budgets before / after | Peak resident MiB before / after |',
+         '| Fixture / verified chapters / UTF-16 | Frame p95 ms before / after | Max frame ms before / after | Frames over 1.5 budgets before / after | Peak resident MiB before / after |',
          '| --- | --- | --- | --- | --- |']
 for row in results:
     a, b = row['baseline'], row['optimized']
-    lines.append(f"| {row['fixture']} | {a['frameP95Ms']:.2f} / {b['frameP95Ms']:.2f} | {a['frameMaxMs']:.2f} / {b['frameMaxMs']:.2f} | {a['framesOver1_5Budgets']} / {b['framesOver1_5Budgets']} | {a['peakResidentBytes']/1048576:.1f} / {b['peakResidentBytes']/1048576:.1f} |")
+    fixture = a['fixtureMetadata']
+    lines.append(f"| {row['fixture']} / {fixture['engineChapterCount']} / {fixture['totalUTF16']} | {a['frameP95Ms']:.2f} / {b['frameP95Ms']:.2f} | {a['frameMaxMs']:.2f} / {b['frameMaxMs']:.2f} | {a['framesOver1_5Budgets']} / {b['framesOver1_5Budgets']} | {a['peakResidentBytes']/1048576:.1f} / {b['peakResidentBytes']/1048576:.1f} |")
 lines += ['', 'Per-operation counts, p95 and maximum main-thread times are in comparison.json. Frame time on a shared virtual runner is noisy; regressions or inconclusive results must be reported as observed.', '', 'HUMAN_PENDING: repeat with Time Profiler / Hangs / Core Animation on the user’s iPhone before claiming the reported device stutter is resolved.']
 (output / 'COMPARISON.md').write_text('\n'.join(lines) + '\n')
 print('Wrote measured comparison; no device smoothness claim')
