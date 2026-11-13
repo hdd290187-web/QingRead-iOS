@@ -5,8 +5,8 @@
   "publicationAudit": "APPROVED_FOR_PUBLICATION",
   "newActionsRun": {
     "id": null,
-    "build": 41,
-    "status": "PREPARING_FULL_VALIDATION_AFTER_EXPORT_LIFECYCLE_FIX",
+    "build": 42,
+    "status": "PREPARING_FULL_VALIDATION_WITH_BOOT_AND_ONE_FAILURE_RETRY",
     "runner": "macos-15",
     "import_only": false,
     "reader_diagnostics": false
@@ -147,6 +147,24 @@
       "skipped": 3,
       "total": 65,
       "failure": "Xcode shut down the Simulator after testing; simctl get_app_container requires it booted."
+    },
+    {
+      "id": 43408768485,
+      "number": 41,
+      "headSha": "5bdeeb4c6aeb769794c9bcdf4d68d86940e5c8aa",
+      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43408768485",
+      "conclusion": "XCTest_launch_infrastructure_failure",
+      "releaseCompilation": "PASS",
+      "passed": 59,
+      "failed": 3,
+      "skipped": 3,
+      "total": 65,
+      "failure": "The first 3 UI launches failed to acquire the system background assertion; later UI tests and all 42 units passed."
     }
-  ]
+  ],
+  "testRetryPolicy": {
+    "maximumAttempts": 2,
+    "retryFailuresOnly": true,
+    "rawFailuresRetainedInLogsAndXCResult": true
+  }
 }

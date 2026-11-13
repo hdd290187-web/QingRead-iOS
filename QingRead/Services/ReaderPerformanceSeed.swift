@@ -5,10 +5,16 @@ extension LibraryStore {
     func seedReaderPerformanceIfRequested() async {
         guard let argument = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--uitest-performance=") }) else { return }
         let fixture = String(argument.dropFirst("--uitest-performance=".count))
+        guard ["short", "long", "monolith"].contains(fixture) else { return }
         settings.mode = .scroll
         settings.fontSize = 20; settings.font = .serif; settings.theme = .white
         settings.sidePadding = 28; settings.lineSpacing = 8; settings.paragraphSpacing = 12
         guard books.isEmpty else { return }
+        // Each fresh synthetic test attempt owns its report. Reopening the reader
+        // within that attempt still keeps the active-gesture sample in the probe.
+        let variant = ProcessInfo.processInfo.arguments.contains("--reader-baseline") ? "baseline" : "optimized"
+        let reports = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("ReaderPerformance", isDirectory: true)
+        try? FileManager.default.removeItem(at: reports.appendingPathComponent("\(fixture)-\(variant).json"))
         let chapterCount = fixture == "short" ? 5 : fixture == "monolith" ? 1 : 80
         let paragraphs = fixture == "short" ? 12 : fixture == "monolith" ? 5000 : 100
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("滚动性能原创样本.txt")

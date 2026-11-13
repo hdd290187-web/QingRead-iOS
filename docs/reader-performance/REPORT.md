@@ -61,3 +61,9 @@ Bundle ID、Application Support/QingRead、书籍/章节 ID、library.json、书
 ## 完整第 40 轮实际结果
 
 [Build 40](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43404759462) 的真实 arm64 Release 和完整 XCTest 已通过：62 通过 / 0 失败 / 3 项既有 Files 跳过（65 项）。上轮的 Files 冷启动取消用例已通过。后续性能导出失败，错误为 CoreSimulator “Unable to lookup in current state: Shutdown”：Xcode 在测试结束后自动关闭了目标模拟器，容器仍在，但 get_app_container 要求 Booted。修正仅在导出脚本中重新启动同一目标并等待 bootstatus，不更改模拟器数据、阅读实现或测试断言。其后 iPhone 15、基线、大屏和打包尚未执行，不能把该轮整体标为成功；完整 Build 41 将验证导出修正并继续后续流程。
+
+## 第 41 轮的测试启动与截图采集修正
+
+[Build 41](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43408768485) Release 编译与 42 项单元用例通过；最初 3 个 UI 用例在 app.launch 处因 XCTest “Timed out while acquiring background assertion”失败，后续导入及阅读场景均通过。下一轮在测试前显式启动并等待同一模拟器的 bootstatus，XCTest 只对失败项最多再执行一次，原始失败和重试留在日志/xcresult，所有断言保留。每次新的合成性能测试尝试只清理该 fixture/variant 的测试报告，避免沿用失败尝试的采样；不操作真实用户书库。
+
+人工检查完整第 40 轮截图发现 app.screenshot 横屏裁剪异常，虽然逻辑视口的旋转/边界断言通过，PNG 有黑边和内容截断，不能作为合格的横屏图。采集改为 XCUIScreen.main.screenshot，并等到实际视口尺寸/内容稳定后再截取；下一轮需要人工查看新图和全屏录屏。没有将旧的异常截图作为正式优化后证据。

@@ -2,7 +2,7 @@ import XCTest
 
 final class ReaderLayoutTests: XCTestCase {
     @MainActor private func attach(_ app: XCUIApplication, _ name: String) {
-        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)
     }
     @MainActor private func reveal(_ app: XCUIApplication) {
         if !app.buttons["返回书架"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap() }
@@ -39,7 +39,18 @@ final class ReaderLayoutTests: XCTestCase {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap()
             XCUIDevice.shared.orientation = .landscapeLeft
             XCTAssertTrue(viewport.waitForExistence(timeout: 15))
-            expectation(for: NSPredicate { _, _ in viewport.frame.width > viewport.frame.height }, evaluatedWith: nil)
+            var stableFrame = CGRect.null
+            var stableText: String?
+            var stableSince = ProcessInfo.processInfo.systemUptime
+            expectation(for: NSPredicate { _, _ in
+                let frame = viewport.frame, text = viewport.value as? String
+                guard frame.width > frame.height else { return false }
+                if frame != stableFrame || text != stableText {
+                    stableFrame = frame; stableText = text; stableSince = ProcessInfo.processInfo.systemUptime
+                    return false
+                }
+                return ProcessInfo.processInfo.systemUptime - stableSince >= 0.7
+            }, evaluatedWith: nil)
             waitForExpectations(timeout: 10)
             XCTAssertGreaterThanOrEqual(viewport.frame.minX, 0)
             XCTAssertLessThanOrEqual(viewport.frame.maxY, app.frame.maxY)

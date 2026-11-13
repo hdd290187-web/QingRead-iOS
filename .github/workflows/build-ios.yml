@@ -62,10 +62,11 @@ jobs:
           xcrun simctl list devices available --json > delivery/available-simulators.json
           simulator_id="$(python3 scripts/select-simulator.py delivery/available-simulators.json)"
           printf 'SIMULATOR_DEVICE_ID=%s\n' "$simulator_id" >> "$GITHUB_ENV"
+          python3 scripts/boot-test-simulator.py "$simulator_id"
           python3 scripts/stream-import-logs.py delivery/import-logs &
           monitor_pid=$!
           trap 'kill "$monitor_pid" 2>/dev/null || true; wait "$monitor_pid" 2>/dev/null || true' EXIT
-          test_args=(-parallel-testing-enabled NO)
+          test_args=(-parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2)
           if test "$IMPORT_ONLY" = true; then test_args+=(-only-testing:QingReadUITests/DocumentImportTests "SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG SYSTEM_FILES_DIAGNOSTICS"); fi
           if test "$READER_DIAGNOSTICS" = true; then
             test_args+=(-only-testing:QingReadTests/ReaderPerformanceTests -only-testing:QingReadTests/CoreTests/testFontAndTextKitCharacterAnchor -only-testing:QingReadUITests/ReaderLayoutTests/testChapterBoundaryFontChangeAndBackgroundRestore -only-testing:QingReadUITests/BrandUITests/testEPUBOriginalCoverReadingAndPreferences -only-testing:QingReadUITests/ReaderScrollPerformanceTests/testShortTXTRepeatedFlingAndRestore)
@@ -79,12 +80,11 @@ jobs:
           simulator_id="$(python3 scripts/create-brand-simulator.py)"
           printf 'BRAND_SIMULATOR_DEVICE_ID=%s\n' "$simulator_id" >> "$GITHUB_ENV"
           printf 'iPhone 15 simulator=%s\n' "$simulator_id" > delivery/brand-simulator.txt
-          xcrun simctl boot "$simulator_id"
-          xcrun simctl bootstatus "$simulator_id" -b
+          python3 scripts/boot-test-simulator.py "$simulator_id"
           xcrun simctl io "$simulator_id" recordVideo --codec=h264 delivery/scroll-optimized.mp4 &
           video_pid=$!
           trap 'kill -INT "$video_pid" 2>/dev/null || true; wait "$video_pid" 2>/dev/null || true' EXIT
-          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Brand-iPhone15.xcresult" -parallel-testing-enabled NO -only-testing:QingReadUITests/BrandUITests -only-testing:QingReadUITests/ReaderLayoutTests -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/brand-iphone15.log
+          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Brand-iPhone15.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/BrandUITests -only-testing:QingReadUITests/ReaderLayoutTests -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/brand-iphone15.log
           python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-iphone15 optimized
       - name: Baseline scrolling on the same iPhone 15
         if: ${{ !inputs.import_only && !inputs.reader_diagnostics }}
@@ -99,7 +99,7 @@ jobs:
           xcrun simctl io "$BRAND_SIMULATOR_DEVICE_ID" recordVideo --codec=h264 delivery/scroll-baseline.mp4 &
           video_pid=$!
           trap 'kill -INT "$video_pid" 2>/dev/null || true; wait "$video_pid" 2>/dev/null || true' EXIT
-          xcodebuild -project "$baseline_dir/QingRead.xcodeproj" -scheme QingRead -configuration Debug -destination "id=$BRAND_SIMULATOR_DEVICE_ID" -derivedDataPath "$RUNNER_TEMP/baseline-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Baseline.xcresult" -parallel-testing-enabled NO -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/baseline-tests.log
+          xcodebuild -project "$baseline_dir/QingRead.xcodeproj" -scheme QingRead -configuration Debug -destination "id=$BRAND_SIMULATOR_DEVICE_ID" -derivedDataPath "$RUNNER_TEMP/baseline-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Baseline.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/baseline-tests.log
           python3 scripts/export-reader-performance.py "$BRAND_SIMULATOR_DEVICE_ID" delivery/performance-baseline baseline
           python3 scripts/compare-reader-performance.py delivery/performance-baseline delivery/performance-iphone15 delivery/performance-comparison
       - name: Reader layouts on large iPhone
@@ -108,7 +108,8 @@ jobs:
           set -euo pipefail
           simulator_id="$(python3 scripts/create-brand-simulator.py 'iPhone 16 Pro Max')"
           printf 'iPhone 16 Pro Max simulator=%s\n' "$simulator_id" > delivery/large-simulator.txt
-          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Reader-Large.xcresult" -parallel-testing-enabled NO -only-testing:QingReadUITests/ReaderLayoutTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/reader-large.log
+          python3 scripts/boot-test-simulator.py "$simulator_id"
+          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Reader-Large.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderLayoutTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/reader-large.log
       - name: Export test screenshots and summary
         if: always()
         run: |
