@@ -5,6 +5,7 @@ import UIKit
 struct RootView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var selectedTab = 0
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var imports = DocumentImportController()
 
     var body: some View {
@@ -45,6 +46,19 @@ struct RootView: View {
             }
             #endif
         }
+        .overlay {
+            if let toast = imports.toast {
+                VStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 28)).foregroundStyle(YYTheme.accent)
+                    Text(toast.result.imported.count == 1 ? "导入成功" : "成功导入 \(toast.result.imported.count) 本").font(.headline)
+                    if toast.result.imported.count == 1 { Text(toast.result.imported[0]).font(.subheadline).lineLimit(2) }
+                }.padding(.horizontal, 28).padding(.vertical, 22)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                    .accessibilityElement(children: .combine).accessibilityIdentifier("import.successToast")
+                    .allowsHitTesting(false).transition(.opacity)
+            }
+        }.animation(.easeInOut(duration: 0.18), value: imports.toast?.id)
+        .onChange(of: scenePhase) { _, phase in if phase != .active { library.flushSettingsIfNeeded() } }
         .sheet(item: $imports.feedback) { ImportFeedbackView(feedback: $0) }
         .alert("操作提示", isPresented: Binding(get: { library.lastError != nil }, set: { if !$0 { library.lastError = nil } })) {
             Button("知道了", role: .cancel) { library.lastError = nil }

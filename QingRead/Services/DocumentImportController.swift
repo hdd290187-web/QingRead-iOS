@@ -9,10 +9,12 @@ final class DocumentImportController: ObservableObject {
     @Published private(set) var status: String?
     @Published private(set) var lastFeedback: ImportFeedback?
     @Published var feedback: ImportFeedback?
+    @Published private(set) var toast: ImportFeedback?
     private var feedbackTask: Task<Void, Never>?
 
     func openPicker() {
         guard !pickerPresented, !awaitingImport else { return }
+        feedbackTask?.cancel(); toast = nil
         status = nil; feedback = nil; pickerPresented = true
     }
     func consume(_ result: Result<[URL], Error>, library: LibraryStore) {
@@ -38,8 +40,7 @@ final class DocumentImportController: ObservableObject {
     }
     func cancelled() {
         pickerPresented = false; awaitingImport = false; status = "已取消导入"
-        feedbackTask?.cancel(); feedback = nil
-        lastFeedback = nil
+        feedbackTask?.cancel(); feedback = nil; toast = nil
     }
     static func isCancellation(_ error: Error) -> Bool {
         if error is CancellationError { return true }
@@ -51,14 +52,22 @@ final class DocumentImportController: ObservableObject {
         let item = ImportFeedback(result: result)
         lastFeedback = item
         status = item.title
-        feedbackTask?.cancel()
+        feedbackTask?.cancel(); toast = nil
         feedbackTask = Task { [weak self] in
             // Keep the inline result even if presentation is interrupted by the
             // system picker animation; wait until UIKit has dismissed the picker.
             try? await Task.sleep(nanoseconds: 500_000_000)
             guard let self, !Task.isCancelled else { return }
             for _ in 0..<30 {
-                if !pickerPresented && !Self.hasPresentedDocumentPicker() { feedback = item; return }
+                if !pickerPresented && !Self.hasPresentedDocumentPicker() {
+                    if result.failures.isEmpty && result.duplicates.isEmpty && !result.imported.isEmpty {
+                        toast = item
+                        try? await Task.sleep(nanoseconds: 1_800_000_000)
+                        guard !Task.isCancelled else { return }
+                        toast = nil
+                    } else { feedback = item }
+                    return
+                }
                 try? await Task.sleep(nanoseconds: 100_000_000)
                 guard !Task.isCancelled else { return }
             }

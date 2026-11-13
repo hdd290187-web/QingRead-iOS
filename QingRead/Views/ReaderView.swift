@@ -16,7 +16,7 @@ private struct ReaderHost: View {
     @State private var chapterSlider = 0.0
     @State private var draggingProgress = false
     @State private var originalBrightness: CGFloat?
-    @State private var bookmarkAdded = false
+    @State private var settingsDetent: PresentationDetent = .fraction(0.55)
 
     private var chapterTitle: String { session.chapters.indices.contains(session.position.chapter) ? session.chapters[session.position.chapter].title : session.book.title }
     private var foreground: Color { library.settings.theme.foreground }
@@ -28,13 +28,17 @@ private struct ReaderHost: View {
                     if session.book.format == .epub { EPUBReader(session: session, settings: library.settings) }
                     else { NativeReader(session: session, settings: library.settings) }
                 }.transaction { $0.animation = nil }
-                compactProgress.frame(height: 28)
+                if library.settings.showBottomProgress {
+                    compactProgress.frame(height: 28).contentShape(Rectangle())
+                        .onTapGesture { session.menuVisible.toggle() }
+                        .accessibilityIdentifier("reader.compactProgress")
+                }
             }
             if session.menuVisible {
                 VStack(spacing: 0) {
                     header.frame(height: 52).background(library.settings.theme.background.opacity(0.98))
                     Spacer(minLength: 0)
-                    controls.padding(.bottom, 28)
+                    controls.padding(.bottom, library.settings.showBottomProgress ? 28 : 0)
                 }.transition(.opacity)
             }
             if session.isLoading { ProgressView("正在准备正文…").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) }
@@ -43,17 +47,23 @@ private struct ReaderHost: View {
         .preferredColorScheme(library.settings.systemColorScheme)
         .interactiveDismissDisabled()
         .sheet(isPresented: $showContents) { ContentsSheet(session: session).presentationBackground(YYTheme.background) }
-        .sheet(isPresented: $showSettings, onDismiss: { session.applySettings() }) {
+        .sheet(isPresented: $showSettings, onDismiss: { library.flushSettingsIfNeeded() }) {
             NavigationStack {
                 ReaderSettingsForm().toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showSettings = false }.accessibilityIdentifier("reader.settings.done") } }
-            }.presentationDetents([.large]).presentationDragIndicator(.visible).presentationBackground(YYTheme.background)
+            }.environment(\.readerSettingsOverlay, true)
+                .presentationDetents([.fraction(0.55), .fraction(0.78)], selection: $settingsDetent)
+                .presentationDragIndicator(.visible)
+                .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.78)))
+                .presentationBackground {
+                    Rectangle().fill(.thinMaterial).overlay(library.settings.theme.background.opacity(0.28))
+                }.preferredColorScheme(library.settings.systemColorScheme)
         }
         .sheet(isPresented: $showBookmarks) { bookmarksSheet.presentationBackground(YYTheme.background) }
         .alert("阅读提示", isPresented: Binding(get: { session.error != nil }, set: { if !$0 { session.error = nil } })) {
             Button("重试本章") { session.error = nil; session.restore(session.position) }
             Button("关闭", role: .cancel) { session.error = nil }
         } message: { Text(session.error ?? "") }
-        .onChange(of: library.settings) { _, _ in applyBrightness() }
+        .onChange(of: library.settings) { _, _ in applyBrightness(); session.applySettings() }
         .onChange(of: scenePhase) { _, phase in if phase != .active { session.flush() } }
         .onAppear { originalBrightness = UIScreen.main.brightness; applyBrightness() }
         .onDisappear { session.flush(); if let originalBrightness { UIScreen.main.brightness = originalBrightness } }
@@ -66,7 +76,8 @@ private struct ReaderHost: View {
                 Spacer(minLength: 4)
                 Button { showSettings = true } label: { Text("Aa").font(.system(size: 20, weight: .regular)).frame(width: 44, height: 44) }
                     .accessibilityLabel("阅读设置").accessibilityIdentifier("reader.settings")
-                tool("添加书签", icon: bookmarkAdded ? "bookmark.fill" : "bookmark") { session.bookmark(); bookmarkAdded = true }
+                tool(session.hasBookmark ? "取消书签" : "添加书签", icon: session.hasBookmark ? "bookmark.fill" : "bookmark") { session.bookmark() }
+                    .accessibilityIdentifier("reader.bookmark").accessibilityValue(session.hasBookmark ? "已收藏" : "未收藏")
                 Menu {
                     Button("目录", systemImage: "list.bullet") { showContents = true }
                     Button("书签", systemImage: "bookmark") { showBookmarks = true }
@@ -126,7 +137,7 @@ private struct ReaderHost: View {
                             Text(bookmark.title).foregroundStyle(YYTheme.foreground)
                             Text(bookmark.createdAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(YYTheme.secondary)
                         }.padding(.vertical, 6)
-                    }.swipeActions { Button("删除", role: .destructive) { library.deleteBookmark(bookmark) } }
+                    }.accessibilityIdentifier("reader.bookmark.item.\(bookmark.id.uuidString)").swipeActions { Button("删除", role: .destructive) { library.deleteBookmark(bookmark) } }
                 }.listRowBackground(YYTheme.background)
             }.navigationTitle("书签").navigationBarTitleDisplayMode(.inline).yyPage()
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showBookmarks = false } } }

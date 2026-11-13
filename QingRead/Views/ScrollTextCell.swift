@@ -42,6 +42,9 @@ final class ScrollTextCell: UITableViewCell {
         canvas.drawing?.setForeground(settings.theme.uiForeground.resolvedColor(with: traitCollection))
         canvas.setNeedsDisplay()
     }
+    #if DEBUG
+    var renderedText: String { chunk?.attributed.string ?? "" }
+    #endif
     var renderedTextBounds: CGRect { chunk?.drawing.usedRect ?? .zero }
     var renderedHeight: CGFloat { canvas.bounds.height }
     var renderedUTF16Length: Int { chunk?.drawing.coveredUTF16 ?? 0 }

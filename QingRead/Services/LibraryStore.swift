@@ -12,13 +12,15 @@ final class LibraryStore: ObservableObject {
     private var drainingImports = false
     private var snapshotReadable = true
     private var pendingLocalIdentityMigration = false
+    private var pendingReaderSettingsMigration = false
+    private var settingsWriteTask: Task<Void, Never>?
     private var activeImportID: UUID?
     let importEnvironment: ImportEnvironment
     private struct ImportJob {
         let urls: [URL]
         let continuation: CheckedContinuation<ImportBatchResult, Never>
     }
-    @Published var settings = ReaderSettings() { didSet { persist() } }
+    @Published var settings = ReaderSettings() { didSet { scheduleSettingsWrite() } }
     @Published var sources: [BookSource] = [] { didSet { persist() } }
     @Published var lastError: String?
     private let fm = FileManager.default
@@ -52,7 +54,19 @@ final class LibraryStore: ObservableObject {
     }
     func position(for book: Book) -> ReadingPosition { positions[book.id] ?? .beginning }
     func update(position: ReadingPosition, for book: Book) { positions[book.id] = position; persist() }
-    func addBookmark(_ bookmark: Bookmark) { bookmarks.append(bookmark); persist() }
+    func addBookmark(_ bookmark: Bookmark) {
+        guard !bookmarks.contains(where: { $0.locationKey == bookmark.locationKey }) else { return }
+        bookmarks.append(bookmark); persist()
+    }
+    func matchingBookmark(bookID: UUID, position: ReadingPosition) -> Bookmark? {
+        let key = Bookmark(bookID: bookID, position: position, title: "").locationKey
+        return bookmarks.first { $0.locationKey == key }
+    }
+    func toggleBookmark(bookID: UUID, position: ReadingPosition, title: String) {
+        let item = Bookmark(bookID: bookID, position: position, title: title)
+        if bookmarks.contains(where: { $0.locationKey == item.locationKey }) { bookmarks.removeAll { $0.locationKey == item.locationKey }; persist() }
+        else { addBookmark(item) }
+    }
     func bookmarks(for book: Book) -> [Bookmark] { bookmarks.filter { $0.bookID == book.id }.sorted { $0.createdAt > $1.createdAt } }
     func deleteBookmark(_ bookmark: Bookmark) { bookmarks.removeAll { $0.id == bookmark.id }; persist() }
     func saveSource(_ source: BookSource) { sources.removeAll { $0.id == source.id || $0.name == source.name && $0.baseURL == source.baseURL }; sources.append(source); persist() }
@@ -71,6 +85,15 @@ final class LibraryStore: ObservableObject {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return "" }; return String(decoding: data, as: UTF8.self)
     }
     func flush() { persist() }
+    func flushSettingsIfNeeded() { if settingsWriteTask != nil { persist() } }
+    private func scheduleSettingsWrite() {
+        guard !loading else { return }
+        settingsWriteTask?.cancel()
+        settingsWriteTask = Task { [weak self] in
+            do { try await Task.sleep(nanoseconds: 250_000_000) } catch { return }
+            guard let self, !Task.isCancelled else { return }; persist()
+        }
+    }
     private func writeSnapshot(_ value: Snapshot) throws {
         guard snapshotReadable else { throw ReaderError.message("书库索引无法读取，已阻止覆盖；请保留原文件。") }
         try fm.createDirectory(at: root, withIntermediateDirectories: true)
@@ -79,12 +102,26 @@ final class LibraryStore: ObservableObject {
             let backup = root.appendingPathComponent("library-before-import-repair.json")
             if !fm.fileExists(atPath: backup.path) { try fm.copyItem(at: snapshotURL, to: backup) }
         }
+        if pendingReaderSettingsMigration, fm.fileExists(atPath: snapshotURL.path) {
+            let backup = root.appendingPathComponent("library-before-build44.json")
+            if !fm.fileExists(atPath: backup.path) { try fm.copyItem(at: snapshotURL, to: backup) }
+        }
         try JSONEncoder().encode(value).write(to: snapshotURL, options: .atomic)
+        settingsWriteTask?.cancel(); settingsWriteTask = nil
+        pendingReaderSettingsMigration = false
         pendingLocalIdentityMigration = false
     }
     private func load() {
         guard fm.fileExists(atPath: snapshotURL.path) else { return }
-        do { let value = try JSONDecoder().decode(Snapshot.self, from: Data(contentsOf: snapshotURL)); books = value.books; positions = value.positions; bookmarks = value.bookmarks; settings = value.settings; sources = value.sources }
+        do {
+            let bytes = try Data(contentsOf: snapshotURL)
+            let value = try JSONDecoder().decode(Snapshot.self, from: bytes)
+            books = value.books; positions = value.positions; settings = value.settings; sources = value.sources
+            var seen = Set<String>()
+            bookmarks = value.bookmarks.filter { seen.insert($0.locationKey).inserted }
+            let object = try JSONSerialization.jsonObject(with: bytes) as? [String: Any]
+            pendingReaderSettingsMigration = (object?["settings"] as? [String: Any])?["showBottomProgress"] == nil || bookmarks.count != value.bookmarks.count
+        }
         catch { snapshotReadable = false; lastError = "本地书库索引无法读取，已阻止写入以保护原书架。请保留原文件并检查存储空间。" }
     }
     private func persist() {

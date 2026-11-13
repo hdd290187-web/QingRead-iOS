@@ -76,9 +76,6 @@ jobs:
           simulator_id="$(python3 scripts/select-large-simulator.py delivery/available-simulators.json)"
           printf 'large simulator=%s\n' "$simulator_id" > delivery/large-simulator.txt
           python3 scripts/boot-test-simulator.py "$simulator_id" --shutdown-others
-          xcrun simctl io "$simulator_id" recordVideo --codec=h264 delivery/large-layouts.mp4 &
-          video_pid=$!
-          trap 'kill -INT "$video_pid" 2>/dev/null || true; wait "$video_pid" 2>/dev/null || true' EXIT
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/layout-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Reader-Large.xcresult" -parallel-testing-enabled NO -enableCodeCoverage NO -test-timeouts-enabled YES -default-test-execution-time-allowance 300 -maximum-test-execution-time-allowance 300 -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderLayoutTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/reader-large.log
       - name: Export large layout evidence
         if: always()

@@ -70,7 +70,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         prefs.columnCount = .one
         prefs.backgroundColor = ReadiumNavigator.Color(uiColor: settings.theme.uiBackground.resolvedColor(with: traits))
         prefs.textColor = ReadiumNavigator.Color(uiColor: settings.theme.uiForeground.resolvedColor(with: traits))
-        prefs.fontFamily = FontFamily(rawValue: settings.font == .serif ? "Noto Serif SC" : settings.font == .rounded ? "ui-rounded" : "sans-serif")
+        prefs.fontFamily = FontFamily(rawValue: settings.font.cssFamily)
         prefs.theme = settings.theme == .dark || (settings.theme == .system && traits.userInterfaceStyle == .dark) ? .dark : settings.theme == .cream ? .sepia : .light
         return prefs
     }

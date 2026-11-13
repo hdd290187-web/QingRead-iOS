@@ -41,6 +41,18 @@ struct Bookmark: Codable, Hashable, Identifiable {
     var position: ReadingPosition
     var title: String
     var createdAt = Date()
+    var locationKey: String {
+        if let json = position.locatorJSON {
+            // Readium locators can include incidental text/title fields. The
+            // resource and location identify the reading anchor across reflows.
+            if let value = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] {
+                let anchor: [String: Any] = ["href": value["href"] ?? "", "locations": value["locations"] ?? [:]]
+                if let data = try? JSONSerialization.data(withJSONObject: anchor, options: .sortedKeys), let key = String(data: data, encoding: .utf8) { return bookID.uuidString + ":epub:" + key }
+            }
+            return bookID.uuidString + ":epub:" + json
+        }
+        return "\(bookID.uuidString):\(position.chapter):\(position.characterOffset)"
+    }
 }
 enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
     case system, white, cream, dark, green, gray
@@ -63,9 +75,30 @@ enum ReaderMode: String, Codable, CaseIterable, Identifiable {
     var title: String { switch self { case .slide: "滑动"; case .cover: "覆盖"; case .curl: "仿真卷曲"; case .scroll: "连续滚动" } }
 }
 enum ReaderFont: String, Codable, CaseIterable, Identifiable {
-    case system, rounded, serif
+    case system, rounded, serif, kaiti, songti, heiti
     var id: String { rawValue }
-    var title: String { switch self { case .system: "苹方"; case .rounded: "系统圆体"; case .serif: "思源宋体" } }
+    var title: String { switch self {
+    case .system: "苹方"; case .rounded: "系统圆体"; case .serif: "思源宋体"
+    case .kaiti: "楷体"; case .songti: "系统宋体"; case .heiti: "华文黑体" } }
+    var installedName: String? {
+        let candidates: [String]
+        switch self {
+        case .kaiti: candidates = ["KaitiSC-Regular", "STKaitiSC-Regular", "STKaiti"]
+        case .songti: candidates = ["SongtiSC-Regular", "STSongti-SC-Regular", "STSong"]
+        case .heiti: candidates = ["STHeitiSC-Light", "STHeitiSC-Medium"]
+        default: return nil
+        }
+        return candidates.first { UIFont(name: $0, size: 20) != nil }
+    }
+    static var available: [ReaderFont] { allCases.filter { [.system, .rounded, .serif].contains($0) || $0.installedName != nil } }
+    var cssFamily: String {
+        switch self {
+        case .serif: return "Noto Serif SC"
+        case .rounded: return "ui-rounded"
+        case .system: return "sans-serif"
+        default: return installedName.flatMap { UIFont(name: $0, size: 20)?.familyName } ?? "Noto Serif SC"
+        }
+    }
 }
 struct ReaderSettings: Codable, Equatable {
     var fontSize: Double = 20
@@ -81,6 +114,30 @@ struct ReaderSettings: Codable, Equatable {
     var rightHanded = false
     var brightness: Double = 0.5
     var customBrightness = false
+    var showBottomProgress = true
+
+    init() {}
+    private enum CodingKeys: String, CodingKey {
+        case fontSize, font, fontWeight, lineSpacing, paragraphSpacing, sidePadding, firstLineIndent, theme, mode, tapZoneRatio, rightHanded, brightness, customBrightness, showBottomProgress
+    }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        fontSize = try values.decodeIfPresent(Double.self, forKey: .fontSize) ?? fontSize
+        font = try values.decodeIfPresent(ReaderFont.self, forKey: .font) ?? font
+        fontWeight = try values.decodeIfPresent(Double.self, forKey: .fontWeight) ?? fontWeight
+        lineSpacing = try values.decodeIfPresent(Double.self, forKey: .lineSpacing) ?? lineSpacing
+        paragraphSpacing = try values.decodeIfPresent(Double.self, forKey: .paragraphSpacing) ?? paragraphSpacing
+        sidePadding = try values.decodeIfPresent(Double.self, forKey: .sidePadding) ?? sidePadding
+        firstLineIndent = try values.decodeIfPresent(Double.self, forKey: .firstLineIndent) ?? firstLineIndent
+        theme = try values.decodeIfPresent(ReaderTheme.self, forKey: .theme) ?? theme
+        mode = try values.decodeIfPresent(ReaderMode.self, forKey: .mode) ?? mode
+        tapZoneRatio = try values.decodeIfPresent(Double.self, forKey: .tapZoneRatio) ?? tapZoneRatio
+        rightHanded = try values.decodeIfPresent(Bool.self, forKey: .rightHanded) ?? rightHanded
+        brightness = try values.decodeIfPresent(Double.self, forKey: .brightness) ?? brightness
+        customBrightness = try values.decodeIfPresent(Bool.self, forKey: .customBrightness) ?? customBrightness
+        showBottomProgress = try values.decodeIfPresent(Bool.self, forKey: .showBottomProgress) ?? true
+    }
     func hasSameTextLayout(as other: ReaderSettings) -> Bool {
         fontSize == other.fontSize && font == other.font && fontWeight == other.fontWeight &&
         lineSpacing == other.lineSpacing && paragraphSpacing == other.paragraphSpacing &&
@@ -88,7 +145,11 @@ struct ReaderSettings: Codable, Equatable {
     }
     var systemColorScheme: ColorScheme? { theme == .dark ? .dark : theme == .system ? nil : .light }
     var uiFont: UIFont {
-        if font == .serif {
+        if let name = font.installedName, let face = UIFont(name: name, size: fontSize) {
+            let descriptor = face.fontDescriptor.addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: fontWeight]])
+            return UIFont(descriptor: descriptor, size: fontSize)
+        }
+        if font == .serif || !ReaderFont.available.contains(font) {
             let descriptor = UIFontDescriptor(fontAttributes: [.family: "Noto Serif SC", .traits: [UIFontDescriptor.TraitKey.weight: fontWeight]])
             return UIFont(descriptor: descriptor, size: fontSize)
         }

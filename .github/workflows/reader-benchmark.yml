@@ -39,9 +39,6 @@ jobs:
           printf 'BENCHMARK_SIMULATOR_DEVICE_ID=%s\n' "$simulator_id" >> "$GITHUB_ENV"
           printf 'iPhone 15 simulator=%s\n' "$simulator_id" > delivery/benchmark-simulator.txt
           python3 scripts/boot-test-simulator.py "$simulator_id"
-          xcrun simctl io "$simulator_id" recordVideo --codec=h264 delivery/scroll-optimized.mp4 &
-          video_pid=$!
-          trap 'kill -INT "$video_pid" 2>/dev/null || true; wait "$video_pid" 2>/dev/null || true' EXIT
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/optimized-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Benchmark-iPhone15.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/benchmark-iphone15.log
           python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-iphone15 optimized
       - name: Baseline scrolling on the same iPhone 15
@@ -54,9 +51,6 @@ jobs:
           mkdir -p "$baseline_dir/QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm"
           cp Package.resolved "$baseline_dir/QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
           python3 scripts/boot-test-simulator.py "$BENCHMARK_SIMULATOR_DEVICE_ID"
-          xcrun simctl io "$BENCHMARK_SIMULATOR_DEVICE_ID" recordVideo --codec=h264 delivery/scroll-baseline.mp4 &
-          video_pid=$!
-          trap 'kill -INT "$video_pid" 2>/dev/null || true; wait "$video_pid" 2>/dev/null || true' EXIT
           xcodebuild -project "$baseline_dir/QingRead.xcodeproj" -scheme QingRead -configuration Debug -destination "id=$BENCHMARK_SIMULATOR_DEVICE_ID" -derivedDataPath "$RUNNER_TEMP/baseline-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Baseline.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/baseline-tests.log
           python3 scripts/export-reader-performance.py "$BENCHMARK_SIMULATOR_DEVICE_ID" delivery/performance-baseline baseline
           python3 scripts/compare-reader-performance.py delivery/performance-baseline delivery/performance-iphone15 delivery/performance-comparison

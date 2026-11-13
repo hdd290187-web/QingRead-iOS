@@ -10,8 +10,12 @@ protocol ReadingEngine: AnyObject {
     func navigate(to position: ReadingPosition)
     func apply(settings: ReaderSettings)
     func flushPosition()
+    func containsReadingAnchor(_ position: ReadingPosition) -> Bool
 }
-extension ReadingEngine { func flushPosition() {} }
+extension ReadingEngine {
+    func flushPosition() {}
+    func containsReadingAnchor(_ position: ReadingPosition) -> Bool { false }
+}
 
 @MainActor
 final class ReaderSession: ObservableObject {
@@ -56,7 +60,7 @@ final class ReaderSession: ObservableObject {
     }
     func restore(_ saved: ReadingPosition) { engine?.navigate(to: saved) }
     func applySettings() { engine?.apply(settings: library.settings) }
-    func flush() { engine?.flushPosition(); commitPosition() }
+    func flush() { engine?.flushPosition(); commitPosition(); library.flushSettingsIfNeeded() }
     func progress(chapter: Int, offset: Int) -> Double {
         if book.format == .online {
             let length = chapters.indices.contains(chapter) ? max(1, chapters[chapter].length) : 1
@@ -66,10 +70,17 @@ final class ReaderSession: ObservableObject {
         let completed = completedCharacters.isEmpty ? 0 : completedCharacters[index]
         return min(1, Double(completed + offset) / Double(max(1, completedCharacters.last ?? 0)))
     }
+    var hasBookmark: Bool {
+        matchingBookmark != nil
+    }
+    private var matchingBookmark: Bookmark? {
+        library.bookmarks(for: book).first { engine?.containsReadingAnchor($0.position) == true } ?? library.matchingBookmark(bookID: book.id, position: position)
+    }
     func bookmark() {
         engine?.flushPosition()
         let title = chapters.indices.contains(position.chapter) ? chapters[position.chapter].title : book.title
-        library.addBookmark(Bookmark(bookID: book.id, position: position, title: title))
+        if let existing = matchingBookmark { library.deleteBookmark(existing) }
+        else { library.addBookmark(Bookmark(bookID: book.id, position: position, title: title)) }
     }
     func loadText(at index: Int) async throws -> String {
         guard chapters.indices.contains(index) else { return "" }

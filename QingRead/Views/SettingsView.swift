@@ -20,15 +20,28 @@ struct SettingsView: View {
                 }.listRowBackground(YYTheme.background)
                 Section("在线书源") {
                     NavigationLink { SourceManagerView() } label: { Label("书源管理（\(library.sources.count)）", systemImage: "safari") }
-                    NavigationLink("兼容范围") { SourceGuideView() }
                 }.listRowBackground(YYTheme.background)
-                Section(YYTheme.name) {
-                    HStack { Text("版本"); Spacer(); Text(version).foregroundStyle(YYTheme.secondary).font(.subheadline) }
-                    NavigationLink("开源许可与素材来源") { LicenseView() }
-                    Text("书籍、书签和阅读位置留在本机。更新时请覆盖安装，并保留原始书籍备份。").font(.footnote).foregroundStyle(YYTheme.secondary).lineSpacing(5)
+                Section {
+                    NavigationLink("关于予盈") { AboutYuyingView() }.accessibilityIdentifier("profile.about")
                 }.listRowBackground(YYTheme.background)
             }.navigationTitle("我的").yyPage()
         }
+    }
+}
+
+private struct AboutYuyingView: View {
+    var body: some View {
+        List {
+            Section("予盈") {
+                HStack { Text("版本"); Spacer(); Text(version).foregroundStyle(YYTheme.secondary) }
+                NavigationLink("开源许可与素材来源") { LicenseView() }
+                NavigationLink("书源兼容范围") { SourceGuideView() }
+            }.listRowBackground(YYTheme.background)
+            Section("本地数据") {
+                Text("书籍、书签、阅读位置和排版设置保存在本机。更新时请使用原签名覆盖安装，并保留原始书籍备份。")
+                    .font(.footnote).foregroundStyle(YYTheme.secondary).lineSpacing(5)
+            }.listRowBackground(YYTheme.background)
+        }.navigationTitle("关于予盈").navigationBarTitleDisplayMode(.inline).yyPage()
     }
     private var version: String {
         let info = Bundle.main.infoDictionary ?? [:]
@@ -53,43 +66,40 @@ struct ReaderSettingsForm: View {
                 modeSection
                 rule
                 NavigationLink { AdvancedReaderSettings() } label: {
-                    HStack { Text("更多排版与亮度"); Spacer(); Image(systemName: "chevron.right").font(.caption) }.font(.subheadline).foregroundStyle(YYTheme.foreground).padding(.vertical, 24)
+                    HStack { Text("更多排版与亮度"); Spacer(); Image(systemName: "chevron.right").font(.caption) }.font(.subheadline).foregroundStyle(library.settings.theme.foreground).padding(.vertical, 24)
                 }.accessibilityIdentifier("settings.advanced")
                 rule
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("即时预览").font(.caption).foregroundStyle(YYTheme.secondary)
-                    ReadingPreview(settings: library.settings).frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(YYTheme.separator, lineWidth: 0.5))
-                }.padding(.top, 24).padding(.bottom, 32)
+                Toggle("显示底部进度", isOn: $library.settings.showBottomProgress)
+                    .accessibilityIdentifier("settings.showBottomProgress").padding(.vertical, 24)
             }.frame(width: max(240, min(geometry.size.width, 560) - YYTheme.screenInset * 2))
                 .padding(.horizontal, YYTheme.screenInset).frame(maxWidth: .infinity)
         }
-        }.navigationTitle("阅读设置").navigationBarTitleDisplayMode(.inline).yyPage()
+        }.navigationTitle("阅读设置").navigationBarTitleDisplayMode(.inline).readerSettingsSurface()
     }
-    private var rule: some View { Rectangle().fill(YYTheme.separator).frame(height: 0.5) }
+    private var rule: some View { Rectangle().fill(library.settings.theme.foreground.opacity(0.14)).frame(height: 0.5) }
     private var fontSection: some View {
         NavigationLink { ReaderFontPicker() } label: {
             HStack {
-                Text("字体").foregroundStyle(YYTheme.foreground)
+                Text("字体").foregroundStyle(library.settings.theme.foreground)
                 Spacer()
-                Text(library.settings.font.title).foregroundStyle(YYTheme.secondary)
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(YYTheme.secondary)
+                Text(library.settings.font.title).foregroundStyle(library.settings.theme.foreground.opacity(0.65))
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(library.settings.theme.foreground.opacity(0.65))
             }.font(.subheadline).padding(.vertical, 25)
         }.accessibilityIdentifier("settings.font")
     }
     private var sizeSection: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack { Text("字号"); Spacer(); Text("\(Int(library.settings.fontSize)) pt").foregroundStyle(YYTheme.secondary).monospacedDigit().accessibilityIdentifier("settings.fontSize.value") }.font(.subheadline)
+            HStack { Text("字号"); Spacer(); Text("\(Int(library.settings.fontSize)) pt").foregroundStyle(library.settings.theme.foreground.opacity(0.65)).monospacedDigit().accessibilityIdentifier("settings.fontSize.value") }.font(.subheadline)
             HStack(spacing: 16) {
                 Text("A").font(.system(size: 15))
                 Slider(value: $library.settings.fontSize, in: 14...36, step: 1).tint(YYTheme.accent).accessibilityLabel("字号").accessibilityIdentifier("settings.fontSize")
                 Text("A").font(.system(size: 23))
-            }.foregroundStyle(YYTheme.foreground)
+            }.foregroundStyle(library.settings.theme.foreground)
         }.padding(.vertical, 24)
     }
     private var lineSection: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack { Text("行距"); Spacer(); Text("\(Int(library.settings.lineSpacing)) pt").foregroundStyle(YYTheme.secondary).monospacedDigit() }.font(.subheadline)
+            HStack { Text("行距"); Spacer(); Text("\(Int(library.settings.lineSpacing)) pt").foregroundStyle(library.settings.theme.foreground.opacity(0.65)).monospacedDigit() }.font(.subheadline)
             HStack(spacing: 14) {
                 lineOption("紧凑", value: 4, spacing: 3)
                 lineOption("舒适", value: 8, spacing: 5)
@@ -103,8 +113,8 @@ struct ReaderSettingsForm: View {
             VStack(spacing: 8) {
                 VStack(spacing: spacing) { ForEach(0..<3) { _ in Capsule().frame(width: 22, height: 1) } }.frame(height: 22)
                 Text(title).font(.caption2)
-            }.foregroundStyle(YYTheme.foreground).frame(maxWidth: .infinity).padding(.vertical, 12)
-                .background(selected ? YYTheme.selection : YYTheme.separator.opacity(0.15), in: RoundedRectangle(cornerRadius: 9))
+            }.foregroundStyle(library.settings.theme.foreground).frame(maxWidth: .infinity).padding(.vertical, 12)
+                .background(selected ? library.settings.theme.foreground.opacity(0.12) : library.settings.theme.foreground.opacity(0.14).opacity(0.15), in: RoundedRectangle(cornerRadius: 9))
         }.buttonStyle(.plain).accessibilityLabel("\(title)行距").accessibilityAddTraits(selected ? .isSelected : [])
             .accessibilityIdentifier("settings.line.\(Int(value))")
     }
@@ -117,9 +127,9 @@ struct ReaderSettingsForm: View {
                     Button { library.settings.theme = theme } label: {
                         VStack(spacing: 10) {
                             Circle().fill(theme.background).frame(width: 36, height: 36)
-                                .overlay(Circle().stroke(YYTheme.separator, lineWidth: 0.5))
+                                .overlay(Circle().stroke(library.settings.theme.foreground.opacity(0.14), lineWidth: 0.5))
                                 .padding(4).overlay(Circle().stroke(selected ? YYTheme.accent.opacity(0.8) : .clear, lineWidth: 1.5))
-                            Text(theme.title).font(.system(size: 10)).foregroundStyle(YYTheme.secondary)
+                            Text(theme.title).font(.system(size: 10)).foregroundStyle(library.settings.theme.foreground.opacity(0.65))
                         }.frame(maxWidth: .infinity)
                     }.buttonStyle(.plain).accessibilityLabel("\(theme.title)背景").accessibilityAddTraits(selected ? .isSelected : [])
                         .accessibilityIdentifier("settings.theme.\(theme.rawValue)")
@@ -129,7 +139,7 @@ struct ReaderSettingsForm: View {
                 HStack(spacing: 6) {
                     Image(systemName: library.settings.theme == .system ? "checkmark.circle.fill" : "circle.lefthalf.filled")
                     Text("跟随系统外观")
-                }.font(.caption).foregroundStyle(YYTheme.secondary)
+                }.font(.caption).foregroundStyle(library.settings.theme.foreground.opacity(0.65))
             }.buttonStyle(.plain).accessibilityIdentifier("settings.theme.system")
         }.padding(.vertical, 24)
     }
@@ -141,12 +151,12 @@ struct ReaderSettingsForm: View {
                     let selected = library.settings.mode == mode
                     Button { library.settings.mode = mode } label: {
                         HStack(spacing: 8) { Image(systemName: modeIcon(mode)); Text(mode.title).font(.system(size: 13)) }
-                            .foregroundStyle(YYTheme.foreground).frame(maxWidth: .infinity, minHeight: 46)
-                            .background(selected ? YYTheme.selection : YYTheme.separator.opacity(0.15), in: RoundedRectangle(cornerRadius: 9))
+                            .foregroundStyle(library.settings.theme.foreground).frame(maxWidth: .infinity, minHeight: 46)
+                            .background(selected ? library.settings.theme.foreground.opacity(0.12) : library.settings.theme.foreground.opacity(0.14).opacity(0.15), in: RoundedRectangle(cornerRadius: 9))
                     }.buttonStyle(.plain).accessibilityAddTraits(selected ? .isSelected : []).accessibilityIdentifier("settings.mode.\(mode.rawValue)")
                 }
             }
-            Text("EPUB 的覆盖与卷曲模式使用滑动翻页。").font(.caption2).foregroundStyle(YYTheme.secondary).lineSpacing(4)
+            Text("EPUB 的覆盖与卷曲模式使用滑动翻页。").font(.caption2).foregroundStyle(library.settings.theme.foreground.opacity(0.65)).lineSpacing(4)
         }.padding(.vertical, 24)
     }
     private func modeIcon(_ mode: ReaderMode) -> String {
@@ -156,20 +166,23 @@ struct ReaderSettingsForm: View {
 
 private struct ReaderFontPicker: View {
     @EnvironmentObject private var library: LibraryStore
+    private func previewFont(_ font: ReaderFont) -> UIFont {
+        var value = library.settings; value.font = font; value.fontSize = 20; return value.uiFont
+    }
     var body: some View {
         List {
-            ForEach(ReaderFont.allCases) { font in
+            ForEach(ReaderFont.available) { font in
                 Button { library.settings.font = font } label: {
                     HStack {
-                        Text(font.title).font(font == .serif ? YYTheme.title(20) : .system(size: 18, design: font == .rounded ? .rounded : .default)).foregroundStyle(YYTheme.foreground)
+                        Text(font.title).font(Font(previewFont(font))).foregroundStyle(library.settings.theme.foreground)
                         Spacer()
                         if library.settings.font == font { Image(systemName: "checkmark").foregroundStyle(YYTheme.accent) }
                     }.padding(.vertical, 12)
                 }.accessibilityIdentifier("settings.font.\(font.rawValue)").accessibilityAddTraits(library.settings.font == font ? .isSelected : [])
-                    .listRowBackground(YYTheme.background)
+                    .listRowBackground(library.settings.theme.background.opacity(0.12))
             }
-            Section { Text("思源宋体随 App 提供，遵循 SIL Open Font License；苹方及系统圆体由 iOS 提供。").font(.footnote).foregroundStyle(YYTheme.secondary) }.listRowBackground(YYTheme.background)
-        }.navigationTitle("字体").navigationBarTitleDisplayMode(.inline).yyPage()
+            Section { Text("思源宋体随 App 提供，遵循 SIL Open Font License；其他字体仅在本机 iOS 实际提供时显示。缺字自动使用系统字形回退。").font(.footnote).foregroundStyle(library.settings.theme.foreground.opacity(0.65)) }.listRowBackground(library.settings.theme.background.opacity(0.12))
+        }.navigationTitle("字体").navigationBarTitleDisplayMode(.inline).readerSettingsSurface()
     }
 }
 
@@ -183,52 +196,27 @@ private struct AdvancedReaderSettings: View {
                 valueSlider("段距", value: $library.settings.paragraphSpacing, range: 0...32, unit: "pt")
                 valueSlider("页边距", value: $library.settings.sidePadding, range: 12...48, unit: "pt")
                 valueSlider("首行缩进", value: $library.settings.firstLineIndent, range: 0...3, unit: "字")
-            }.listRowBackground(YYTheme.background)
+            }.listRowBackground(library.settings.theme.background.opacity(0.12))
             Section("亮度") {
                 Toggle("自定义屏幕亮度", isOn: $library.settings.customBrightness)
                 if library.settings.customBrightness { Slider(value: $library.settings.brightness, in: 0.05...1).accessibilityLabel("屏幕亮度") }
-            }.listRowBackground(YYTheme.background)
+            }.listRowBackground(library.settings.theme.background.opacity(0.12))
             Section("点击与手势") {
                 valueSlider("两侧点击区", value: $library.settings.tapZoneRatio, range: 0.18...0.42, unit: "")
                 Toggle("右手单手：左右两侧均向后翻", isOn: $library.settings.rightHanded)
-                Text("轻触中央显示或隐藏工具栏。四种翻页方式互斥，选择一种即可。").font(.footnote).foregroundStyle(YYTheme.secondary)
-            }.listRowBackground(YYTheme.background)
-            Section { Button("恢复舒适默认值") { library.settings = ReaderSettings() } }.listRowBackground(YYTheme.background)
-        }.navigationTitle("更多阅读设置").navigationBarTitleDisplayMode(.inline).yyPage()
+                Text("轻触中央显示或隐藏工具栏。四种翻页方式互斥，选择一种即可。").font(.footnote).foregroundStyle(library.settings.theme.foreground.opacity(0.65))
+            }.listRowBackground(library.settings.theme.background.opacity(0.12))
+            Section { Button("恢复舒适默认值") { library.settings = ReaderSettings() } }.listRowBackground(library.settings.theme.background.opacity(0.12))
+        }.navigationTitle("更多阅读设置").navigationBarTitleDisplayMode(.inline).readerSettingsSurface()
     }
     private func valueSlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Text(title); Spacer(); Text(String(format: range.upperBound <= 3 ? "%.2f%@" : "%.0f%@", value.wrappedValue, unit)).foregroundStyle(YYTheme.secondary).monospacedDigit() }
+            HStack { Text(title); Spacer(); Text(String(format: range.upperBound <= 3 ? "%.2f%@" : "%.0f%@", value.wrappedValue, unit)).foregroundStyle(library.settings.theme.foreground.opacity(0.65)).monospacedDigit() }
             Slider(value: value, in: range).accessibilityLabel(title)
         }.font(.subheadline).padding(.vertical, 8)
     }
 }
 
-private struct ReadingPreview: UIViewRepresentable {
-    var settings: ReaderSettings
-    func makeUIView(context: Context) -> UITextView {
-        let text = UITextView(usingTextLayoutManager: false)
-        text.isEditable = false; text.isSelectable = false; text.isScrollEnabled = false
-        text.textContainer.lineFragmentPadding = 0
-        text.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        text.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        text.accessibilityIdentifier = "settings.preview"
-        return text
-    }
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
-        // UITextView's intrinsic width grows with its text/font. The preview must
-        // accept SwiftUI's offered width, or it pushes every settings row offscreen.
-        let width = proposal.width ?? 0
-        let height = proposal.height ?? 180
-        return CGSize(width: width.isFinite ? max(0, width) : 0, height: height.isFinite ? max(0, height) : 180)
-    }
-    func updateUIView(_ view: UITextView, context: Context) {
-        view.backgroundColor = settings.theme.uiBackground
-        view.textContainerInset = UIEdgeInsets(top: 16, left: settings.sidePadding, bottom: 16, right: settings.sidePadding)
-        view.attributedText = TextPaginator.attributed("窗外的雨下得很轻，像是不忍打扰屋内的安静。\n有些故事，从一开始，就注定会让人沉浸。", settings: settings)
-        view.accessibilityValue = "\(settings.font.title)，\(Int(settings.fontSize))点，\(settings.theme.title)背景"
-    }
-}
 struct SourceManagerView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var importFile = false
@@ -270,4 +258,27 @@ struct LicenseView: View {
         ScrollView { VStack(alignment: .leading, spacing: 20) { Text("予盈使用 Readium Swift Toolkit（BSD-3-Clause）与 SwiftSoup（MIT）及其传递依赖。许可文本随 App 分发。"); ForEach(files, id: \.self) { file in Text((try? String(contentsOf: file)) ?? "").font(.caption.monospaced()).textSelection(.enabled) } }.padding() }.navigationTitle("开源许可与素材来源").yyPage()
     }
     private var files: [URL] { (Bundle.main.urls(forResourcesWithExtension: "txt", subdirectory: nil) ?? []).sorted { $0.lastPathComponent < $1.lastPathComponent } }
+}
+
+private struct ReaderSettingsOverlayKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues {
+    var readerSettingsOverlay: Bool {
+        get { self[ReaderSettingsOverlayKey.self] }
+        set { self[ReaderSettingsOverlayKey.self] = newValue }
+    }
+}
+private struct ReaderSettingsSurface: ViewModifier {
+    @EnvironmentObject private var library: LibraryStore
+    @Environment(\.readerSettingsOverlay) private var overlay
+    func body(content: Content) -> some View {
+        content.scrollContentBackground(.hidden)
+            .background { if !overlay { library.settings.theme.background.ignoresSafeArea() } }
+            .foregroundStyle(library.settings.theme.foreground)
+            .tint(YYTheme.accent).preferredColorScheme(library.settings.systemColorScheme)
+            .toolbarBackground(overlay ? library.settings.theme.background.opacity(0.25) : library.settings.theme.background, for: .navigationBar)
+            .onDisappear { library.flushSettingsIfNeeded() }
+    }
+}
+private extension View {
+    func readerSettingsSurface() -> some View { modifier(ReaderSettingsSurface()) }
 }
