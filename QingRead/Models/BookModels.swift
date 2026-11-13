@@ -46,17 +46,21 @@ struct Bookmark: Codable, Hashable, Identifiable {
            let value = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] {
             let locations = value["locations"] as? [String: Any] ?? [:]
             let text = value["text"] as? [String: Any] ?? [:]
-            let stableLocations: [String: Any] = [
+            var stableLocations: [String: Any] = [
                 "fragments": locations["fragments"] ?? [],
                 "position": locations["position"] ?? NSNull()
             ]
-            let stableText: [String: Any] = ["before": text["before"] ?? NSNull(), "after": text["after"] ?? NSNull()]
+            for (key,value) in locations where !["progression","totalProgression","fragments","position"].contains(key) {
+                stableLocations[key]=value
+            }
+            let stableText: [String: Any] = ["before": text["before"] ?? NSNull(), "after": text["after"] ?? NSNull(), "highlight":text["highlight"] ?? NSNull()]
             var anchor: [String: Any] = ["href": value["href"] ?? "", "locations": stableLocations, "text": stableText]
-            if stableLocations["position"] is NSNull,
-               (stableLocations["fragments"] as? [Any] ?? []).isEmpty,
+            // Readium's position index is a coarse publication partition, not
+            // a character anchor. Two different pages can share that index.
+            if (stableLocations["fragments"] as? [Any] ?? []).isEmpty,
                stableText["before"] is NSNull, stableText["after"] is NSNull {
                 let progression = (locations["progression"] as? Double) ?? position.progression
-                anchor["progressionBucket"] = (progression * 10_000).rounded() / 10_000
+                anchor["progressionBucket"] = (progression * 1_000_000).rounded() / 1_000_000
             }
             if let data = try? JSONSerialization.data(withJSONObject: anchor, options: [.sortedKeys]),
                let key = String(data: data, encoding: .utf8) { return bookID.uuidString + ":epub:" + key }

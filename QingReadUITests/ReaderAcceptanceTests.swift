@@ -131,6 +131,7 @@ final class ReaderAcceptanceTests: XCTestCase {
         XCTAssertEqual(app.buttons["reader.bookmark"].value as? String,"已收藏")
         app.buttons["reader.bookmark"].tap()
         XCTAssertEqual(app.buttons["reader.bookmark"].value as? String,"未收藏")
+        app.buttons["reader.bookmark"].tap()
         app.buttons["reader.settings"].tap()
         app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition:0.65)
         expectation(for:NSPredicate { _,_ in text.exists && text.frame.height > oldTextHeight },evaluatedWith:nil);waitForExpectations(timeout:20)
@@ -140,6 +141,8 @@ final class ReaderAcceptanceTests: XCTestCase {
         expectation(for:NSPredicate { _,_ in web.frame.height > oldHeight + 20 },evaluatedWith:nil);waitForExpectations(timeout:20)
         XCTAssertFalse(progress.exists)
         XCTAssertEqual(web.frame.height-oldHeight,28,accuracy:2)
+        reveal(app);XCTAssertEqual(app.buttons["reader.bookmark"].value as? String,"已收藏","EPUB 重排后原书签仍位于当前可见页")
+        app.buttons["reader.bookmark"].tap();XCTAssertEqual(app.buttons["reader.bookmark"].value as? String,"未收藏")
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(text.waitForExistence(timeout:15))
         XCUIDevice.shared.orientation = .portrait

@@ -125,6 +125,12 @@ import CoreText
         XCTAssertEqual(mark(40,0.2).locationKey,mark(40,0.201).locationKey)
         XCTAssertNotEqual(mark(40,0.2).locationKey,mark(41,0.2).locationKey)
         XCTAssertNotEqual(mark(40,0.2,"page=1").locationKey,mark(40,0.2,"page=2").locationKey)
+        func coarseMark(_ progression:Double) -> Bookmark {
+            let json="{\"href\":\"chapter.xhtml\",\"locations\":{\"position\":40,\"progression\":\(progression)}}"
+            return Bookmark(bookID:book,position:ReadingPosition(chapter:2,locatorJSON:json,progression:progression),title:"章")
+        }
+        XCTAssertNotEqual(coarseMark(0.2).locationKey,coarseMark(0.25).locationKey,"粗略 position 编号相同仍须保留不同页面书签")
+        XCTAssertEqual(coarseMark(0.2).locationKey,coarseMark(0.20000001).locationKey)
         let first=mark(40,0.2)
         XCTAssertEqual(first.locationKey,Bookmark(id:first.id,bookID:book,position:first.position,title:first.title,createdAt:first.createdAt).locationKey)
     }
