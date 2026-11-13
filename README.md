@@ -1,37 +1,41 @@
-# 阅简 QingRead
+# 予盈 · QingRead
 
-当前交付：1.0.0 Build 24，定点修复文件导入。真实 device Release 成功，42 项测试通过、0 失败、3 项系统 Files 诊断明确跳过并列 HUMAN_PENDING。用户原 TXT 和 iCloud/第三方提供器仍需真机复测。详见 [Build 24 报告](docs/import-repair/BUILD24_REPORT.md)。
+予盈是个人使用的原生中文 iPhone 小说阅读器。赠予盈盈的阅读时光。App 的三个入口为 **书架、发现、我的**；书籍、进度、书签、排版设置和已缓存正文保存在本机。
 
-阅简是个人使用的原生中文 iPhone 小说阅读器。界面只保留书架、找书、设置三处入口；书籍、进度、书签、排版设置和已缓存正文保存在本机。
+当前交付：**予盈 1.0.0 Build 31**。主回归 52 通过、0 失败、3 项 Files 诊断跳过，iPhone 15 品牌回归另 5 项通过。实际构建、测试、截图和 IPA 校验结果见 [予盈交付报告](docs/yuying/DELIVERY.md)。用户已确认此前 Build 24 的 TXT 导入在真实 iPhone 正常；本次保留该导入实现并回归验证。此前 CI 原生 Files 的提供器交接限制在历史报告中独立保留。
 
-## 能力
+## 界面与能力
 
-- 文件 App 和系统分享入口导入 UTF-8、UTF-16、GB18030/GBK TXT 与 EPUB。
-- TXT 以 CoreText 实际可见字符范围分页，支持左右点击、轻扫、滑动、覆盖、仿真卷曲和连续滚动；章节分文件保存，并预加载相邻章节。
-- EPUB 使用 Readium Swift Toolkit 3.11.1，在 UIKit `EPUBNavigatorViewController` 中处理目录、图片、分页、滚动和 locator 进度。复杂模式在 EPUB 中降级为滑动，界面会提示。
-- 书源导入支持简单 JSON/CSS/基础 JSONPath/正则；搜索、目录、逐章正文和磁盘缓存均可用。JavaScript、XPath、登录、动态签名和网页分页规则会在导入时标注为不兼容，不宣称完整 Legado 兼容。
-- 本地书架搜索、书签、阅读进度、主题、字体、字号、行距、段距、缩进、边距和屏幕亮度设置持久化。
+- 用户指定的新图标直接使用原始 1024×1024 RGB PNG。统一墨黑、香槟米、暖白主题，宋体标题，原生启动屏，没有人为延时。
+- 默认双列书架，EPUB 原封面优先；无封面的 TXT 使用本地稳定生成的自然图案，内存/磁盘缩略图缓存有上限。搜索、排序、列表切换、长按删除和已读进度保留。
+- 文件 App 和系统文档入口导入 UTF-8、UTF-16、GB18030/GBK TXT 与 EPUB，保留协调复制、事务存储、内容去重和可复制的失败诊断。
+- TXT 以 CoreText 实际字符范围分页，支持左右点击、滑动、覆盖、仿真卷曲和连续滚动；按章保存并预加载相邻章节。工具栏显隐不改变正文容器尺寸。
+- EPUB 使用 Readium Swift Toolkit 3.11.1，保留目录、图片、分页、滚动和 locator 进度；覆盖/卷曲模式继续使用滑动替代。
+- 阅读设置提供字体、字号、行距、背景和互斥的翻页选择，页面内即时预览；段距、边距、缩进、字重、亮度和点击区等高级选项完整保留。
+- 发现页沿用在线书源能力：简单 JSON/CSS/基础 JSONPath/正则，搜索、目录、逐章正文及磁盘缓存。JavaScript、XPath、登录、动态签名和网页分页规则仍明确标注不兼容。
 
-## 构建
+## 数据与升级
 
-Linux 只负责代码、静态检查和 GitHub Actions 触发；本机没有 Xcode。GitHub Actions 在 `macos-15` 的 `/Applications/Xcode_26.3.app` 上通过 XcodeGen 生成工程，先运行 `generic/platform=iOS` 的 Release device build，再运行 Simulator XCTest；签名关闭后打包 unsigned arm64 IPA。工作流会上传环境信息、真实编译日志、测试 xcresult、IPA 和 SHA256。
+Bundle ID 固定为 `com.hdd290187.qingread`；内部工程名 QingRead、Application Support/QingRead、书籍和章节 ID、library.json 结构及原有设置键保持兼容。新主题不覆盖已有用户的字体、排版或翻页偏好。封面仅写 Caches，不修改书籍。
+
+**使用原有签名方式覆盖 Build 24，不要先卸载，不要更换 Bundle ID 或选择清除数据。** IPA 未签名，仍需有效签名及设备授权。详见 [安装说明](docs/INSTALL.md) 与 [本次真机复测](docs/yuying/DEVICE_RETEST.md)。
+
+## 构建与验证
+
+Linux 只负责代码、资源检查和 GitHub Actions 触发，本机没有 Xcode。Actions 固定 macos-15 / Xcode 26.3 / XcodeGen 2.46.0；先构建 `generic/platform=iOS` 的 unsigned arm64 Release，再执行模拟器 XCTest，并在小屏 iPhone 与 iPhone 15 上检查品牌页面。
 
 ```bash
-brew install xcodegen
+python3 scripts/validate-repository.py
+# 以下需要 Mac / Xcode
 xcodegen generate
 xcodebuild -resolvePackageDependencies -project QingRead.xcodeproj -scheme QingRead
 ```
 
-未签名 IPA 不能直接安装到普通 iPhone，需要有效的 Apple 开发者签名和描述文件。真机上的翻页跟手、屏幕亮度和不同尺寸安全区域仍需人工验收。
+工作流保存编译日志、环境、xcresult、截图、生成工程、IPA 和 SHA256。标准测试保留三项明确跳过的原生 Files 诊断；五项从选择回调边界开始的导入 UI 回归独立运行，不混淆系统提供器验收。可手动以 `import_only=true` 运行真实 Files 诊断，该模式不打包 IPA。
 
-## Build 9 历史验证与交付
-
-GitHub Actions [run 43212305708](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43212305708) 已通过 iPhone arm64 Release 和 24 项模拟器测试（19 单元 + 5 UI），产出 1.0.0 / build 9 unsigned IPA。对应 App 源码提交为 a11e90b5a7e1c9b34feb797bccd0fabd0e5ed27e。本仓库同时保留成功构建生成的 QingRead.xcodeproj，可直接在 Mac 打开；project.yml 为可重复生成的工程定义。
-
-- [参考审计与许可证取舍](docs/REFERENCE_AUDIT.md)
-- [真实测试报告](docs/TEST_REPORT.md)
-- [下载、重签和安装说明](docs/INSTALL.md)
-- [书源兼容矩阵](docs/SOURCE_COMPATIBILITY.md)
-- [HUMAN_PENDING 真机验收清单](docs/DEVICE_CHECKLIST.md)
-
-没有有效签名和真机验证时，不宣称 IPA 可直接安装或真实翻页手感已验收。
+- [予盈改造与兼容约束](docs/yuying/IMPLEMENTATION.md)
+- [予盈素材来源（随 App 分发）](QingRead/Resources/Notices/yuying-assets.txt)
+- [Build 24 历史导入调查与证据](docs/import-repair/BUILD24_REPORT.md)
+- [Build 9 历史测试报告](docs/TEST_REPORT.md)
+- [书源兼容范围](docs/SOURCE_COMPATIBILITY.md)
+- [许可证与参考审计](docs/REFERENCE_AUDIT.md)

@@ -1,0 +1,10 @@
+brand=予盈
+bundle_id=com.hdd290187.qingread
+version=1.0.0
+build=31
+minimum_ios=17.0
+signing=unsigned
+commit=8bb6d683702d35907f9826a0d3558d995fef101d
+run=43355596782
+Xcode 26.3
+Build version 17C529

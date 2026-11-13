@@ -1,0 +1,42 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "7948E945-6FD3-4741-9AF6-99289EAE8256",
+        "deviceName" : "Yuying iPhone 15",
+        "modelName" : "iPhone 15",
+        "osBuildNumber" : "23C54",
+        "osVersion" : "26.2",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 0,
+      "passedTests" : 5,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "QingRead · Built with macOS 15.8.2",
+  "expectedFailures" : 0,
+  "failedTests" : 0,
+  "finishTime" : 1794539349.281,
+  "passedTests" : 5,
+  "result" : "Passed",
+  "skippedTests" : 0,
+  "startTime" : 1794539149.26,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+
+  ],
+  "title" : "Test - QingRead",
+  "topInsights" : [
+
+  ],
+  "totalTestCount" : 5
+}

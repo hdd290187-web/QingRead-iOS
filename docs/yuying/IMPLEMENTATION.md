@@ -17,4 +17,6 @@
 
 导入修复的 BookDocumentPicker、DocumentImportController、DocumentStager、ImportFeedbackView、LibraryStore、LocalBookImporter、ImportDiagnostics 不作逻辑重构（仅将两处错误建议中的旧品牌替换为予盈）。NativeReader 的滑动/覆盖/卷曲/连续滚动控制器保持现有翻页实现。
 
-验证结果与产物信息在本次构建完成后补充；本文件不是通过报告。
+实现细节：书架使用独立的 SwiftUI 顶部栏，避免 iOS 26 原生工具栏压缩标题；阅读设置用可用宽度约束 UIKit 文字预览，防止大字号撑宽整页。TXT 标题与空白行只修改 attributed string 样式，不修改任何 UTF-16 字符。EPUB 沿用 Readium navigator，适配层提供已经扣除外层工具栏/安全区的内容边距，并只为流式书籍注入章标题样式；固定版式不注入该样式。
+
+实际构建、测试与交付信息见 [交付报告](DELIVERY.md)。历史失败构建保留在 Actions 与 VPS releases/run编号 中；不能把中途通过的部分测试当作最终通过报告。

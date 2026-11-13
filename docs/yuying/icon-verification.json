@@ -1,0 +1,15 @@
+{
+  "compiledIconPixels": [
+    120,
+    120
+  ],
+  "appleCgBI": true,
+  "meanRgbDelta": [
+    0.886875,
+    0.9198611111111111,
+    0.9707638888888889
+  ],
+  "run": "43355596782",
+  "sourceIconSHA256": "47bb96e82f2988b1de39a11245aaa6bf6c7c0b867464e1942cebb6784842b7b0",
+  "comparison": "Xcode compiled 120px/60pt icon against provided source resized with Lanczos; source file copied byte-for-byte"
+}

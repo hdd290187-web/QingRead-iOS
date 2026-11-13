@@ -1,0 +1,26 @@
+{
+  "run": "43355596782",
+  "commit": "8bb6d683702d35907f9826a0d3558d995fef101d",
+  "brand": "予盈",
+  "bundleID": "com.hdd290187.qingread",
+  "version": "1.0.0",
+  "build": "31",
+  "sdk": "iphoneos26.2",
+  "unsigned": true,
+  "arch": "arm64",
+  "mainTests": {
+    "passedTests": 52,
+    "failedTests": 0,
+    "skippedTests": 3,
+    "totalTestCount": 55
+  },
+  "iPhone15BrandTests": {
+    "passedTests": 5,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "totalTestCount": 5
+  },
+  "sha256": "5e6358f23ea8715eb5d2010c0797a4f9ad2ea4db6cb6cd55661ed5c5452289b6",
+  "bytes": 23981086,
+  "iconSourceSHA256": "47bb96e82f2988b1de39a11245aaa6bf6c7c0b867464e1942cebb6784842b7b0"
+}
