@@ -1,0 +1,40 @@
+{
+  "dateUTC": "2026-11-13",
+  "repository": "hdd290187-web/QingRead-iOS",
+  "visibility": "Private",
+  "decision": "NOT_APPROVED_FOR_PUBLICATION",
+  "reason": "Redistribution rights for user-supplied historical reference/PNG assets are not yet established. User clarification is pending.",
+  "historyBaselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
+  "remoteBranches": 1,
+  "tags": 4,
+  "pullRequests": 0,
+  "commitsScanned": 36,
+  "gitObjectsIncludingUnreachable": 569,
+  "gitBlobsIncludingUnreachable": 292,
+  "actionsRuns": 32,
+  "actionsArtifacts": 31,
+  "releases": 1,
+  "releaseAssets": 5,
+  "recursiveMembersInspected": 31253,
+  "gitleaksVersion": "8.30.1",
+  "actualCredentialsFound": 0,
+  "genericCandidates": 7,
+  "falsePositiveClassification": "UIKit view-controller connection UUIDs in two historical simulator logs; not authentication credentials.",
+  "privateIPv4Candidates": 0,
+  "privateImageExif": 0,
+  "credentialOrSigningFileCandidates": 0,
+  "runner": "GitHub-hosted macos-15 (standard)",
+  "workflowPermissions": {
+    "contents": "read"
+  },
+  "untrustedPRWriteWorkflow": false,
+  "imageRightsPendingPaths": [
+    "design/yuying-reference/brand-reference.jpeg",
+    "design/yuying-reference/icon-reference.png",
+    "design/yuying-reference/*-reference.png",
+    "design/yuying-reference/app-icon-1024.png",
+    "historical Git commits and private Release source archives containing these files"
+  ],
+  "rawEvidenceLocation": "VPS private audit directory, excluded from source and delivery archives",
+  "sourceScanScopeNote": "After candidate implementation is committed, the history scan is repeated before delivery. No repository visibility change is authorized until the outstanding safety condition is resolved."
+}

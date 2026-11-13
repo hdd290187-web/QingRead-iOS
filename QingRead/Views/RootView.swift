@@ -30,6 +30,7 @@ struct RootView: View {
             #if DEBUG
             await library.seedUITestBookIfRequested()
             await library.seedBrandBooksIfRequested()
+            await library.seedReaderPerformanceIfRequested()
             library.seedImportPickerDocumentsIfRequested()
             if let mode = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--uitest-import-result=") }) {
                 let directory = library.importTestFixtureDirectory

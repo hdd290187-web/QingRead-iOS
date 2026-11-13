@@ -1,0 +1,51 @@
+{
+  "status": "IMPLEMENTED_PENDING_IOS_VALIDATION",
+  "baselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
+  "repoVisibility": "Private",
+  "publicationAudit": "NOT_APPROVED_PENDING_HISTORICAL_IMAGE_RIGHTS",
+  "newActionsRun": null,
+  "newIPA": null,
+  "baselineIPA": {
+    "build": 31,
+    "run": "43355596782",
+    "sha256": "5e6358f23ea8715eb5d2010c0797a4f9ad2ea4db6cb6cd55661ed5c5452289b6"
+  },
+  "checks": {
+    "swiftSyntaxRelease": {
+      "files": 47,
+      "status": "PASS",
+      "compiler": "Swift 6.2.3 Linux, parse only"
+    },
+    "swiftSyntaxDebug": {
+      "files": 47,
+      "status": "PASS",
+      "compiler": "Swift 6.2.3 Linux, parse only"
+    },
+    "xcodeProjectReferences": {
+      "appFiles": 32,
+      "unitTestFiles": 8,
+      "uiTestFiles": 7,
+      "status": "PASS"
+    },
+    "repositoryResourcesAndScripts": "PASS",
+    "xcodeCompilation": "NOT_RUN",
+    "xctest": "NOT_RUN"
+  },
+  "performanceComparison": {
+    "status": "NOT_RUN",
+    "sameDeviceWorkloads": [
+      "short",
+      "long",
+      "monolith"
+    ],
+    "before": null,
+    "after": null,
+    "recordedVideos": []
+  },
+  "humanPending": [
+    "historical reference image redistribution authorization",
+    "macOS build and same-device Simulator profiling",
+    "real iPhone scroll/frame/thermal/touch profiling",
+    "same-signature upgrade data preservation"
+  ]
+}

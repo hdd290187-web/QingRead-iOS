@@ -23,14 +23,19 @@ private struct ReaderHost: View {
     var body: some View {
         ZStack {
             library.settings.theme.background.ignoresSafeArea()
-            // Header/footer reserve the same space with tools shown or hidden. Text never reflows on a menu tap.
             VStack(spacing: 0) {
-                header.frame(height: 52)
                 Group {
                     if session.book.format == .epub { EPUBReader(session: session, settings: library.settings) }
                     else { NativeReader(session: session, settings: library.settings) }
-                }.padding(.top, 8)
-                footer
+                }.transaction { $0.animation = nil }
+                compactProgress.frame(height: 28)
+            }
+            if session.menuVisible {
+                VStack(spacing: 0) {
+                    header.frame(height: 52).background(library.settings.theme.background.opacity(0.98))
+                    Spacer(minLength: 0)
+                    controls.padding(.bottom, 28)
+                }.transition(.opacity)
             }
             if session.isLoading { ProgressView("正在准备正文…").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) }
         }.tint(YYTheme.accent)
@@ -58,7 +63,6 @@ private struct ReaderHost: View {
     }
     private var header: some View {
         ZStack {
-            if !session.menuVisible { Text(chapterTitle).font(.caption).foregroundStyle(foreground.opacity(0.48)).lineLimit(1).padding(.horizontal, 48) }
             HStack(spacing: 0) {
                 tool("返回书架", icon: "chevron.left") { dismiss() }
                 Text(session.book.title).font(.system(size: 12)).foregroundStyle(foreground.opacity(0.5)).lineLimit(1).padding(.horizontal, 8)
@@ -80,32 +84,40 @@ private struct ReaderHost: View {
     private func tool(_ label: String, icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) { Image(systemName: icon).font(.system(size: 19, weight: .regular)).frame(width: 44, height: 44) }.accessibilityLabel(label)
     }
-    private var footer: some View {
-        VStack(spacing: 0) {
-            Rectangle().fill(foreground.opacity(0.045)).frame(height: 0.5).padding(.bottom, 9)
+    private var compactProgress: some View {
+        VStack(spacing: 4) {
             HStack(spacing: 10) {
                 Text(chapterTitle).lineLimit(1).accessibilityIdentifier("reader.chapterTitle")
                 Text(session.pageInfo).accessibilityIdentifier("reader.pageInfo")
                 Spacer(minLength: 0)
                 Text("\(Int(min(1, max(0, session.position.progression)) * 100))%").accessibilityIdentifier("reader.progress")
             }.font(.system(size: 10)).monospacedDigit().foregroundStyle(foreground.opacity(0.55))
-            ZStack {
-                ProgressView(value: min(1, max(0, session.position.progression))).tint(YYTheme.accent).opacity(session.menuVisible ? 0 : 1)
-                Slider(value: Binding(get: { draggingProgress ? chapterSlider : Double(session.position.chapter) }, set: { chapterSlider = $0 }), in: 0...Double(max(1, session.chapters.count - 1)), step: 1) { editing in
-                    if editing { chapterSlider = Double(session.position.chapter) }
-                    draggingProgress = editing
-                    if !editing { session.jump(Int(chapterSlider)) }
-                }.accessibilityLabel("阅读进度").opacity(session.menuVisible ? 1 : 0).allowsHitTesting(session.menuVisible)
-            }.frame(height: 26)
+            ProgressView(value: min(1, max(0, session.position.progression))).tint(YYTheme.accent).frame(height: 2)
+        }.padding(.horizontal, library.settings.sidePadding).padding(.bottom, 4)
+    }
+    private var controls: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Button("上一章") { session.jump(session.position.chapter - 1) }.disabled(session.position.chapter <= 0)
+                Spacer()
+                Text("\(min(session.position.chapter + 1, session.chapters.count)) / \(session.chapters.count) 章").monospacedDigit()
+                Spacer()
+                Button("下一章") { session.jump(session.position.chapter + 1) }.disabled(session.position.chapter + 1 >= session.chapters.count)
+            }.font(.system(size: 12)).frame(height: 32)
+            Slider(value: Binding(get: { draggingProgress ? chapterSlider : Double(session.position.chapter) }, set: { chapterSlider = $0 }), in: 0...Double(max(1, session.chapters.count - 1)), step: 1) { editing in
+                if editing { chapterSlider = Double(session.position.chapter) }
+                draggingProgress = editing
+                if !editing { session.jump(Int(chapterSlider)) }
+            }.accessibilityLabel("阅读进度").frame(height: 32)
             HStack {
                 Button { showContents = true } label: { Label("目录", systemImage: "list.bullet") }
                 Spacer()
                 Button { showSettings = true } label: { Label("排版", systemImage: "textformat.size") }
                 Spacer()
                 Button { showBookmarks = true } label: { Label("书签", systemImage: "bookmark") }
-            }.font(.system(size: 12)).foregroundStyle(foreground.opacity(0.78)).frame(height: 36)
-                .opacity(session.menuVisible ? 1 : 0).allowsHitTesting(session.menuVisible)
-        }.padding(.horizontal, library.settings.sidePadding).padding(.bottom, 4)
+            }.font(.system(size: 13)).frame(height: 44)
+        }.foregroundStyle(foreground.opacity(0.86)).padding(.horizontal, library.settings.sidePadding).padding(.top, 8)
+            .background(library.settings.theme.background.opacity(0.98))
     }
     private var bookmarksSheet: some View {
         NavigationStack {

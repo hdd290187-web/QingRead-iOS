@@ -81,6 +81,11 @@ struct ReaderSettings: Codable, Equatable {
     var rightHanded = false
     var brightness: Double = 0.5
     var customBrightness = false
+    func hasSameTextLayout(as other: ReaderSettings) -> Bool {
+        fontSize == other.fontSize && font == other.font && fontWeight == other.fontWeight &&
+        lineSpacing == other.lineSpacing && paragraphSpacing == other.paragraphSpacing &&
+        sidePadding == other.sidePadding && firstLineIndent == other.firstLineIndent
+    }
     var systemColorScheme: ColorScheme? { theme == .dark ? .dark : theme == .system ? nil : .light }
     var uiFont: UIFont {
         if font == .serif {

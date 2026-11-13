@@ -15,8 +15,13 @@ ipa = folder / 'QingRead.ipa'
 summary = json.loads((folder / 'test-summary.json').read_text())
 brand = json.loads((folder / 'brand-iphone15-summary.json').read_text())
 assert summary['failedTests'] == 0 and summary['skippedTests'] == 3
-assert summary['passedTests'] == 52 and summary['totalTestCount'] == 55
-assert brand['failedTests'] == 0 and brand['skippedTests'] == 0 and brand['passedTests'] == 5
+assert summary['passedTests'] >= 62 and summary['totalTestCount'] >= 65
+assert brand['failedTests'] == 0 and brand['skippedTests'] == 0 and brand['passedTests'] >= 10
+large = json.loads((folder / 'Reader-Large-summary.json').read_text())
+baseline = json.loads((folder / 'Baseline-summary.json').read_text())
+assert large['passedTests'] == 2 and large['failedTests'] == 0 and large['skippedTests'] == 0
+assert baseline['passedTests'] == 3 and baseline['failedTests'] == 0 and baseline['skippedTests'] == 0
+assert (folder / 'performance-comparison/comparison.json').is_file()
 assert 'BUILD SUCCEEDED' in (folder / 'device-release.log').read_text()
 assert 'TEST SUCCEEDED' in (folder / 'tests.log').read_text()
 assert 'TEST SUCCEEDED' in (folder / 'brand-iphone15.log').read_text()
@@ -39,7 +44,7 @@ with ZipFile(ipa) as archive:
         command, size = struct.unpack_from('<II', binary, offset)
         assert command != 0x1d  # LC_CODE_SIGNATURE
         offset += size
-    for hook in [b'picker-selected', b'--uitest-import-files', b'--uitest-import-result=', b'--uitest-brand-library', b'--uitest-launch-preview', b'--uitest-epub']:
+    for hook in [b'picker-selected', b'--uitest-import-files', b'--uitest-import-result=', b'--uitest-brand-library', b'--uitest-launch-preview', b'--uitest-epub', b'--reader-performance', b'--reader-baseline', b'--uitest-performance=']:
         assert hook not in binary, hook
     font = json.loads((repo / 'docs/font-lock.json').read_text())
     assert hashlib.sha256(archive.read('Payload/QingRead.app/NotoSerifSC.ttf')).hexdigest() == font['sha256']
@@ -53,5 +58,6 @@ print(json.dumps({
     'build': info['CFBundleVersion'], 'sdk': info['DTSDKName'], 'unsigned': True, 'arch': 'arm64',
     'mainTests': {k: summary[k] for k in ['passedTests', 'failedTests', 'skippedTests', 'totalTestCount']},
     'iPhone15BrandTests': {k: brand[k] for k in ['passedTests', 'failedTests', 'skippedTests', 'totalTestCount']},
+    'largeReaderTests': {k: large[k] for k in ['passedTests', 'failedTests', 'skippedTests', 'totalTestCount']},
     'sha256': hashlib.sha256(ipa.read_bytes()).hexdigest(), 'bytes': ipa.stat().st_size,
 }, ensure_ascii=False, indent=2))

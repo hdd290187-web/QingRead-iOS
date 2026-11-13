@@ -73,6 +73,12 @@
 		F35154E4F52546CD453A3E21 /* ScrollTextCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414567F4259EC815859E14D4 /* ScrollTextCell.swift */; };
 		F6D4498D5B20428B9C389CAE /* gcdwebserver-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = E2BDC8F191341276DFE35A97 /* gcdwebserver-LICENSE.txt */; };
 		FDC38D217F93EFED439C6672 /* CoverFixture.epub in Resources */ = {isa = PBXBuildFile; fileRef = 9AF4745C4E4D47ED2ADB8E9B /* CoverFixture.epub */; };
+		D2EE0BD059A73E7C4C955A98 /* ReaderPerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16EA92191047FE11F0202A30 /* ReaderPerformance.swift */; };
+		B7CF7041B4F18B53064B5740 /* ReaderPerformanceSeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAE9085E9F7FCC51A1D299B /* ReaderPerformanceSeed.swift */; };
+		53FCDCA72010AA8BA592BD7C /* ScrollTextLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = D13B42D5CA0B6AA6387C6D55 /* ScrollTextLayout.swift */; };
+		BBEC8D5EDF5D86A02B5BB947 /* ReaderPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F54D932B8E2B047EDC6ED5 /* ReaderPerformanceTests.swift */; };
+		B25FA6C85FC8A8295FF3F455 /* ReaderLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBFAA39E6852548EA3D213B /* ReaderLayoutTests.swift */; };
+		E574A918C0E0836C08F49131 /* ReaderScrollPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77FFA7BF3505178F50089575 /* ReaderScrollPerformanceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -158,6 +164,12 @@
 		F745BAC9500917146F6DDFED /* EPUBReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBReader.swift; sourceTree = "<group>"; };
 		F7D2E2A4FE2AD2FBF2E7124F /* ImportFeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportFeedbackView.swift; sourceTree = "<group>"; };
 		FF0BEAD8B41BFBBDC5DAF8BB /* BookModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookModels.swift; sourceTree = "<group>"; };
+		16EA92191047FE11F0202A30 /* ReaderPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPerformance.swift; sourceTree = "<group>"; };
+		DEAE9085E9F7FCC51A1D299B /* ReaderPerformanceSeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPerformanceSeed.swift; sourceTree = "<group>"; };
+		D13B42D5CA0B6AA6387C6D55 /* ScrollTextLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollTextLayout.swift; sourceTree = "<group>"; };
+		D1F54D932B8E2B047EDC6ED5 /* ReaderPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPerformanceTests.swift; sourceTree = "<group>"; };
+		2DBFAA39E6852548EA3D213B /* ReaderLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderLayoutTests.swift; sourceTree = "<group>"; };
+		77FFA7BF3505178F50089575 /* ReaderScrollPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderScrollPerformanceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -195,6 +207,8 @@
 		24003F130D4B29287501C764 /* QingReadUITests */ = {
 			isa = PBXGroup;
 			children = (
+				77FFA7BF3505178F50089575 /* ReaderScrollPerformanceTests.swift */,
+				2DBFAA39E6852548EA3D213B /* ReaderLayoutTests.swift */,
 				5667387AD7B388F8646BB735 /* BrandUITests.swift */,
 				EE2B0AC9BE8A8127E778B1AE /* DocumentImportTests.swift */,
 				57EDEC62BDA9E6408B48627F /* ImportFeedbackTests.swift */,
@@ -305,6 +319,9 @@
 		C9A20DA77FC295A552F68F65 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				D13B42D5CA0B6AA6387C6D55 /* ScrollTextLayout.swift */,
+				DEAE9085E9F7FCC51A1D299B /* ReaderPerformanceSeed.swift */,
+				16EA92191047FE11F0202A30 /* ReaderPerformance.swift */,
 				25C59C3B9BD8EE656CDEA5B2 /* BookCoverCache.swift */,
 				0B3EF1398E639F202A9D6235 /* BookSourceService.swift */,
 				7E2B74617D0AA253627252CB /* BrandUITestSeed.swift */,
@@ -328,6 +345,7 @@
 		E969EB1A08C33396EBBFEE7D /* QingReadTests */ = {
 			isa = PBXGroup;
 			children = (
+				D1F54D932B8E2B047EDC6ED5 /* ReaderPerformanceTests.swift */,
 				9931525CD0FAD3A5C26ECD95 /* BrandTests.swift */,
 				8C4C71F53F6E4472DE8CABEF /* CoreTests.swift */,
 				0CF7B3095FC248FAEE4A3103 /* EPUBTests.swift */,
@@ -495,6 +513,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E574A918C0E0836C08F49131 /* ReaderScrollPerformanceTests.swift in Sources */,
+				B25FA6C85FC8A8295FF3F455 /* ReaderLayoutTests.swift in Sources */,
 				EE429DDA2C26D454187DC443 /* BrandUITests.swift in Sources */,
 				BC28E36BAFCAF4090FF8FE9C /* DocumentImportTests.swift in Sources */,
 				783B0BA10E8D6FB3C78E2555 /* ImportFeedbackTests.swift in Sources */,
@@ -507,6 +527,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				53FCDCA72010AA8BA592BD7C /* ScrollTextLayout.swift in Sources */,
+				B7CF7041B4F18B53064B5740 /* ReaderPerformanceSeed.swift in Sources */,
+				D2EE0BD059A73E7C4C955A98 /* ReaderPerformance.swift in Sources */,
 				600AEE3404C467F39204BD8E /* BookCoverCache.swift in Sources */,
 				E6DCC346F8F0237A69058CB2 /* BookCoverView.swift in Sources */,
 				B4A0A353ED09E448432DFDAA /* BookDocumentPicker.swift in Sources */,
@@ -543,6 +566,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BBEC8D5EDF5D86A02B5BB947 /* ReaderPerformanceTests.swift in Sources */,
 				93C0A080E86DFDAD419038F4 /* BrandTests.swift in Sources */,
 				103A4B547731B91B6A684912 /* CoreTests.swift in Sources */,
 				834E2B82AF2EFC7183E89998 /* EPUBTests.swift in Sources */,
@@ -748,7 +772,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 33;
 				INFOPLIST_FILE = QingRead/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -770,7 +794,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 33;
 				INFOPLIST_FILE = QingRead/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

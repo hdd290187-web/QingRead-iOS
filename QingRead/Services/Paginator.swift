@@ -7,19 +7,28 @@ struct TextLayout {
     let attributed: NSAttributedString
     let ranges: [PageRange]
     let size: CGSize
+    let framesetter: CTFramesetter
     func page(containing offset: Int) -> Int {
-        ranges.lastIndex { $0.start <= offset } ?? 0
+        var low = 0, high = ranges.count
+        while low < high {
+            let middle = (low + high) / 2
+            if ranges[middle].start <= offset { low = middle + 1 } else { high = middle }
+        }
+        return max(0, low - 1)
     }
 }
 struct TextPaginator {
-    static func attributed(_ text: String, settings: ReaderSettings, chapterTitle: String? = nil) -> NSAttributedString {
+    static func attributed(_ text: String, settings: ReaderSettings, chapterTitle: String? = nil, foreground: UIColor? = nil) -> NSAttributedString {
+        ReaderPerformance.measure(.attributedText) { makeAttributed(text, settings: settings, chapterTitle: chapterTitle, foreground: foreground) }
+    }
+    private static func makeAttributed(_ text: String, settings: ReaderSettings, chapterTitle: String?, foreground: UIColor?) -> NSAttributedString {
         let style = NSMutableParagraphStyle()
         style.lineSpacing = settings.lineSpacing
         style.paragraphSpacing = settings.paragraphSpacing
         style.firstLineHeadIndent = settings.firstLineIndent * settings.fontSize
         style.alignment = .justified
         style.lineBreakMode = .byWordWrapping
-        let result = NSMutableAttributedString(string: text, attributes: [.font: settings.uiFont, .foregroundColor: settings.theme.uiForeground, .paragraphStyle: style])
+        let result = NSMutableAttributedString(string: text, attributes: [.font: settings.uiFont, .foregroundColor: foreground ?? settings.theme.uiForeground, .paragraphStyle: style])
         // TXT often contains blank lines between paragraphs. Keep the characters,
         // while avoiding an extra full CJK line box in addition to paragraph spacing.
         if let blankLines = try? NSRegularExpression(pattern: "(?m)^[\\t ]*\\r?\\n") {
@@ -37,14 +46,17 @@ struct TextPaginator {
             if (text as NSString).substring(with: range).trimmingCharacters(in: .whitespaces) == chapterTitle.trimmingCharacters(in: .whitespaces) {
                 let heading = NSMutableParagraphStyle()
                 heading.firstLineHeadIndent = 0; heading.alignment = .left
-                heading.paragraphSpacingBefore = 12; heading.paragraphSpacing = 24; heading.lineSpacing = 6
+                heading.paragraphSpacingBefore = 8; heading.paragraphSpacing = 16; heading.lineSpacing = 6
                 result.addAttributes([.font: YYTheme.serif(max(22, settings.fontSize * 1.15), weight: .semibold), .paragraphStyle: heading], range: range)
             }
         }
         return result
     }
-    static func layout(_ text: String, size: CGSize, settings: ReaderSettings, chapterTitle: String? = nil) -> TextLayout {
-        let attributed = attributed(text, settings: settings, chapterTitle: chapterTitle)
+    static func layout(_ text: String, size: CGSize, settings: ReaderSettings, chapterTitle: String? = nil, foreground: UIColor? = nil) -> TextLayout {
+        ReaderPerformance.measure(.pagination) { makeLayout(text, size: size, settings: settings, chapterTitle: chapterTitle, foreground: foreground) }
+    }
+    private static func makeLayout(_ text: String, size: CGSize, settings: ReaderSettings, chapterTitle: String?, foreground: UIColor?) -> TextLayout {
+        let attributed = attributed(text, settings: settings, chapterTitle: chapterTitle, foreground: foreground)
         let framesetter = CTFramesetterCreateWithAttributedString(attributed)
         let safeSize = CGSize(width: max(80, size.width), height: max(settings.fontSize * 3, size.height))
         let path = CGPath(rect: CGRect(origin: .zero, size: safeSize), transform: nil)
@@ -57,6 +69,6 @@ struct TextPaginator {
             ranges.append(PageRange(start: start, length: visible.length)); start += visible.length
         }
         if ranges.isEmpty { ranges = [PageRange(start: 0, length: 0)] }
-        return TextLayout(attributed: attributed, ranges: ranges, size: safeSize)
+        return TextLayout(attributed: attributed, ranges: ranges, size: safeSize, framesetter: framesetter)
     }
 }

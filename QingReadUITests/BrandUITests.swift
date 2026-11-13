@@ -75,6 +75,7 @@ final class BrandUITests: XCTestCase {
         let content = element(app, "reader.content")
         XCTAssertTrue(content.waitForExistence(timeout: 15))
         let originalPageCount = app.staticTexts["reader.pageInfo"].label.components(separatedBy: "/").last
+        revealTools(app)
         capture(app, "予盈-TXT阅读工具栏")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap()
         let before = content.value as? String

@@ -100,7 +100,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         let script = """
         (() => {
           const titleSize = Math.round(\(size) * 100) / 100;
-          const values = {'font-size': titleSize + 'px', 'font-family': 'inherit', 'font-weight': '600', 'line-height': '1.5', 'text-align': 'left', 'margin-top': '12px', 'margin-bottom': '24px'};
+          const values = {'font-size': titleSize + 'px', 'font-family': 'inherit', 'font-weight': '600', 'line-height': '1.5', 'text-align': 'left', 'margin-top': '8px', 'margin-bottom': '16px'};
           let changed = false;
           document.querySelectorAll('h1,h2').forEach(heading => {
             Object.entries(values).forEach(([key, value]) => {

@@ -20,6 +20,7 @@ final class ImportFeedbackTests: XCTestCase {
         let content = app.descendants(matching: .any).matching(identifier: "reader.content").firstMatch
         XCTAssertTrue(content.waitForExistence(timeout: 15))
         XCTAssertTrue((content.value as? String)?.contains("系统文件选择器") ?? false)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap()
         app.buttons["返回书架"].tap()
         app.terminate(); app.launchArguments = []; app.launch()
         XCTAssertTrue(book.waitForExistence(timeout: 10)); book.tap()

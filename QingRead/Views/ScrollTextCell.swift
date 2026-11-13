@@ -2,6 +2,7 @@ import UIKit
 
 final class ScrollTextCell: UITableViewCell {
     let textView = UITextView(usingTextLayoutManager: false)
+    private var configuredText: ObjectIdentifier?
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         selectionStyle = .none
@@ -16,14 +17,25 @@ final class ScrollTextCell: UITableViewCell {
             textView.topAnchor.constraint(equalTo: contentView.topAnchor),
             textView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
-        textView.setContentHuggingPriority(.required, for: .vertical)
+        textView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        textView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) unavailable") }
     func configure(text: NSAttributedString, settings: ReaderSettings) {
+        ReaderPerformance.measure(.cellConfiguration) {
+            backgroundColor = settings.theme.uiBackground
+            textView.textContainerInset = UIEdgeInsets(top: 0, left: settings.sidePadding, bottom: 0, right: settings.sidePadding)
+            if configuredText != ObjectIdentifier(text) {
+                textView.attributedText = text
+                configuredText = ObjectIdentifier(text)
+            }
+            applyTheme(settings)
+            textView.accessibilityIdentifier = "reader.scrollContent"
+        }
+    }
+    func applyTheme(_ settings: ReaderSettings) {
         backgroundColor = settings.theme.uiBackground
-        textView.textContainerInset = UIEdgeInsets(top: 8, left: settings.sidePadding, bottom: 8, right: settings.sidePadding)
-        textView.attributedText = text
-        textView.accessibilityIdentifier = "reader.scrollContent"
+        textView.textColor = settings.theme.uiForeground
     }
     func character(at point: CGPoint) -> Int {
         textView.layoutManager.ensureLayout(for: textView.textContainer)

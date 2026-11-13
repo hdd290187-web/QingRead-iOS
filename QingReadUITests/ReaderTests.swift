@@ -5,6 +5,9 @@ final class ReaderTests: XCTestCase {
         let app = XCUIApplication(); app.launchArguments = ["--uitest-reset", "--uitest-seed", "--uitest-mode=" + mode]; app.launch()
         let book = app.staticTexts["原创阅读测试"].firstMatch
         XCTAssertTrue(book.waitForExistence(timeout: 20)); book.tap()
+        let content = app.descendants(matching: .any).matching(identifier: mode == "scroll" ? "reader.scrollViewport" : "reader.content").firstMatch
+        XCTAssertTrue(content.waitForExistence(timeout: 15))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap()
         XCTAssertTrue(app.buttons["返回书架"].waitForExistence(timeout: 10))
         return app
     }
