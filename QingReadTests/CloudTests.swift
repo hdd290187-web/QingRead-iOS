@@ -164,6 +164,38 @@ final class CloudTests: XCTestCase {
         XCTAssertEqual(cloud.books.count, 1); XCTAssertNotNil(cloud.message); XCTAssertTrue(cloud.connected)
     }
 
+    func testPaginationDeduplicatesRowsAndRemoteDeletionKeepsLocalLibrary() async throws {
+        let cloud = CloudLibraryStore(client: client())
+        let first = book; var second = book; second.id = UUID(); second.title = "另一部虚构小说"
+        let page1 = try json(CloudBookPage(items: [first], total: 21, page: 1, pageSize: 20))
+        let page2 = try json(CloudBookPage(items: [first, second], total: 21, page: 2, pageSize: 20))
+        CloudStubProtocol.reply = { request in
+            let page = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "page" })?.value
+            return .init(data: page == "2" ? page2 : page1)
+        }
+        await cloud.refresh(); XCTAssertTrue(cloud.hasMore)
+        await cloud.nextPage(); XCTAssertEqual(cloud.books.map(\.id), [first.id, second.id]); XCTAssertFalse(cloud.hasMore)
+        let library = LibraryStore(rootURL: root.appendingPathComponent("library"))
+        let local = try await library.importCloudFile(from: file(), context: context(first))
+        let empty = try json(CloudBookPage(items: [], total: 0, page: 1, pageSize: 20))
+        CloudStubProtocol.reply = { _ in .init(data: empty) }; await cloud.refresh()
+        XCTAssertTrue(cloud.books.isEmpty); XCTAssertEqual(library.localBook(cloudID: first.id)?.id, local.id)
+    }
+
+    func testChangesUsesBothCursorFields() async throws {
+        let client = client(); let id = UUID(); let since = "2026-11-13T12:00:00.123Z"
+        let payload = try json(CloudChanges(items: [.init(id: id, updatedAt: since, deletedAt: since, revision: 3)], hasMore: false, next: .init(since: since, afterId: id)))
+        CloudStubProtocol.reply = { request in
+            XCTAssertEqual(request.url!.path, "/api/v1/changes")
+            let query = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!.queryItems!
+            XCTAssertEqual(query.first(where: { $0.name == "since" })?.value, since)
+            XCTAssertEqual(query.first(where: { $0.name == "after_id" })?.value, id.uuidString)
+            return .init(data: payload)
+        }
+        let changes = try await client.changes(since: since, afterID: id)
+        XCTAssertEqual(changes.next?.afterId, id); XCTAssertNotNil(changes.items.first?.deletedAt)
+    }
+
     func testStreamingDownloadVerifiedAndAtomicallyCompleted() async throws {
         let client = client(); let reply = downloadReply(data, book: book)
         CloudStubProtocol.reply = { _ in reply }
@@ -244,7 +276,7 @@ final class CloudTests: XCTestCase {
     func testExplicitUpdateKeepsBookChapterBookmarkIDsAndTextAnchor() async throws {
         let library = LibraryStore(rootURL: root.appendingPathComponent("library"))
         let first = try await library.importCloudFile(from: file(), context: context(book))
-        let position = ReadingPosition(chapter: 0, characterOffset: 35, progression: 0.3)
+        let position = ReadingPosition(chapter: 0, characterOffset: 1500, progression: 0.3)
         library.update(position: position, for: first)
         let mark = Bookmark(bookID: first.id, position: position, title: "仍在这里"); library.addBookmark(mark)
         let revised = Data(String(decoding: data, as: UTF8.self).replacingOccurrences(of: "第一章 云端来信\n", with: "第一章 云端来信\n新增的一段。\n").utf8)
@@ -252,7 +284,7 @@ final class CloudTests: XCTestCase {
         let updated = try await library.importCloudFile(from: file(revised), context: context(remote, update: true))
         XCTAssertEqual(updated.id, first.id); XCTAssertEqual(updated.chapters[0].id, first.chapters[0].id); XCTAssertEqual(library.books.count, 1)
         XCTAssertEqual(library.bookmarks(for: updated).first?.id, mark.id)
-        XCTAssertGreaterThan(library.position(for: updated).characterOffset, position.characterOffset)
+        XCTAssertEqual(library.position(for: updated).characterOffset, position.characterOffset + "新增的一段。\n".utf16.count)
         XCTAssertEqual(library.localBook(cloudID: remote.id)?.cloudLinks?.first?.sha256, remote.sha256)
     }
 
@@ -296,5 +328,37 @@ final class CloudTests: XCTestCase {
         XCTAssertEqual(library.books.count, 1); XCTAssertEqual(cloud.bookToOpen?.id, library.books.first?.id)
         XCTAssertEqual(library.localBook(cloudID: b.id)?.id, library.books.first?.id)
         let restart = LibraryStore(rootURL: library.root); XCTAssertEqual(restart.books.count, 1)
+    }
+
+    func testPreCloudSnapshotRetainsIDsPathsBookmarksAndReaderSettings() async throws {
+        let library = LibraryStore(rootURL: root.appendingPathComponent("library"))
+        let source = try file(); let imported = await library.importFile(from: source); let local = try XCTUnwrap(imported)
+        let position = ReadingPosition(chapter: 0, characterOffset: 17, progression: 0.2)
+        library.update(position: position, for: local); library.addBookmark(.init(bookID: local.id, position: position, title: "本地书签"))
+        library.settings.mode = .scroll; library.settings.font = .heiti; library.flush()
+        let index = library.root.appendingPathComponent("library.json")
+        var snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: index)) as? [String: Any])
+        var records = try XCTUnwrap(snapshot["books"] as? [[String: Any]])
+        for i in records.indices { records[i].removeValue(forKey: "cloudLinks") }
+        snapshot["books"] = records; try JSONSerialization.data(withJSONObject: snapshot).write(to: index, options: .atomic)
+        let restart = LibraryStore(rootURL: library.root)
+        XCTAssertEqual(restart.books.first?.id, local.id); XCTAssertEqual(restart.books.first?.originalFile, local.originalFile)
+        XCTAssertEqual(restart.books.first?.chapters.map(\.id), local.chapters.map(\.id)); XCTAssertNil(restart.books.first?.cloudLinks)
+        XCTAssertEqual(restart.position(for: local), position); XCTAssertEqual(restart.bookmarks(for: local).count, 1)
+        XCTAssertEqual(restart.settings.mode, .scroll); XCTAssertEqual(restart.settings.font, .heiti)
+    }
+
+    func testCloudEPUBUsesExistingImporterAndOriginalBytes() async throws {
+        let source = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "OriginalFixture", withExtension: "epub"))
+        let bytes = try Data(contentsOf: source)
+        var remote = book; remote.id = UUID(); remote.format = .epub; remote.fileSize = Int64(bytes.count); remote.originalName = "原创测试书.epub"
+        remote.sha256 = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        let client = client(); let reply = downloadReply(bytes, book: remote); CloudStubProtocol.reply = { _ in reply }
+        let file = try await transfer(remote, client: client).download(request: client.request(path: "/api/v1/books/\(remote.id.uuidString)/download")) { _, _ in }
+        let library = LibraryStore(rootURL: root.appendingPathComponent("library"))
+        let local = try await library.importCloudFile(from: file, context: context(remote))
+        XCTAssertEqual(local.format, .epub); XCTAssertEqual(local.chapters.map(\.title), ["第一章 出发", "第二章 归来"])
+        XCTAssertEqual(try DocumentStager.contentIdentity(at: URL(fileURLWithPath: XCTUnwrap(local.originalFile))), remote.sha256)
+        let restart = LibraryStore(rootURL: library.root); XCTAssertEqual(restart.localBook(cloudID: remote.id)?.id, local.id)
     }
 }

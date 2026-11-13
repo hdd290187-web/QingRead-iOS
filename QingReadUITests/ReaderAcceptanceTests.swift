@@ -11,10 +11,10 @@ final class ReaderAcceptanceTests: XCTestCase {
         for _ in 0..<8 {
             let bars=app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }
             let top=(bars.map { $0.frame.maxY }.max() ?? 0)+12
-            if target.isHittable && target.frame.midY>top && target.frame.maxY<app.frame.maxY-16 { return }
+            if target.exists && target.isHittable && target.frame.midY>top && target.frame.maxY<app.frame.maxY-16 { return }
             let picker=element(app,"settings.font.list")
             let form=element(app,"settings.form.scroll")
-            let container=picker.isHittable ? picker : form
+            let container=picker.exists && picker.isHittable ? picker : form
             XCTAssertTrue(container.exists)
             if target.exists && target.frame.midY<=top { container.swipeDown(velocity:.slow) }
             else { container.swipeUp(velocity:.slow) }
@@ -29,6 +29,16 @@ final class ReaderAcceptanceTests: XCTestCase {
         XCTAssertTrue(book.waitForExistence(timeout: 20)); book.tap()
         XCTAssertTrue(element(app, mode == "scroll" ? "reader.scrollViewport" : "reader.content").waitForExistence(timeout: 30))
         return app
+    }
+    @MainActor private func setProgressVisible(_ expected: Bool, app: XCUIApplication) {
+        let toggle = app.switches["settings.showBottomProgress"]
+        scrollTo(toggle, app: app)
+        XCTAssertEqual(toggle.value as? String, expected ? "0" : "1")
+        // SwiftUI exposes the complete label row as the switch accessibility frame.
+        // Tap the actual trailing control, then verify the binding before dismissing.
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+        expectation(for: NSPredicate(format: "value == %@", expected ? "1" : "0"), evaluatedWith: toggle)
+        waitForExpectations(timeout: 10)
     }
     @MainActor func testBookmarkCancelReflowRestartAndListDeletion() {
         let app = open("slide"); reveal(app)
@@ -68,8 +78,7 @@ final class ReaderAcceptanceTests: XCTestCase {
         let height = viewport.frame.height
         let oldContent = mode == "scroll" ? viewport.value as? String : viewport.label
         progress.tap(); app.buttons["reader.settings"].tap()
-        let toggle = app.switches["settings.showBottomProgress"]
-        scrollTo(toggle,app:app); toggle.tap()
+        setProgressVisible(false, app: app)
         app.buttons["reader.settings.done"].tap()
         expectation(for: NSPredicate { _, _ in viewport.exists && viewport.frame.height > height + 20 }, evaluatedWith: nil)
         waitForExpectations(timeout: 20)
@@ -77,7 +86,7 @@ final class ReaderAcceptanceTests: XCTestCase {
         XCTAssertEqual(viewport.frame.height - height, 28, accuracy: 2)
         if mode == "scroll" { XCTAssertEqual(viewport.value as? String, oldContent) }
         else { XCTAssertTrue((viewport.value as? String ?? "").contains("第1章")) }
-        reveal(app); app.buttons["reader.settings"].tap(); scrollTo(toggle,app:app); toggle.tap(); app.buttons["reader.settings.done"].tap()
+        reveal(app); app.buttons["reader.settings"].tap(); setProgressVisible(true, app: app); app.buttons["reader.settings.done"].tap()
         XCTAssertTrue(progress.waitForExistence(timeout: 10))
         XCTAssertEqual(viewport.frame.height,height,accuracy:2)
     }

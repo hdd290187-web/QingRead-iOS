@@ -20,7 +20,7 @@ final class CloudLibraryTests: XCTestCase {
         row.tap(); XCTAssertTrue(content.waitForExistence(timeout: 15)); closeReader(app)
         app.tabBars.buttons["书架"].tap()
         XCTAssertTrue(app.staticTexts["云端来信测试"].firstMatch.waitForExistence(timeout: 10))
-        XCTAssertEqual(app.staticTexts.matching(identifier: "云端来信测试").count, 1)
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "云端来信测试")).count, 1)
         app.terminate(); app.launchArguments = ["--uitest-cloud", "--uitest-cloud-offline"]; app.launch()
         let local = app.staticTexts["云端来信测试"].firstMatch
         XCTAssertTrue(local.waitForExistence(timeout: 20)); local.tap()

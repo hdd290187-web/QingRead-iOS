@@ -208,13 +208,13 @@ struct LibraryView: View {
             if showGrid {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 24), GridItem(.flexible(), spacing: 24)], alignment: .leading, spacing: 26) {
                     ForEach(filteredBooks) { book in
-                        BookTile(book: book, progress: library.position(for: book).progression) { selectedBook = book }.contextMenu { removeButton(for: book) }
+                        BookTile(book: book, progress: library.position(for: book).progression) { library.readerOpened(book.id); selectedBook = book }.contextMenu { removeButton(for: book) }
                     }
                 }.padding(.horizontal, YYTheme.screenInset).padding(.top, 24).padding(.bottom, 28)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(filteredBooks) { book in
-                        BookRow(book: book, progress: library.position(for: book).progression) { selectedBook = book }.contextMenu { removeButton(for: book) }
+                        BookRow(book: book, progress: library.position(for: book).progression) { library.readerOpened(book.id); selectedBook = book }.contextMenu { removeButton(for: book) }
                         Rectangle().fill(YYTheme.separator).frame(height: 0.5).padding(.leading, 72)
                     }
                 }.padding(.horizontal, YYTheme.screenInset).padding(.top, 12).padding(.bottom, 24)

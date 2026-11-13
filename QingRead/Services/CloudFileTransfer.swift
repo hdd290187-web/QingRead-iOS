@@ -31,11 +31,24 @@ final class CloudFileTransfer: NSObject, URLSessionDataDelegate, @unchecked Send
                     self.continuation = continuation; self.progress = progress
                     do {
                         guard !self.cancelled else { throw CloudError.cancelled }
+                        if self.book.fileSize > (self.book.format == .txt ? Int64(TXTParser.maxFileSize) : Int64(DocumentStager.maxEPUBSize)) { throw CloudError.tooLarge }
                         guard self.book.validFile else { throw CloudError.invalidResponse }
                         try FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true,
                                                                 attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication])
                         var resource = URLResourceValues(); resource.isExcludedFromBackup = true
                         var folder = self.directory; try folder.setResourceValues(resource)
+                        // A newer remote version cannot resume bytes from an older SHA256.
+                        for file in (try? FileManager.default.contentsOfDirectory(at: self.directory, includingPropertiesForKeys: nil)) ?? [] {
+                            if file.lastPathComponent.hasPrefix(self.book.id.uuidString + "-"), file.pathExtension == "part", file != self.partial {
+                                try? FileManager.default.removeItem(at: file)
+                            }
+                        }
+                        if FileManager.default.fileExists(atPath: self.complete.path) {
+                            if (try? DocumentStager.contentIdentity(at: self.complete)) == self.book.sha256 {
+                                self.progress?(self.book.fileSize, self.book.fileSize); self.finish(.success(self.complete)); return
+                            }
+                            try? FileManager.default.removeItem(at: self.complete)
+                        }
                         let size = (try? self.partial.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
                         if size > self.book.fileSize { try? FileManager.default.removeItem(at: self.partial) }
                         self.received = Int64((try? self.partial.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)

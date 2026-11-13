@@ -56,7 +56,7 @@ enum CloudSort: String, CaseIterable, Identifiable {
 }
 
 enum CloudError: LocalizedError, Equatable {
-    case disconnected, status(Int), invalidResponse, integrity, cancelled, keychain, network, changed, reading
+    case disconnected, status(Int), invalidResponse, integrity, cancelled, keychain, network, changed, reading, storage, tooLarge
     var errorDescription: String? {
         switch self {
         case .disconnected: return "请先连接云书库。"
@@ -74,11 +74,14 @@ enum CloudError: LocalizedError, Equatable {
         case .network: return "连接超时或网络不可用，请检查网络后重试。本地书仍可离线阅读。"
         case .changed: return "云端文件已更新，请刷新书库后重试。"
         case .reading: return "请先关闭这本书的阅读页面，再确认更新。"
+        case .storage: return "文件无法写入，请检查设备可用空间后重试。已有本地书已保留。"
+        case .tooLarge: return "文件超过导入上限（TXT 64 MB、EPUB 256 MB），请拆分或缩小后再试。"
         }
     }
     static func safe(_ error: Error) -> Error {
         if error is CloudError { return error }
         if error is CancellationError || (error as NSError).code == NSURLErrorCancelled { return CloudError.cancelled }
+        if (error as NSError).domain == NSCocoaErrorDomain { return CloudError.storage }
         return CloudError.network
     }
 }

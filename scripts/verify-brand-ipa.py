@@ -37,6 +37,15 @@ if int(metadata['build']) >= 44:
         for method in re.findall(r'func (test\w+)\(', test.read_text()):
             assert re.search(re.escape(suite + ' ' + method) + r"\]' passed", log), (suite, method)
     assert not re.search(r"(?:ReaderIntegrityTests|ScrollWindowTests) test[^\n]*\]' (?:failed|exceeded execution time allowance)", log), 'A scroll integrity or UIKit window test failed or timed out before retry; do not deliver it as fixed.'
+    if int(metadata['build']) >= 45:
+        cloud_count = 0
+        for test_file in ['QingReadTests/CloudTests.swift', 'QingReadUITests/CloudLibraryTests.swift']:
+            test = repo / test_file
+            for method in re.findall(r'func (test\w+)\(', test.read_text()):
+                cloud_count += 1
+                assert re.search(re.escape(test.stem + ' ' + method) + r"\]' passed", log), (test.stem, method)
+        assert summary['passedTests'] >= 82 + cloud_count
+        assert not re.search(r"(?:CloudTests|CloudLibraryTests|ReaderAcceptanceTests) test[^\n]*\]' (?:failed|exceeded execution time allowance)", log), 'A cloud or reader acceptance test failed or timed out before retry.'
     for fixture in ['short', 'long', 'monolith']:
         report = json.loads((folder / 'performance-iphone15' / (fixture + '-optimized.json')).read_text())
         assert report['fixtureMetadata']['engineChapterCount'] == {'short': 5, 'long': 80, 'monolith': 1}[fixture]
@@ -94,7 +103,7 @@ with ZipFile(ipa) as archive:
         command, size = struct.unpack_from('<II', binary, offset)
         assert command != 0x1d  # LC_CODE_SIGNATURE
         offset += size
-    for hook in [b'picker-selected', b'--uitest-import-files', b'--uitest-import-result=', b'--uitest-brand-library', b'--uitest-launch-preview', b'--uitest-epub', b'--reader-performance', b'--reader-baseline', b'--uitest-performance=', b'--uitest-integrity=', b'--reader-integrity', b'--uitest-import-after-launch']:
+    for hook in [b'picker-selected', b'--uitest-import-files', b'--uitest-import-result=', b'--uitest-brand-library', b'--uitest-launch-preview', b'--uitest-epub', b'--reader-performance', b'--reader-baseline', b'--uitest-performance=', b'--uitest-integrity=', b'--reader-integrity', b'--uitest-import-after-launch', b'--uitest-cloud']:
         assert hook not in binary, hook
     font = json.loads((repo / 'docs/font-lock.json').read_text())
     assert hashlib.sha256(archive.read('Payload/QingRead.app/NotoSerifSC.ttf')).hexdigest() == font['sha256']

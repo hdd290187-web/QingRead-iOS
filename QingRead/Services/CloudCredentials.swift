@@ -15,7 +15,7 @@ struct CloudKeychain: CloudTokenStore {
          kSecAttrAccount as String: "readOnlyDevice", kSecAttrSynchronizable as String: false]
     }
     func read() throws -> String? {
-        var query = query
+        var query = self.query
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?

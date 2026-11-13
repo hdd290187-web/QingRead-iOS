@@ -122,7 +122,10 @@ final class CloudLibraryStore: ObservableObject {
     }
 
     func open(_ book: CloudBook, library: LibraryStore) {
-        if let local = library.localBook(cloudID: book.id) { bookToOpen = local }
+        if let local = library.localBook(cloudID: book.id) {
+            if jobs[book.id] != nil { cancel(book.id) }
+            library.readerOpened(local.id); bookToOpen = local
+        }
         else { download(book, library: library, openAfter: true) }
     }
 
@@ -152,7 +155,8 @@ final class CloudLibraryStore: ObservableObject {
                 let transfer = CloudFileTransfer(book: latest, directory: downloadDirectory, configuration: client.configuration)
                 let file = try await transfer.download(request: client.request(path: "/api/v1/books/\(book.id.uuidString)/download")) { [weak self] done, total in
                     Task { @MainActor in
-                        guard let self, self.jobs[book.id]?.cancellation.isCancelled == false else { return }
+                        guard let self, self.jobs[book.id]?.cancellation === cancellation, !cancellation.isCancelled,
+                              let state = self.downloads[book.id], case .downloading = state else { return }
                         self.downloads[book.id] = .downloading(done, total)
                     }
                 }
@@ -162,7 +166,7 @@ final class CloudLibraryStore: ObservableObject {
                 let local = try await library.importCloudFile(from: file, context: CloudImportContext(book: latest, allowsUpdate: allowsUpdate, cancellation: cancellation))
                 guard !cancellation.isCancelled else { throw CloudError.cancelled }
                 downloads[book.id] = nil
-                if openAfter && library.activeReaderIDs.isEmpty { bookToOpen = local }
+                if openAfter && library.activeReaderIDs.isEmpty { library.readerOpened(local.id); bookToOpen = local }
             } catch {
                 if cancellation.isCancelled || authorization != authGeneration || (error as? CloudError) == .cancelled { downloads[book.id] = .cancelled }
                 else {

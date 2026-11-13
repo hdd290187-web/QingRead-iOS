@@ -239,8 +239,9 @@ final class LibraryStore: ObservableObject {
             let prepared: PreparedLocalBook
             if ext == "txt" {
                 advance(.decode)
+                let title = cloud?.book.title ?? url.deletingPathExtension().lastPathComponent
                 prepared = try await Task.detached(priority: .userInitiated) {
-                    try LocalBookImporter.prepareTXT(url: document.fileURL, title: url.deletingPathExtension().lastPathComponent, directory: payload, id: id)
+                    try LocalBookImporter.prepareTXT(url: document.fileURL, title: title, directory: payload, id: id)
                 }.value
             } else {
                 advance(.epub)
@@ -256,6 +257,14 @@ final class LibraryStore: ObservableObject {
                 let toc = (try? await publication.tableOfContents().get()) ?? []
                 let chapters = EPUBService.flatten(toc.isEmpty ? publication.readingOrder : toc).map { Chapter(title: $0.title ?? "章节", href: $0.href) }
                 prepared = PreparedLocalBook(book: Book(id: id, title: publication.metadata.title ?? url.deletingPathExtension().lastPathComponent, author: publication.metadata.authors.map(\.name).joined(separator: "、"), format: .epub, chapters: chapters, originalFile: original.path), identity: "epub:sha256:" + document.identity)
+            }
+            var cloudAnchors: [ReadingPosition: CloudTextAnchor] = [:]
+            if let cloud, let old = localBook(cloudID: cloud.book.id), old.format == .txt {
+                let anchors = [positions[old.id]].compactMap { $0 } + bookmarks.filter { $0.bookID == old.id }.map(\.position)
+                let replacement = prepared.book
+                cloudAnchors = await Task.detached(priority: .utility) {
+                    CloudTextAnchors.build(old: old, new: replacement, positions: anchors)
+                }.value
             }
             advance(.parse)
             var identities: [UUID: String] = [:]
@@ -321,10 +330,10 @@ final class LibraryStore: ObservableObject {
                             book.chapters[index].id = match.id; used.insert(match.id)
                         }
                     }
-                    if let position = positions[old.id] { updatedPositions[old.id] = remapCloudPosition(position, from: old, to: book) }
+                    if let position = positions[old.id] { updatedPositions[old.id] = remapCloudPosition(position, from: old, to: book, anchors: cloudAnchors) }
                     updatedBookmarks = bookmarks.map { bookmark in
                         guard bookmark.bookID == old.id else { return bookmark }
-                        var value = bookmark; value.position = remapCloudPosition(value.position, from: old, to: book); return value
+                        var value = bookmark; value.position = remapCloudPosition(value.position, from: old, to: book, anchors: cloudAnchors); return value
                     }
                     updatedBooks[target] = book
                 } else { book.cloudLinks = Self.linking(nil, cloud.book); updatedBooks.insert(book, at: 0) }
@@ -351,7 +360,7 @@ final class LibraryStore: ObservableObject {
         (links ?? []).filter { $0.id != book.id } + [CloudBookLink(id: book.id, sha256: book.sha256, revision: book.revision)]
     }
     private static func chapterKey(_ chapter: Chapter) -> String { chapter.href ?? chapter.title }
-    private func remapCloudPosition(_ position: ReadingPosition, from old: Book, to new: Book) -> ReadingPosition {
+    private func remapCloudPosition(_ position: ReadingPosition, from old: Book, to new: Book, anchors: [ReadingPosition: CloudTextAnchor]) -> ReadingPosition {
         guard !new.chapters.isEmpty else { return .beginning }
         var value = position
         let original = old.chapters.indices.contains(position.chapter) ? old.chapters[position.chapter] : nil
@@ -359,16 +368,9 @@ final class LibraryStore: ObservableObject {
         value.chapter = index
         if new.format == .txt {
             value.locatorJSON = nil
-            let text = chapterText(for: new.chapters[index], book: new) as NSString
-            value.characterOffset = min(max(0, position.characterOffset), text.length)
-            if let original {
-                let previous = chapterText(for: original, book: old) as NSString
-                let start = min(max(0, position.characterOffset), previous.length)
-                if previous.length - start >= 8 {
-                    let quote = previous.substring(with: NSRange(location: start, length: min(40, previous.length - start)))
-                    let range = text.range(of: quote)
-                    if range.location != NSNotFound { value.characterOffset = range.location }
-                }
+            value.characterOffset = min(max(0, position.characterOffset), new.chapters[index].length)
+            if let anchor = anchors[position], anchor.bookID == old.id, anchor.chapter == index {
+                value.characterOffset = min(anchor.offset, new.chapters[index].length)
             }
             let prefix = new.chapters.prefix(index).reduce(0) { $0 + $1.length }
             value.progression = Double(prefix + value.characterOffset) / Double(max(1, new.characterCount))
