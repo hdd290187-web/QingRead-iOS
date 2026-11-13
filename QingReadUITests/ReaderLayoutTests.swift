@@ -29,12 +29,12 @@ final class ReaderLayoutTests: XCTestCase {
             XCTAssertTrue(viewport.waitForExistence(timeout: 30))
             XCTAssertFalse(app.buttons["返回书架"].exists, "新阅读会话默认沉浸式")
             let beforeFrame = viewport.frame
-            let beforeText = mode == "scroll" ? app.textViews.firstMatch.value as? String : viewport.value as? String
+            let beforeText = mode == "scroll" ? app.descendants(matching: .any).matching(identifier: "reader.scrollContent").firstMatch.value as? String : viewport.value as? String
             attach(app, mode + "-竖屏沉浸")
             reveal(app)
             XCTAssertTrue(app.buttons["返回书架"].isHittable)
             XCTAssertEqual(viewport.frame, beforeFrame)
-            XCTAssertEqual(mode == "scroll" ? app.textViews.firstMatch.value as? String : viewport.value as? String, beforeText)
+            XCTAssertEqual(mode == "scroll" ? app.descendants(matching: .any).matching(identifier: "reader.scrollContent").firstMatch.value as? String : viewport.value as? String, beforeText)
             attach(app, mode + "-浮层工具栏")
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap()
             XCUIDevice.shared.orientation = .landscapeLeft

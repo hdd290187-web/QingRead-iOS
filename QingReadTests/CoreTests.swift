@@ -48,13 +48,15 @@ final class CoreTests: XCTestCase {
 }
 
 extension CoreTests {
-    @MainActor func testFontAndTextKitCharacterAnchor() {
-        var settings = ReaderSettings(); settings.font = .serif
+    @MainActor func testFontAndTextKitCharacterAnchor() async throws {
+        var settings = ReaderSettings(); settings.font = .serif; settings.mode = .scroll
         XCTAssertTrue(settings.uiFont.familyName.contains("Noto"))
         let cell = ScrollTextCell(style: .default, reuseIdentifier: nil)
         cell.frame = CGRect(x: 0, y: 0, width: 320, height: 900)
         let text = String(repeating: "这是段落中的中文文字。\n", count: 12)
-        cell.configure(text: TextPaginator.attributed(text, settings: settings), settings: settings)
+        let prepared = try await ReaderLayoutWorker.shared.prepare(text: text, size: CGSize(width: 264, height: 900), width: 320, settings: settings, title: nil, foreground: .black)
+        let chunk = try XCTUnwrap(prepared.scroll?.chunks.first)
+        cell.configure(chunk: chunk, settings: settings)
         cell.layoutIfNeeded()
         let y = cell.y(for: 40)
         let offset = cell.character(at: CGPoint(x: settings.sidePadding, y: y + 3))

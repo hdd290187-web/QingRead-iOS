@@ -54,9 +54,6 @@ private struct ReaderHost: View {
             Button("关闭", role: .cancel) { session.error = nil }
         } message: { Text(session.error ?? "") }
         .onChange(of: library.settings) { _, _ in applyBrightness() }
-        .onChange(of: session.position) { old, new in
-            if (old.chapter != new.chapter || old.characterOffset != new.characterOffset), !showSettings, !showContents, !showBookmarks { session.menuVisible = false }
-        }
         .onChange(of: scenePhase) { _, phase in if phase != .active { session.flush() } }
         .onAppear { originalBrightness = UIScreen.main.brightness; applyBrightness() }
         .onDisappear { session.flush(); if let originalBrightness { UIScreen.main.brightness = originalBrightness } }

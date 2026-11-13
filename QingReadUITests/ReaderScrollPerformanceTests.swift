@@ -26,7 +26,7 @@ final class ReaderScrollPerformanceTests: XCTestCase {
         book.tap(); XCTAssertTrue(table.waitForExistence(timeout: 30))
         XCUIDevice.shared.press(.home); app.activate()
         XCTAssertTrue(table.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "原创")).firstMatch.exists)
+        XCTAssertTrue(table.descendants(matching: .any).matching(NSPredicate(format: "value CONTAINS %@", "原创")).firstMatch.exists)
         attach(app, fixture + "-重启及后台恢复")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap()
         if !app.buttons["返回书架"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap() }

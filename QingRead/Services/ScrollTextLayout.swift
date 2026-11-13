@@ -6,11 +6,49 @@ struct ScrollTextLine {
     let y: CGFloat
 }
 
+/// Created and fully laid out by one worker, then used exclusively on the main
+/// actor. Drawing the prepared glyphs avoids UITextView performing a second
+/// layout with different paragraph metrics.
+final class ScrollTextDrawing {
+    private let storage: NSTextStorage
+    private let manager: NSLayoutManager
+    private let container: NSTextContainer
+    private let glyphs: NSRange
+    private var foreground: UIColor
+    let usedRect: CGRect
+    let coveredUTF16: Int
+    init(storage: NSTextStorage, manager: NSLayoutManager, container: NSTextContainer, foreground: UIColor) {
+        self.storage = storage; self.manager = manager; self.container = container; self.foreground = foreground
+        glyphs = manager.glyphRange(for: container)
+        usedRect = manager.usedRect(for: container)
+        coveredUTF16 = manager.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil).length
+    }
+    @MainActor func setForeground(_ color: UIColor) {
+        guard !foreground.isEqual(color) else { return }
+        foreground = color
+        manager.addTemporaryAttribute(.foregroundColor, value: color, forCharacterRange: NSRange(location: 0, length: storage.length))
+    }
+    @MainActor func draw(at origin: CGPoint) {
+        manager.drawBackground(forGlyphRange: glyphs, at: origin)
+        manager.drawGlyphs(forGlyphRange: glyphs, at: origin)
+    }
+    @MainActor func character(at point: CGPoint) -> Int {
+        min(storage.length, manager.characterIndex(for: point, in: container, fractionOfDistanceBetweenInsertionPoints: nil))
+    }
+    @MainActor func y(for offset: Int) -> CGFloat {
+        guard storage.length > 0 else { return 0 }
+        let characters = NSRange(location: min(max(0, offset), storage.length - 1), length: 1)
+        let glyph = manager.glyphRange(forCharacterRange: characters, actualCharacterRange: nil)
+        return manager.boundingRect(forGlyphRange: glyph, in: container).minY
+    }
+}
+
 struct ScrollTextChunk {
     let range: PageRange
     let attributed: NSAttributedString
     let height: CGFloat
     let lines: [ScrollTextLine]
+    let drawing: ScrollTextDrawing
 
     /// An O(log lines) UTF-16 anchor, using the same TextKit layout as the cell.
     /// No glyph generation or layout is performed in the scroll delegate.
@@ -28,8 +66,8 @@ struct ScrollChapterLayout {
     let chunks: [ScrollTextChunk]
     let length: Int
 
-    /// Worker-thread-only TextKit objects are discarded before returning immutable
-    /// text, exact row heights and line anchors. UITableView only creates visible cells.
+    /// Each TextKit stack is laid out on one worker and handed off to the main
+    /// actor for drawing. No worker accesses it after publication to the UI.
     static func make(_ text: String, width: CGFloat, settings: ReaderSettings, chapterTitle: String?, foreground: UIColor) -> ScrollChapterLayout {
         ReaderPerformance.measure(.scrollLayout) {
             let attributed = TextPaginator.attributed(text, settings: settings, chapterTitle: chapterTitle, foreground: foreground)
@@ -68,7 +106,8 @@ struct ScrollChapterLayout {
                     // line twice across two adjacent table cells.
                     let tail = range.end < attributed.length ? manager.extraLineFragmentRect.minY : manager.extraLineFragmentRect.maxY
                     let height = ceil(max(1, max(manager.usedRect(for: container).maxY, tail)))
-                    return ScrollTextChunk(range: range, attributed: immutable, height: height, lines: lines)
+                    let drawing = ScrollTextDrawing(storage: storage, manager: manager, container: container, foreground: foreground)
+                    return ScrollTextChunk(range: range, attributed: immutable, height: height, lines: lines, drawing: drawing)
                 }
             }
             return ScrollChapterLayout(chunks: chunks, length: attributed.length)

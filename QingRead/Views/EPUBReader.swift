@@ -81,8 +81,9 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         navigator?.submitPreferences(preferences())
         updateHeadingStyle()
     }
-    func move(forward: Bool) { Task { guard let navigator else { return }; if forward { _ = await navigator.goForward() } else { _ = await navigator.goBackward() } } }
+    func move(forward: Bool) { session.menuVisible = false; Task { guard let navigator else { return }; if forward { _ = await navigator.goForward() } else { _ = await navigator.goBackward() } } }
     func navigate(to position: ReadingPosition) {
+        session.menuVisible = false
         Task {
             guard let navigator else { return }
             if let json = position.locatorJSON, let locator = try? Locator(json: JSONValue(jsonString: json), warnings: nil) { _ = await navigator.go(to: locator); return }

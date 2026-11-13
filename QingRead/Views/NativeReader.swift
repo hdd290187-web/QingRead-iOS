@@ -269,11 +269,12 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) { transitioning = true }
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
         transitioning = false
-        if completed, let page = pageViewController.viewControllers?.first as? PrintedPage { reflowAnchor = nil; current = page.address; reportCurrent(); prepareNeighbors() }
+        if completed, let page = pageViewController.viewControllers?.first as? PrintedPage { reflowAnchor = nil; session.menuVisible = false; current = page.address; reportCurrent(); prepareNeighbors() }
     }
     func move(forward: Bool) {
         guard !transitioning else { return }
         reflowAnchor = nil
+        session.menuVisible = false
         if settings.mode == .scroll, let table { programmaticScrolling = true; table.setContentOffset(CGPoint(x: 0, y: min(max(-table.adjustedContentInset.top, table.contentOffset.y + (forward ? 1 : -1) * table.bounds.height * 0.85), max(0, table.contentSize.height - table.bounds.height))), animated: true); return }
         guard let target = neighbor(of: current, forward: forward), let page = printed(target) else {
             let chapter = current.chapter + (forward ? 1 : -1)
@@ -288,7 +289,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             }
         } else { startCover(target: page, forward: forward); finishCover(commit: true, duration: 0.24) }
     }
-    func navigate(to position: ReadingPosition) { reflowAnchor = nil; rebuild(at: position) }
+    func navigate(to position: ReadingPosition) { reflowAnchor = nil; session.menuVisible = false; rebuild(at: position) }
     private func reportCurrent() {
         guard let layout = layouts[current.chapter], layout.ranges.indices.contains(current.page) else { return }
         let range = layout.ranges[current.page]
@@ -347,7 +348,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         } completion: { _ in
             let removed = commit ? self.coverCurrent : target
             removed?.willMove(toParent: nil); removed?.view.removeFromSuperview(); removed?.removeFromParent()
-            if commit { self.reflowAnchor = nil; self.coverCurrent = target; self.current = target.address; self.reportCurrent(); self.prepareNeighbors() }
+            if commit { self.reflowAnchor = nil; self.session.menuVisible = false; self.coverCurrent = target; self.current = target.address; self.reportCurrent(); self.prepareNeighbors() }
             self.coverCurrent?.view.transform = .identity; self.coverTarget = nil; self.transitioning = false
         }
     }
@@ -418,7 +419,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat { scrollRows[indexPath.row].chunk.height }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "paragraph", for: indexPath) as? ScrollTextCell else { return UITableViewCell() }
-        cell.configure(text: scrollRows[indexPath.row].chunk.attributed, settings: settings)
+        cell.configure(chunk: scrollRows[indexPath.row].chunk, settings: settings)
         return cell
     }
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -426,9 +427,14 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
               scrollView.isTracking || scrollView.isDragging || scrollView.isDecelerating || programmaticScrolling else { return }
         ReaderPerformance.measure(.scrollCallback) { updateScrollPosition() }
     }
-    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { reflowAnchor = nil }
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { reflowAnchor = nil; session.menuVisible = false }
     private func updateScrollPosition() {
-        guard !rebuilding, let table, let path = table.indexPathsForVisibleRows?.min(), scrollRows.indices.contains(path.row) else { return }
+        guard !rebuilding, let table else { return }
+        // The previous row may overlap only the 8pt paper inset. Anchor the
+        // actual reading origin so a chapter start cannot become its predecessor.
+        let readingY = max(0, table.contentOffset.y + table.contentInset.top)
+        guard let path = table.indexPathForRow(at: CGPoint(x: table.bounds.midX, y: readingY + 0.25)) ?? table.indexPathsForVisibleRows?.min(),
+              scrollRows.indices.contains(path.row) else { return }
         let item = scrollRows[path.row]
         let previousChapter = current.chapter
         current = PageAddress(chapter: item.chapter, page: 0)

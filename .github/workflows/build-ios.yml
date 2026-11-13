@@ -68,7 +68,7 @@ jobs:
           test_args=(-parallel-testing-enabled NO)
           if test "$IMPORT_ONLY" = true; then test_args+=(-only-testing:QingReadUITests/DocumentImportTests "SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG SYSTEM_FILES_DIAGNOSTICS"); fi
           if test "$READER_DIAGNOSTICS" = true; then
-            test_args+=(-only-testing:QingReadTests/ReaderPerformanceTests -only-testing:QingReadUITests/ReaderLayoutTests/testChapterBoundaryFontChangeAndBackgroundRestore -only-testing:QingReadUITests/BrandUITests/testEPUBOriginalCoverReadingAndPreferences -only-testing:QingReadUITests/ReaderScrollPerformanceTests/testShortTXTRepeatedFlingAndRestore)
+            test_args+=(-only-testing:QingReadTests/ReaderPerformanceTests -only-testing:QingReadTests/CoreTests/testFontAndTextKitCharacterAnchor -only-testing:QingReadUITests/ReaderLayoutTests/testChapterBoundaryFontChangeAndBackgroundRestore -only-testing:QingReadUITests/BrandUITests/testEPUBOriginalCoverReadingAndPreferences -only-testing:QingReadUITests/ReaderScrollPerformanceTests/testShortTXTRepeatedFlingAndRestore)
           fi
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" "${test_args[@]}" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/tests.log
           if test "$IMPORT_ONLY" != true && test "$READER_DIAGNOSTICS" != true; then python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-se optimized; fi
@@ -115,6 +115,9 @@ jobs:
           if test -d delivery/Tests.xcresult; then
             xcrun xcresulttool get test-results summary --path delivery/Tests.xcresult > delivery/test-summary.json
             xcrun xcresulttool export attachments --path delivery/Tests.xcresult --output-path delivery/screenshots
+            if test '${{ job.status }}' != success; then
+              xcrun xcresulttool export diagnostics --path delivery/Tests.xcresult --output-path delivery/test-diagnostics
+            fi
           fi
           if test -d delivery/Brand-iPhone15.xcresult; then
             xcrun xcresulttool get test-results summary --path delivery/Brand-iPhone15.xcresult > delivery/brand-iphone15-summary.json

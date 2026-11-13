@@ -46,24 +46,18 @@ final class ReaderPerformanceTests: XCTestCase {
         for chunk in layout.chunks.prefix(3) {
             let cell = ScrollTextCell(style: .default, reuseIdentifier: nil)
             cell.frame = CGRect(x: 0, y: 0, width: 320, height: chunk.height)
-            cell.configure(text: chunk.attributed, settings: settings); cell.layoutIfNeeded()
-            cell.textView.layoutManager.ensureLayout(for: cell.textView.textContainer)
-            let manager = cell.textView.layoutManager
-            let tail = chunk.range.end < layout.length ? manager.extraLineFragmentRect.minY : manager.extraLineFragmentRect.maxY
-            let measured = ceil(max(manager.usedRect(for: cell.textView.textContainer).maxY, tail))
-            print("ReaderTextKit: workerHeight=\(chunk.height) visibleHeight=\(measured) width=\(cell.textView.textContainer.size.width) leading=\(manager.usesFontLeading) lines=\(chunk.lines.count)")
-            if abs(chunk.height - measured) > 1.1 {
-                var visible: [(Int, CGFloat, CGFloat)] = []
-                let glyphs = manager.glyphRange(for: cell.textView.textContainer)
-                manager.enumerateLineFragments(forGlyphRange: glyphs) { rect, _, _, range, _ in
-                    visible.append((manager.characterRange(forGlyphRange: range, actualGlyphRange: nil).location, rect.minY, rect.height))
-                }
-                print("ReaderTextKit mismatch: containerHeight=\(cell.textView.textContainer.size.height) visibleUTF16=\(manager.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil).length) expectedUTF16=\(chunk.attributed.length) visibleLines=\(visible.count)")
-                for index in 0..<min(10, min(chunk.lines.count, visible.count)) {
-                    print("ReaderTextKit line \(index): workerStart=\(chunk.lines[index].start) workerY=\(chunk.lines[index].y) visible=\(visible[index])")
-                }
-            }
-            XCTAssertEqual(chunk.height, measured, accuracy: 1.1)
+            cell.configure(chunk: chunk, settings: settings); cell.layoutIfNeeded()
+            XCTAssertEqual(cell.renderedHeight, chunk.height, accuracy: 1.1)
+            XCTAssertLessThanOrEqual(cell.renderedTextBounds.maxY, cell.renderedHeight)
+            XCTAssertEqual(cell.renderedUTF16Length, chunk.attributed.length)
+            let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
+            cell.contentView.subviews.forEach { $0.layer.displayIfNeeded() }
+            let image = UIGraphicsImageRenderer(size: cell.bounds.size, format: format).image { cell.layer.render(in: $0.cgContext) }
+            let bitmap = try XCTUnwrap(image.cgImage)
+            let pixels = try XCTUnwrap(bitmap.dataProvider?.data) as Data
+            let bottom = pixels.suffix(min(pixels.count, bitmap.bytesPerRow * 120))
+            XCTAssertTrue(bottom.contains { $0 < 128 }, "实际位图底部必须画出正文，不能裁掉末行或只返回空白")
+            print("ReaderTextKit: preparedHeight=\(chunk.height) drawnHeight=\(cell.renderedHeight) renderedUTF16=\(cell.renderedUTF16Length)")
             if let line = chunk.lines.dropFirst(3).first {
                 XCTAssertEqual(chunk.character(atY: line.y + 1), line.start)
                 XCTAssertLessThanOrEqual(abs(cell.character(at: CGPoint(x: settings.sidePadding, y: line.y + 1)) - line.start), 3)

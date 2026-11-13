@@ -59,8 +59,9 @@
   ],
   "implementationCommit": "b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970",
   "observedFailures": [
-    "Worker/display TextKit row-height mismatch remains; font-leading alignment did not change the measured discrepancy",
-    "Precise scroll restart changed chapter although within-chapter character offset matched"
+    "The worker and UITextView have identical characters/line counts but different paragraph-end glyph metrics; the fixed-height/leading hypothesis was disproved by run36",
+    "At a chapter boundary, selecting the minimum visible row included the preceding row under the top paper inset",
+    "EPUB async locator updates could hide freshly opened tools"
   ],
   "targetedRuns": [
     {
@@ -73,6 +74,17 @@
       "failed": 2,
       "skipped": 0,
       "total": 8
+    },
+    {
+      "id": 43394574823,
+      "number": 36,
+      "headSha": "0d59603d55037421b2bce240cce7918942b1daa8",
+      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43394574823",
+      "conclusion": "failure",
+      "passed": 5,
+      "failed": 3,
+      "skipped": 0,
+      "total": 8
     }
   ],
   "confirmedTargetedFixes": [
@@ -82,5 +94,10 @@
   ],
   "automatedPending": [
     "Targeted regressions, then the complete Release/Simulator and same-device baseline comparison"
+  ],
+  "candidateCorrections": [
+    "Draw worker-prepared TextKit glyphs directly in a UIKit cell, with complete text accessibility and no second UITextView layout",
+    "Select the row at contentOffset + top paper inset for the actual reading origin",
+    "Hide reader tools on user navigation/drag, not every async position report"
   ]
 }
