@@ -12,25 +12,32 @@ private struct CloudStubReply {
 
 private final class CloudStubProtocol: URLProtocol {
     static var reply: ((URLRequest) -> CloudStubReply)?
-    private let lock = NSLock()
+    private let lock = NSRecursiveLock()
     private var stopped = false
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
         guard let reply = Self.reply?(request) else { client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet)); return }
-        var headers = reply.headers; headers["Content-Length"] = String(reply.data.count)
+        // Data slices keep their original indices. The mock wire body starts at zero.
+        let body = Data([UInt8](reply.data))
+        var headers = reply.headers; headers["Content-Length"] = String(body.count)
         let response = HTTPURLResponse(url: request.url!, statusCode: reply.code, httpVersion: "HTTP/1.1", headerFields: headers)!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        DispatchQueue.global().async {
-            for offset in stride(from: 0, to: reply.data.count, by: reply.slow ? 128 : 4096) {
-                if reply.slow { Thread.sleep(forTimeInterval: 0.02) }
-                self.lock.lock(); let stopped = self.stopped; self.lock.unlock()
-                if stopped { return }
-                self.client?.urlProtocol(self, didLoad: reply.data.subdata(in: offset..<min(reply.data.count, offset + (reply.slow ? 128 : 4096))))
+        lock.lock()
+        if !stopped { client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed) }
+        lock.unlock()
+        let deliver = {
+            for offset in stride(from: 0, to: body.count, by: reply.slow ? 128 : 4096) {
+                if reply.slow { Thread.sleep(forTimeInterval: 0.05) }
+                self.lock.lock()
+                if self.stopped { self.lock.unlock(); return }
+                self.client?.urlProtocol(self, didLoad: body.subdata(in: offset..<min(body.count, offset + (reply.slow ? 128 : 4096))))
+                self.lock.unlock()
             }
-            self.lock.lock(); let stopped = self.stopped; self.lock.unlock()
-            if !stopped { self.client?.urlProtocolDidFinishLoading(self) }
+            self.lock.lock()
+            if !self.stopped { self.client?.urlProtocolDidFinishLoading(self) }
+            self.lock.unlock()
         }
+        if reply.slow { DispatchQueue.global().async(execute: deliver) } else { deliver() }
     }
     override func stopLoading() { lock.lock(); stopped = true; lock.unlock() }
 }

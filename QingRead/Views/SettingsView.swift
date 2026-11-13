@@ -63,6 +63,9 @@ struct ReaderSettingsForm: View {
                 rule
                 sizeSection
                 rule
+                Toggle("显示底部进度", isOn: $library.settings.showBottomProgress)
+                    .accessibilityIdentifier("settings.showBottomProgress").padding(.vertical, 20)
+                rule
                 lineSection
                 rule
                 themeSection
@@ -72,11 +75,8 @@ struct ReaderSettingsForm: View {
                 NavigationLink { AdvancedReaderSettings() } label: {
                     HStack { Text("更多排版与亮度"); Spacer(); Image(systemName: "chevron.right").font(.caption) }.font(.subheadline).foregroundStyle(library.settings.theme.foreground).padding(.vertical, 24)
                 }.accessibilityIdentifier("settings.advanced")
-                rule
-                Toggle("显示底部进度", isOn: $library.settings.showBottomProgress)
-                    .accessibilityIdentifier("settings.showBottomProgress").padding(.vertical, 24)
             }.frame(width: max(240, min(geometry.size.width, 560) - YYTheme.screenInset * 2))
-                .padding(.horizontal, YYTheme.screenInset).frame(maxWidth: .infinity)
+                .padding(.horizontal, YYTheme.screenInset).padding(.bottom, 28).frame(maxWidth: .infinity)
         }.accessibilityIdentifier("settings.form.scroll")
         }.navigationTitle("阅读设置").navigationBarTitleDisplayMode(.inline).readerSettingsSurface()
     }

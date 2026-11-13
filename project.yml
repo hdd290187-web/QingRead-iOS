@@ -37,6 +37,9 @@ targets:
         INFOPLIST_FILE: QingRead/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGNING_ALLOWED: NO
+      configs:
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: config/SimulatorTests.entitlements
   QingReadTests:
     type: bundle.unit-test
     platform: iOS

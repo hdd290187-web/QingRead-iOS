@@ -82,6 +82,7 @@ enum CloudError: LocalizedError, Equatable {
     static func safe(_ error: Error) -> Error {
         if error is CloudError { return error }
         if error is CancellationError || (error as NSError).code == NSURLErrorCancelled { return CloudError.cancelled }
+        if (error as NSError).domain == NSOSStatusErrorDomain { return CloudError.keychain }
         if (error as NSError).domain == NSCocoaErrorDomain { return CloudError.storage }
         return CloudError.network
     }

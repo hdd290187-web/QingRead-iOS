@@ -8,7 +8,7 @@ final class ReaderAcceptanceTests: XCTestCase {
         if !app.buttons["返回书架"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).tap() }
     }
     @MainActor private func scrollTo(_ target: XCUIElement, app: XCUIApplication) {
-        for _ in 0..<8 {
+        for _ in 0..<16 {
             let bars=app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }
             let top=(bars.map { $0.frame.maxY }.max() ?? 0)+12
             if target.exists && target.isHittable && target.frame.midY>top && target.frame.maxY<app.frame.maxY-16 { return }
@@ -16,8 +16,15 @@ final class ReaderAcceptanceTests: XCTestCase {
             let form=element(app,"settings.form.scroll")
             let container=picker.exists && picker.isHittable ? picker : form
             XCTAssertTrue(container.exists)
-            if target.exists && target.frame.midY<=top { container.swipeDown(velocity:.slow) }
-            else { container.swipeUp(velocity:.slow) }
+            let frame = container.frame.intersection(app.frame)
+            let upper = max(top + 8, frame.minY + 10)
+            let lower = min(frame.maxY - 16, app.frame.maxY - 24)
+            let center = (upper + lower) / 2
+            let distance = max(12, (lower - upper) * 0.25)
+            let downward = target.exists && target.frame.midY <= top
+            let start = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: frame.midX, dy: center + (downward ? -distance : distance)))
+            let end = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: frame.midX, dy: center + (downward ? distance : -distance)))
+            start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.1)
         }
         XCTAssertTrue(target.isHittable)
     }
@@ -154,7 +161,7 @@ final class ReaderAcceptanceTests: XCTestCase {
         app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition:0.65)
         expectation(for:NSPredicate { _,_ in text.exists && text.frame.height > oldTextHeight },evaluatedWith:nil);waitForExpectations(timeout:20)
         XCTAssertTrue(app.buttons["reader.settings.done"].exists)
-        let toggle=app.switches["settings.showBottomProgress"];scrollTo(toggle,app:app);toggle.tap()
+        setProgressVisible(false, app: app)
         app.buttons["reader.settings.done"].tap()
         expectation(for:NSPredicate { _,_ in web.frame.height > oldHeight + 20 },evaluatedWith:nil);waitForExpectations(timeout:20)
         XCTAssertFalse(progress.exists)
@@ -164,7 +171,7 @@ final class ReaderAcceptanceTests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(text.waitForExistence(timeout:15))
         XCUIDevice.shared.orientation = .portrait
-        reveal(app);app.buttons["reader.settings"].tap();scrollTo(toggle,app:app);toggle.tap();app.buttons["reader.settings.done"].tap()
+        reveal(app);app.buttons["reader.settings"].tap();setProgressVisible(true, app: app);app.buttons["reader.settings.done"].tap()
         XCTAssertTrue(progress.waitForExistence(timeout:10))
         XCTAssertTrue(text.exists)
     }
