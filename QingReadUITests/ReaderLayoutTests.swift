@@ -13,7 +13,13 @@ final class ReaderLayoutTests: XCTestCase {
         return (parts.first ?? -1, parts.last ?? -1)
     }
     @MainActor private func scrollTo(_ element: XCUIElement, app: XCUIApplication) {
-        for _ in 0..<4 { if element.isHittable { break }; app.swipeUp() }
+        let container=app.descendants(matching:.any).matching(identifier:"settings.form.scroll").firstMatch
+        for _ in 0..<8 {
+            let top=(app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }.map { $0.frame.maxY }.max() ?? 0)+12
+            if element.isHittable && element.frame.midY>top { break }
+            if element.exists && element.frame.midY<=top { container.swipeDown(velocity:.slow) }
+            else { container.swipeUp(velocity:.slow) }
+        }
         XCTAssertTrue(element.isHittable)
     }
     @MainActor func testAllModesImmersionOverlayAndLandscape() {

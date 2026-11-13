@@ -68,7 +68,13 @@ import CoreText
         XCTAssertEqual(Array(ReaderFont.available.prefix(3)), [.system, .rounded, .serif])
         XCTAssertGreaterThanOrEqual(ReaderFont.available.count, 5)
         XCTAssertEqual(ReaderFont.kaiti.installedName, "LXGWWenKaiLite-Regular")
-        for font in ReaderFont.available.dropFirst(3) { XCTAssertNotNil(font.installedName.flatMap { UIFont(name: $0, size: 20) }) }
+        for font in ReaderFont.available.dropFirst(3) {
+            let installed=font.installedName.flatMap { UIFont(name:$0,size:20) }
+            XCTAssertNotNil(installed)
+            var settings=ReaderSettings();settings.font=font
+            XCTAssertEqual(settings.uiFont.familyName,installed?.familyName,"添加字重描述后也必须保留选定的真实中文字体")
+            print("ReaderAppliedFont \(font.rawValue)=\(settings.uiFont.fontName) family=\(settings.uiFont.familyName)")
+        }
     }
     func testAvailableChineseFontsAndMissingGlyphFallback() {
         for font in ReaderFont.available {

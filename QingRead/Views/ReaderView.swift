@@ -51,7 +51,7 @@ private struct ReaderHost: View {
             NavigationStack {
                 ReaderSettingsForm().toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showSettings = false }.accessibilityIdentifier("reader.settings.done") } }
             }.environment(\.readerSettingsOverlay, true)
-                .environment(\.readerIntegrityProbe, session.readerDiagnosticJSON ?? "")
+                .environment(\.readerIntegrityProbe, session)
                 .presentationDetents([.fraction(0.55), .fraction(0.78)], selection: $settingsDetent)
                 .presentationDragIndicator(.visible).presentationCompactAdaptation(.none)
                 .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.78)))
@@ -168,9 +168,9 @@ private struct ContentsSheet: View {
     }
 }
 
-private struct ReaderIntegrityProbeKey: EnvironmentKey { static let defaultValue = "" }
+private struct ReaderIntegrityProbeKey: EnvironmentKey { static let defaultValue:ReaderSession? = nil }
 extension EnvironmentValues {
-    var readerIntegrityProbe: String {
+    var readerIntegrityProbe: ReaderSession? {
         get { self[ReaderIntegrityProbeKey.self] }
         set { self[ReaderIntegrityProbeKey.self] = newValue }
     }

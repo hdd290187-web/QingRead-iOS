@@ -691,6 +691,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
                 "fontSize": Double(bodyFont?.pointSize ?? 0),
                 "lineSpacing": Double(bodyStyle?.lineSpacing ?? 0),
                 "fontName": bodyFont?.fontName ?? "",
+                "fontFamily": bodyFont?.familyName ?? "",
                 "theme": settings.theme.rawValue,
                 "mutations": integrityMutations, "anchorFailures": integrityFailures,
                 "staleResultsDiscarded": stalePreloads,

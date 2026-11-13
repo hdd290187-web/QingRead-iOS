@@ -102,14 +102,22 @@ final class ReaderIntegrityTests: XCTestCase {
         XCTAssertTrue(app.buttons["reader.settings"].waitForExistence(timeout: 5)); app.buttons["reader.settings"].tap()
         let originalAnchor = resumed["globalOffset"] as? Int ?? 0
         app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition: 0.55)
+        let chosenSize=Double(app.staticTexts["settings.fontSize.value"].label.split(separator:" ").first ?? "") ?? -1
+        XCTAssertNotEqual(chosenSize,20);XCTAssertTrue((14...36).contains(chosenSize))
         app.buttons["settings.font"].tap()
         app.buttons["settings.font.system"].tap(); app.navigationBars.buttons.firstMatch.tap()
         let relaxed = app.buttons["settings.line.12"]
-        for _ in 0..<5 { if relaxed.isHittable { break }; app.swipeUp() }
+        let settingsScroll=app.descendants(matching:.any).matching(identifier:"settings.form.scroll").firstMatch
+        for _ in 0..<5 {
+            let top=(app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }.map { $0.frame.maxY }.max() ?? 0)+12
+            if relaxed.isHittable && relaxed.frame.midY>top { break }
+            if relaxed.exists && relaxed.frame.midY<=top { settingsScroll.swipeDown(velocity:.slow) }
+            else { settingsScroll.swipeUp(velocity:.slow) }
+        }
         relaxed.tap(); app.buttons["reader.settings.done"].tap()
         expectation(for:NSPredicate { _,_ in
             guard let data=table.label.data(using:.utf8),let state=try? JSONSerialization.jsonObject(with:data) as? [String:Any] else { return false }
-            return (state["fontSize"] as? Double ?? 0)>=25 && state["lineSpacing"] as? Double == 12 && !(state["fontName"] as? String ?? "Noto").contains("Noto")
+            return state["fontSize"] as? Double == chosenSize && state["lineSpacing"] as? Double == 12 && !(state["fontName"] as? String ?? "Noto").contains("Noto")
         },evaluatedWith:nil);waitForExpectations(timeout:30)
         let reflowed = snapshot(table); verify(reflowed, table: table)
         XCTAssertLessThanOrEqual(abs((reflowed["globalOffset"] as? Int ?? 0) - originalAnchor), 64)

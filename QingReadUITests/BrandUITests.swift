@@ -12,7 +12,14 @@ final class BrandUITests: XCTestCase {
     }
     @MainActor private func element(_ app: XCUIApplication, _ id: String) -> XCUIElement { app.descendants(matching: .any).matching(identifier: id).firstMatch }
     @MainActor private func scrollTo(_ target: XCUIElement, app: XCUIApplication) {
-        for _ in 0..<4 { if target.isHittable { break }; app.swipeUp() }
+        for _ in 0..<8 {
+            let top=(app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }.map { $0.frame.maxY }.max() ?? 0)+12
+            if target.isHittable && target.frame.midY>top { break }
+            let picker=element(app,"settings.font.list"),form=element(app,"settings.form.scroll")
+            let container=picker.isHittable ? picker : form
+            if target.exists && target.frame.midY<=top { container.swipeDown(velocity:.slow) }
+            else { container.swipeUp(velocity:.slow) }
+        }
         XCTAssertTrue(target.isHittable)
     }
     @MainActor private func revealTools(_ app: XCUIApplication) {

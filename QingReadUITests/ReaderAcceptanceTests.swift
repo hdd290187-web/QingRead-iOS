@@ -12,8 +12,12 @@ final class ReaderAcceptanceTests: XCTestCase {
             let bars=app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }
             let top=(bars.map { $0.frame.maxY }.max() ?? 0)+12
             if target.isHittable && target.frame.midY>top && target.frame.maxY<app.frame.maxY-16 { return }
-            if target.exists && target.frame.midY<=top { app.swipeDown(velocity:.slow) }
-            else { app.swipeUp(velocity:.slow) }
+            let picker=element(app,"settings.font.list")
+            let form=element(app,"settings.form.scroll")
+            let container=picker.isHittable ? picker : form
+            XCTAssertTrue(container.exists)
+            if target.exists && target.frame.midY<=top { container.swipeDown(velocity:.slow) }
+            else { container.swipeUp(velocity:.slow) }
         }
         XCTAssertTrue(target.isHittable)
     }
@@ -90,15 +94,20 @@ final class ReaderAcceptanceTests: XCTestCase {
         XCTAssertTrue(book.waitForExistence(timeout:30));book.tap()
         let table=app.tables.matching(identifier:"reader.scrollViewport").firstMatch
         XCTAssertTrue(table.waitForExistence(timeout:30))
+        var lastProbe=""
         func state() -> [String:Any] {
-            guard let bytes=app.staticTexts["settings.readerProbe"].label.data(using:.utf8),let v=try? JSONSerialization.jsonObject(with:bytes) as? [String:Any] else { return [:] };return v
+            let probe=app.staticTexts["settings.readerProbe"].label
+            if probe != lastProbe { print("ReaderSettingsEvidence "+probe);lastProbe=probe }
+            guard let bytes=probe.data(using:.utf8),let v=try? JSONSerialization.jsonObject(with:bytes) as? [String:Any] else { return [:] };return v
         }
         reveal(app); let readerTable=element(app,"reader.scrollViewport")
         let original = readerTable.value.flatMap { String(describing:$0).split(separator:":").last.flatMap { Int($0) } } ?? 0
         reveal(app);app.buttons["reader.settings"].tap()
         XCTAssertFalse(app.staticTexts["即时预览"].exists)
         app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition:0.6)
-        expectation(for:NSPredicate { _,_ in (state()["fontSize"] as? Double ?? 0)>25 },evaluatedWith:nil);waitForExpectations(timeout:20)
+        let chosenSize=Double(app.staticTexts["settings.fontSize.value"].label.split(separator:" ").first ?? "") ?? -1
+        XCTAssertNotEqual(chosenSize,20);XCTAssertTrue((14...36).contains(chosenSize))
+        expectation(for:NSPredicate { _,_ in state()["fontSize"] as? Double == chosenSize },evaluatedWith:nil);waitForExpectations(timeout:20)
         XCTAssertTrue(app.buttons["reader.settings.done"].exists,"验证必须发生在面板仍然打开时")
         app.buttons["settings.font"].tap()
         let wenKai=app.buttons["settings.font.kaiti"];scrollTo(wenKai,app:app);XCTAssertTrue(wenKai.waitForExistence(timeout:5));wenKai.tap();app.navigationBars.buttons.firstMatch.tap()
@@ -106,9 +115,9 @@ final class ReaderAcceptanceTests: XCTestCase {
         app.buttons["settings.font"].tap()
         let heiti=app.buttons["settings.font.heiti"];scrollTo(heiti,app:app);XCTAssertTrue(heiti.waitForExistence(timeout:5))
         heiti.tap();app.navigationBars.buttons.firstMatch.tap()
-        expectation(for:NSPredicate { _,_ in (state()["fontName"] as? String ?? "").contains("STHeiti") },evaluatedWith:nil);waitForExpectations(timeout:20)
+        expectation(for:NSPredicate { _,_ in (state()["fontFamily"] as? String ?? "").localizedCaseInsensitiveContains("Heiti") },evaluatedWith:nil);waitForExpectations(timeout:20)
         app.buttons["settings.font"].tap();let serif=app.buttons["settings.font.serif"];scrollTo(serif,app:app);serif.tap();app.navigationBars.buttons.firstMatch.tap()
-        expectation(for:NSPredicate { _,_ in let name=state()["fontName"] as? String ?? "Noto";return name.contains("Noto") },evaluatedWith:nil);waitForExpectations(timeout:20)
+        expectation(for:NSPredicate { _,_ in let name=state()["fontName"] as? String ?? "";return name.contains("Noto") },evaluatedWith:nil);waitForExpectations(timeout:20)
         let green=app.buttons["settings.theme.green"];scrollTo(green,app:app);green.tap()
         expectation(for:NSPredicate { _,_ in state()["theme"] as? String == "green" },evaluatedWith:nil);waitForExpectations(timeout:10)
         XCTAssertLessThanOrEqual(abs((state()["globalOffset"] as? Int ?? -1000)-original),40)

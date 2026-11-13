@@ -29,14 +29,14 @@ if int(metadata['build']) >= 44:
     import re
     assert large['passedTests'] >= 8 and large['failedTests'] == 0 and large['skippedTests'] == 0
     assert brand['passedTests'] >= 16
-    assert summary['passedTests'] >= 78 and summary['totalTestCount'] >= 81
+    assert summary['passedTests'] >= 82 and summary['totalTestCount'] >= 85
     log = (folder / 'tests.log').read_text()
     for test_file in ['QingReadTests/ReaderRepairTests.swift', 'QingReadTests/ScrollWindowTests.swift', 'QingReadUITests/ReaderAcceptanceTests.swift', 'QingReadUITests/ReaderIntegrityTests.swift']:
         test = repo / test_file
         suite = test.stem
         for method in re.findall(r'func (test\w+)\(', test.read_text()):
             assert re.search(re.escape(suite + ' ' + method) + r"\]' passed", log), (suite, method)
-    assert not re.search(r"ReaderIntegrityTests test[^\n]*\]' failed", log), 'A scroll integrity assertion failed before retry; do not deliver it as fixed.'
+    assert not re.search(r"(?:ReaderIntegrityTests|ScrollWindowTests) test[^\n]*\]' failed", log), 'A scroll integrity or UIKit window assertion failed before retry; do not deliver it as fixed.'
     for fixture in ['short', 'long', 'monolith']:
         report = json.loads((folder / 'performance-iphone15' / (fixture + '-optimized.json')).read_text())
         assert report['fixtureMetadata']['engineChapterCount'] == {'short': 5, 'long': 80, 'monolith': 1}[fixture]

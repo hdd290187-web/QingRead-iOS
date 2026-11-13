@@ -73,7 +73,7 @@ struct ReaderSettingsForm: View {
                     .accessibilityIdentifier("settings.showBottomProgress").padding(.vertical, 24)
             }.frame(width: max(240, min(geometry.size.width, 560) - YYTheme.screenInset * 2))
                 .padding(.horizontal, YYTheme.screenInset).frame(maxWidth: .infinity)
-        }
+        }.accessibilityIdentifier("settings.form.scroll")
         }.navigationTitle("阅读设置").navigationBarTitleDisplayMode(.inline).readerSettingsSurface()
     }
     private var rule: some View { Rectangle().fill(library.settings.theme.foreground.opacity(0.14)).frame(height: 0.5) }
@@ -182,7 +182,7 @@ private struct ReaderFontPicker: View {
                     .listRowBackground(library.settings.theme.background.opacity(0.12))
             }
             Section { Text("思源宋体与霞鹜文楷随 App 提供，遵循 SIL Open Font License；苹方、圆体及可用黑体由 iOS 提供。缺字自动使用系统字形回退。").font(.footnote).foregroundStyle(library.settings.theme.foreground.opacity(0.65)) }.listRowBackground(library.settings.theme.background.opacity(0.12))
-        }.navigationTitle("字体").navigationBarTitleDisplayMode(.inline).readerSettingsSurface()
+        }.accessibilityIdentifier("settings.font.list").navigationTitle("字体").navigationBarTitleDisplayMode(.inline).readerSettingsSurface()
     }
 }
 
@@ -281,13 +281,21 @@ private struct ReaderSettingsSurface: ViewModifier {
             #if DEBUG
             .overlay(alignment: .bottomLeading) {
                 if ProcessInfo.processInfo.arguments.contains("--reader-integrity") {
-                    Text(probe).font(.system(size: 1)).frame(width: 1, height: 1).clipped()
-                        .accessibilityIdentifier("settings.readerProbe")
+                    if let probe { ReaderSettingsIntegrityProbe(session:probe) }
                 }
             }
             #endif
     }
 }
+#if DEBUG
+private struct ReaderSettingsIntegrityProbe: View {
+    @ObservedObject var session:ReaderSession
+    var body: some View {
+        Text(session.readerDiagnosticJSON ?? "").font(.system(size:1)).frame(width:1,height:1).clipped()
+            .accessibilityIdentifier("settings.readerProbe")
+    }
+}
+#endif
 private extension View {
     func readerSettingsSurface() -> some View { modifier(ReaderSettingsSurface()) }
 }
