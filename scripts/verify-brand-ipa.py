@@ -36,7 +36,7 @@ if int(metadata['build']) >= 44:
         suite = test.stem
         for method in re.findall(r'func (test\w+)\(', test.read_text()):
             assert re.search(re.escape(suite + ' ' + method) + r"\]' passed", log), (suite, method)
-    assert not re.search(r"(?:ReaderIntegrityTests|ScrollWindowTests) test[^\n]*\]' failed", log), 'A scroll integrity or UIKit window assertion failed before retry; do not deliver it as fixed.'
+    assert not re.search(r"(?:ReaderIntegrityTests|ScrollWindowTests) test[^\n]*\]' (?:failed|exceeded execution time allowance)", log), 'A scroll integrity or UIKit window test failed or timed out before retry; do not deliver it as fixed.'
     for fixture in ['short', 'long', 'monolith']:
         report = json.loads((folder / 'performance-iphone15' / (fixture + '-optimized.json')).read_text())
         assert report['fixtureMetadata']['engineChapterCount'] == {'short': 5, 'long': 80, 'monolith': 1}[fixture]
