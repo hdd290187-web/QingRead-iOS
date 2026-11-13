@@ -57,3 +57,7 @@ Bundle ID、Application Support/QingRead、书籍/章节 ID、library.json、书
 ## 完整第 39 轮实际结果
 
 [Build 39](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43401100910) 的 arm64 Release 编译通过；完整主计划为 61 通过 / 1 失败 / 3 跳过（65 项），42 个单元用例及所有阅读、EPUB、布局、三样本滚动压力用例均通过。唯一失败是首次启动原生 Files 时 Cancel 控件超过原来的 15 秒等待，随后在同一用例中实际出现并正常取消。保留原取消行为断言，将已证实的系统冷启动等待扩为 60 秒；没有把该用例跳过或当作成功。独立的 FileProvider 日志观察进程也增加对 simctl 冷启动超时的继续采集处理。后续 iPhone 15、基线和大屏阶段因主组失败尚未执行，需在修正后的完整 Build 40 中验证；没有新 IPA。
+
+## 完整第 40 轮实际结果
+
+[Build 40](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43404759462) 的真实 arm64 Release 和完整 XCTest 已通过：62 通过 / 0 失败 / 3 项既有 Files 跳过（65 项）。上轮的 Files 冷启动取消用例已通过。后续性能导出失败，错误为 CoreSimulator “Unable to lookup in current state: Shutdown”：Xcode 在测试结束后自动关闭了目标模拟器，容器仍在，但 get_app_container 要求 Booted。修正仅在导出脚本中重新启动同一目标并等待 bootstatus，不更改模拟器数据、阅读实现或测试断言。其后 iPhone 15、基线、大屏和打包尚未执行，不能把该轮整体标为成功；完整 Build 41 将验证导出修正并继续后续流程。

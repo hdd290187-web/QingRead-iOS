@@ -8,6 +8,13 @@ import sys
 
 device, output, variant = sys.argv[1:4]
 assert variant in {'baseline', 'optimized'}
+# Xcode can shut down the destination after a successful test run. The app
+# container remains intact; bring the same destination back before querying it.
+devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', '--json'], text=True))
+target = next(item for group in devices['devices'].values() for item in group if item['udid'] == device)
+if target['state'] != 'Booted':
+    subprocess.run(['xcrun', 'simctl', 'boot', device], check=True)
+subprocess.run(['xcrun', 'simctl', 'bootstatus', device, '-b'], check=True)
 container = Path(subprocess.check_output(['xcrun', 'simctl', 'get_app_container', device, 'com.hdd290187.qingread', 'data'], text=True).strip())
 source = container / 'Documents/ReaderPerformance'
 destination = Path(output)

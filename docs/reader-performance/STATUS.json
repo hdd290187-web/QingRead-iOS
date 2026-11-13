@@ -5,8 +5,8 @@
   "publicationAudit": "APPROVED_FOR_PUBLICATION",
   "newActionsRun": {
     "id": null,
-    "build": 40,
-    "status": "PREPARING_FULL_VALIDATION_AFTER_FILES_WAIT_FIX",
+    "build": 41,
+    "status": "PREPARING_FULL_VALIDATION_AFTER_EXPORT_LIFECYCLE_FIX",
     "runner": "macos-15",
     "import_only": false,
     "reader_diagnostics": false
@@ -35,8 +35,8 @@
       "status": "PASS"
     },
     "repositoryResourcesAndScripts": "PASS",
-    "xcodeCompilation": "PASS_RELEASE_AND_DEBUG_BUILD34",
-    "xctest": "BUILD39_61_PASS_1_FILES_WAIT_FAILURE_3_SKIP",
+    "xcodeCompilation": "BUILD40_PASS_RELEASE_AND_DEBUG",
+    "xctest": "BUILD40_PASS_62_PASS_0_FAILURE_3_SKIP",
     "workflowYAMLAndShell": "PASS",
     "criticalImportAndStorageFilesUnchanged": 7,
     "targetedReaderRegressions": {
@@ -134,6 +134,19 @@
       "skipped": 3,
       "total": 65,
       "failure": "Native Files Cancel button cold-start exceeded the 15-second wait, then appeared and cancelled correctly; all 42 units and all reader UI tests passed."
+    },
+    {
+      "id": 43404759462,
+      "number": 40,
+      "headSha": "92acc4a0d4fcade9b88f2ee132bf0e145408e75b",
+      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43404759462",
+      "conclusion": "performance_export_failure_after_test_success",
+      "releaseCompilation": "PASS",
+      "passed": 62,
+      "failed": 0,
+      "skipped": 3,
+      "total": 65,
+      "failure": "Xcode shut down the Simulator after testing; simctl get_app_container requires it booted."
     }
   ]
 }
