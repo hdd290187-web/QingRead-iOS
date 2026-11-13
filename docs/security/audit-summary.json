@@ -1,14 +1,14 @@
 {
   "dateUTC": "2026-11-13",
   "repository": "hdd290187-web/QingRead-iOS",
-  "visibility": "Private",
+  "visibility": "Public",
   "decision": "APPROVED_FOR_PUBLICATION",
   "reason": "User confirmed on 2026-11-13 that the historical reference images were self-generated, resolving the only outstanding provenance condition within the explicit request to publish this repository.",
   "historyBaselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
   "remoteBranches": 1,
   "tags": 4,
   "pullRequests": 0,
-  "commitsScanned": 38,
+  "commitsScanned": 39,
   "gitObjectsIncludingUnreachable": 569,
   "gitBlobsIncludingUnreachable": 292,
   "actionsRuns": 32,
@@ -45,5 +45,13 @@
   "remoteInventoryRechecked": {
     "dateUTC": "2026-11-13",
     "newUnreviewedRunsArtifactsOrReleases": 0
+  },
+  "publication": {
+    "verifiedUTC": "2026-11-13T07:41:56Z",
+    "url": "https://github.com/hdd290187-web/QingRead-iOS",
+    "isPrivate": false,
+    "authenticatedAndUnauthenticatedAPIVerified": true,
+    "publicationCommit": "d8b730a0f0cec70eda2a1ef2d599927249f85dcd",
+    "gitleaksFindings": 0
   }
 }

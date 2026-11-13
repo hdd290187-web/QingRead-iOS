@@ -1,6 +1,6 @@
 # 阅读布局与连续滚动候选改动
 
-状态：源码、回归用例、采样与对照流程已实现；iOS 编译、XCTest、性能采样和新 IPA 尚未执行/生成。用户已确认历史图片为其自行生成，公开前审计通过，正在执行已授权的公开及构建。本报告不宣称用户真机的滚动卡顿已验收修复。
+状态：源码、回归用例、采样与对照流程已实现；arm64 Release 编译已通过，XCTest 与性能对照尚未完成，新 IPA 尚未生成。用户已确认历史图片为其自行生成，公开前审计通过，仓库已实际改为 Public，Build 33 的 Release 编译已通过；新增行高测试的模式前置条件需要修正，已停止旧批次并准备重新完整验证。本报告不宣称用户真机的滚动卡顿已验收修复。
 
 ## 布局根因与改动
 
@@ -42,7 +42,7 @@
 - Xcode 工程经 OpenStep 解析并核对源文件：32 App、8 单元测试、7 UI 测试文件全部引用；project.yml 为 CI 重新生成工程的输入。
 - plist、字体/图标哈希、依赖与许可锁、EPUB fixture、Python 编译、shell/工作区空白检查通过。
 - 新增 5 项 XCTest：组合字符/CRLF 完整、后台布局/不分页、固定行高与字符锚点、进度暂存/幂等 flush、后台读取/缓存。另新增 5 项 UI 用例，覆盖四模式布局、横屏、跨章字号后台恢复和三类滚动压力。原有导入、品牌与四模式回归仍保留。
-- **本次 XCTest、真实 macOS arm64 Release、三尺寸模拟器和前后采样均未运行，不能套用 Build 31 的通过数量。**
+- **Build 33 的真实 macOS arm64 Release 编译通过；本次 XCTest、三尺寸模拟器和前后采样尚未完成，不能套用 Build 31 的通过数量。**
 
 ## 数据与兼容
 
@@ -50,8 +50,8 @@ Bundle ID、Application Support/QingRead、书籍/章节 ID、library.json 格�
 
 ## 发布与构建状态
 
-[公开审计](../security/PUBLICATION_AUDIT.md) 未发现真实秘密；用户确认历史参考图为其自行生成，唯一来源条件已经解决。正在执行已授权的 Public 修改与完整工作流。上次实际 Actions 为 [Build 32](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43357914231)，在任务开始前因 GitHub 付款/支出上限被拒绝。新运行的真实执行结果将另行记录，标准公开 Runner 不保证解除账户锁定。
+[公开审计](../security/PUBLICATION_AUDIT.md) 未发现真实秘密；用户确认历史参考图为其自行生成，唯一来源条件已经解决。仓库已实际改为 Public；认证与未登录 API 均已核实。完整 [Build 33](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43387462670) 已通过 arm64 Release 编译，为修正新增行高测试的模式前置条件，已停止旧批次，随后重新完整验证。上次实际 Actions 为 [Build 32](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43357914231)，在任务开始前因 GitHub 付款/支出上限被拒绝。新运行的真实执行结果将另行记录，标准公开 Runner 不保证解除账户锁定。
 
 可用旧 IPA 仍是已验证 Build 31，SHA256：5e6358f23ea8715eb5d2010c0797a4f9ad2ea4db6cb6cd55661ed5c5452289b6；它不含本次候选优化，也不含后续矢量新图标。没有把旧 IPA 重新命名为新包。通过安全条件、真实构建与回归后才能生成并交付本次 IPA。
 
-源码已备份，后续提交以 [skip ci] 避免重复失败运行。来源条件已经满足，先由管理员按已授权范围改为 Public 并核对 API，再完整 dispatch build-ios.yml（不使用 import_only）。同签名升级及真机卡顿复测仍为 HUMAN_PENDING，覆盖时不要先卸载旧 App。
+源码已备份，后续提交以 [skip ci] 避免重复失败运行。来源条件已经满足，仓库已实际公开并核对 API，完整 dispatch build-ios.yml（不使用 import_only）已经启动；测试前置条件修正后再运行完整验证。同签名升级及真机卡顿复测仍为 HUMAN_PENDING，覆盖时不要先卸载旧 App。

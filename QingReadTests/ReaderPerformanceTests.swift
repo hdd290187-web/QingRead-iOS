@@ -35,7 +35,7 @@ final class ReaderPerformanceTests: XCTestCase {
         XCTAssertNil(all["pagination"]); XCTAssertNotNil(all["scrollLayout"])
     }
     func testMeasuredRowsMatchVisibleTextKitAndRetainLineAnchor() async throws {
-        let settings = ReaderSettings()
+        var settings = ReaderSettings(); settings.mode = .scroll
         let text = "第一章\n" + String(repeating: "窗外的雨下得很轻，像是不忍打扰屋内的安静。😊𠮷\n\n", count: 70)
         let prepared = try await ReaderLayoutWorker.shared.prepare(text: text, size: CGSize(width: 264, height: 600), width: 320, settings: settings, title: "第一章", foreground: .black)
         let layout = try XCTUnwrap(prepared.scroll)

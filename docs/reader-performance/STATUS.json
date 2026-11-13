@@ -1,9 +1,19 @@
 {
   "status": "IMPLEMENTED_PENDING_IOS_VALIDATION",
   "baselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
-  "repoVisibility": "Private",
+  "repoVisibility": "Public",
   "publicationAudit": "APPROVED_FOR_PUBLICATION",
-  "newActionsRun": null,
+  "newActionsRun": {
+    "id": 43387462670,
+    "build": 33,
+    "headSha": "d8b730a0f0cec70eda2a1ef2d599927249f85dcd",
+    "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43387462670",
+    "status": "CANCELLED_FOR_TEST_FIX",
+    "deviceReleaseCompilation": "PASS",
+    "runner": "macos-15",
+    "import_only": false,
+    "reason": "Release compilation passed. Correct the new row-height test to select scroll mode before repeating full validation; no production failure is inferred from the cancellation."
+  },
   "newIPA": null,
   "baselineIPA": {
     "build": 31,

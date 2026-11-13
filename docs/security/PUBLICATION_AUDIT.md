@@ -1,6 +1,6 @@
 # 仓库公开前审计：通过，适合公开
 
-审计目标：hdd290187-web/QingRead-iOS。完整历史、Actions 日志/附件与 Release 审查未发现真实凭据或隐私阻塞。用户于 2026-11-13 确认历史品牌参考图为其自行生成，结合本次明确公开授权，唯一待确认的素材来源条件已解决。结论为 APPROVED_FOR_PUBLICATION；实际可见性另以 GitHub API 操作后核实为准。
+审计目标：hdd290187-web/QingRead-iOS。完整历史、Actions 日志/附件与 Release 审查未发现真实凭据或隐私阻塞。用户于 2026-11-13 确认历史品牌参考图为其自行生成，结合本次明确公开授权，唯一待确认的素材来源条件已解决。结论为 APPROVED_FOR_PUBLICATION；已于 2026-11-13 通过 GitHub 官方 API 改为 Public，随后认证查询与未登录 API 均返回 private=false / visibility=public。仓库：https://github.com/hdd290187-web/QingRead-iOS。
 
 ## 扫描范围与方法
 
@@ -31,6 +31,6 @@ App 独立源码为 MIT；Readium、SwiftSoup 及锁定传递依赖保留各自�
 
 素材来源条件已解决，当前管理员权限可执行用户已授权的 Public 修改。2026-11-13 再次获取分支、tag、PR、Actions runs/artifacts 及 Release 清单：仍为 1 / 4 / 0 / 32 / 31 / 1（5 个附件），与已下载审查范围一致，没有新增未审查的远端附件。
 
-候选实现及交付元数据提交后再次扫描完整 Git 历史（38 个提交），Gitleaks 为 0 命中；公开说明提交后再扫描一次。机器可读结论见 audit-summary.json。
+候选实现及交付元数据提交后再次扫描完整 Git 历史（38 个提交），Gitleaks 为 0 命中；公开说明提交 d8b730a 后再次扫描 39 个提交，仍为 0 命中。机器可读结论见 audit-summary.json。
 
-随后查询 API 核实实际 Public，并且只触发一次完整标准 macos-15 工作流。公开标准 Runner 不保证解除账户锁定；之前 Build 32 的 GitHub 注释是付款/支出上限阻塞，新运行结果必须单独确认。
+已经核实实际 Public，并触发完整标准 macos-15 工作流 Build 33（run 43387462670，import_only=false）。实际构建结果见阅读验证报告。公开标准 Runner 不保证解除账户锁定；之前 Build 32 的 GitHub 注释是付款/支出上限阻塞，新运行结果必须单独确认。
