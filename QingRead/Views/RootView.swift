@@ -4,6 +4,7 @@ import UIKit
 
 struct RootView: View {
     @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var cloud: CloudLibraryStore
     @State private var selectedTab = 0
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var imports = DocumentImportController()
@@ -60,6 +61,7 @@ struct RootView: View {
         }.animation(.easeInOut(duration: 0.18), value: imports.toast?.id)
         .onChange(of: scenePhase) { _, phase in if phase != .active { library.flushSettingsIfNeeded() } }
         .sheet(item: $imports.feedback) { ImportFeedbackView(feedback: $0) }
+        .fullScreenCover(item: $cloud.bookToOpen) { ReaderView(book: $0) }
         #if DEBUG
         .overlay(alignment: .topTrailing) {
             if ProcessInfo.processInfo.arguments.contains("--uitest-import-after-launch") {

@@ -18,6 +18,10 @@ struct SettingsView: View {
                     NavigationLink { ReaderSettingsForm() } label: { Label("字体、排版与主题", systemImage: "textformat.size") }
                     HStack { Label("本机书库", systemImage: "books.vertical"); Spacer(); Text("\(library.books.count) 本").foregroundStyle(YYTheme.secondary) }
                 }.listRowBackground(YYTheme.background)
+                Section("云书库") {
+                    NavigationLink { CloudConnectionView() } label: { Label("云书库连接", systemImage: "key.horizontal") }
+                        .accessibilityIdentifier("profile.cloud")
+                }.listRowBackground(YYTheme.background)
                 Section("在线书源") {
                     NavigationLink { SourceManagerView() } label: { Label("书源管理（\(library.sources.count)）", systemImage: "safari") }
                 }.listRowBackground(YYTheme.background)

@@ -15,9 +15,13 @@ final class LibraryStore: ObservableObject {
     private var pendingReaderSettingsMigration = false
     private var settingsWriteTask: Task<Void, Never>?
     private var activeImportID: UUID?
+    private(set) var activeReaderIDs: Set<UUID> = []
+    func readerOpened(_ id: UUID) { activeReaderIDs.insert(id) }
+    func readerClosed(_ id: UUID) { activeReaderIDs.remove(id) }
     let importEnvironment: ImportEnvironment
     private struct ImportJob {
         let urls: [URL]
+        let cloud: CloudImportContext?
         let continuation: CheckedContinuation<ImportBatchResult, Never>
     }
     @Published var settings = ReaderSettings() { didSet { scheduleSettingsWrite() } }
@@ -141,13 +145,31 @@ final class LibraryStore: ObservableObject {
 
     func importFiles(from urls: [URL]) async -> ImportBatchResult {
         await withCheckedContinuation { continuation in
-            importQueue.append(ImportJob(urls: urls, continuation: continuation))
+            importQueue.append(ImportJob(urls: urls, cloud: nil, continuation: continuation))
             if !drainingImports {
                 drainingImports = true
                 isImporting = true
                 Task { await drainImportQueue() }
             }
         }
+    }
+
+    func localBook(cloudID: UUID) -> Book? {
+        books.first { $0.cloudLinks?.contains(where: { $0.id == cloudID }) == true }
+    }
+
+    func importCloudFile(from url: URL, context: CloudImportContext) async throws -> Book {
+        let result: ImportBatchResult = await withCheckedContinuation { continuation in
+            importQueue.append(ImportJob(urls: [url], cloud: context, continuation: continuation))
+            if !drainingImports {
+                drainingImports = true; isImporting = true
+                Task { await drainImportQueue() }
+            }
+        }
+        if context.cancellation.isCancelled { throw CloudError.cancelled }
+        if let failure = result.failures.first { throw ReaderError.message(failure.message) }
+        guard let id = result.bookIDs.first, let book = books.first(where: { $0.id == id }) else { throw CloudError.invalidResponse }
+        return book
     }
 
     private func drainImportQueue() async {
@@ -160,7 +182,7 @@ final class LibraryStore: ObservableObject {
             }
             for (index, url) in job.urls.enumerated() {
                 importProgress = ImportProgress(current: index + 1, total: job.urls.count, fileName: ImportDiagnostics.safeDisplayName(url), stage: .permission)
-                switch await performImport(url) {
+                switch await performImport(url, cloud: job.cloud) {
                 case .success(let success):
                     result.bookIDs.append(success.book.id)
                     if success.duplicate { result.duplicates.append(success.book.title) }
@@ -175,7 +197,7 @@ final class LibraryStore: ObservableObject {
 
     private struct ImportSuccess { let book: Book; let duplicate: Bool }
     private enum ImportOutcome { case success(ImportSuccess), failure(ImportFailure) }
-    private func performImport(_ url: URL) async -> ImportOutcome {
+    private func performImport(_ url: URL, cloud: CloudImportContext? = nil) async -> ImportOutcome {
         let id = UUID()
         activeImportID = id
         let staging = root.appendingPathComponent("import-staging/\(id.uuidString)", isDirectory: true)
@@ -196,6 +218,7 @@ final class LibraryStore: ObservableObject {
             ImportDiagnostics.event("advance", stage: next, url: url, byteCount: byteCount)
         }
         do {
+            if cloud?.cancellation.isCancelled == true { throw CloudError.cancelled }
             guard snapshotReadable else {
                 throw ImportPipelineError(stage: .commit, reason: "书库索引无法读取，已停止导入以保护已有数据。", suggestion: "请保留原书库与原始文件，检查设备空间；不要卸载 App，以免删除可恢复的数据。", underlying: nil)
             }
@@ -208,6 +231,9 @@ final class LibraryStore: ObservableObject {
                 }
             }
             byteCount = document.byteCount
+            if let cloud, document.identity != cloud.book.sha256 || Int64(document.byteCount) != cloud.book.fileSize {
+                throw CloudError.integrity
+            }
             let ext = url.pathExtension.lowercased()
             advance(.validate)
             let prepared: PreparedLocalBook
@@ -248,7 +274,25 @@ final class LibraryStore: ObservableObject {
                     pendingLocalIdentityMigration = true
                 }
             }
-            if let existing = updatedBooks.first(where: { $0.format == prepared.book.format && $0.sourceIdentity == prepared.identity }) {
+            if cloud?.cancellation.isCancelled == true { throw CloudError.cancelled }
+            let target = cloud.flatMap { context in updatedBooks.firstIndex { $0.cloudLinks?.contains(where: { $0.id == context.book.id }) == true } }
+            if let cloud, let target {
+                let existing = updatedBooks[target]
+                guard !activeReaderIDs.contains(existing.id) else { throw CloudError.reading }
+                guard cloud.allowsUpdate || existing.cloudLinks?.first(where: { $0.id == cloud.book.id })?.sha256 == cloud.book.sha256 else { throw CloudError.changed }
+                if existing.sourceIdentity == prepared.identity {
+                    var book = existing; book.title = cloud.book.title; book.author = cloud.book.author.isEmpty ? "未知作者" : cloud.book.author
+                    book.cloudLinks = Self.linking(existing.cloudLinks, cloud.book)
+                    updatedBooks[target] = book
+                    advance(.commit); try importEnvironment.beforeCommit(root)
+                    try writeSnapshot(Snapshot(books: updatedBooks, positions: positions, bookmarks: bookmarks, settings: settings, sources: sources))
+                    books = updatedBooks
+                    return .success(ImportSuccess(book: book, duplicate: true))
+                }
+            }
+            if target == nil, let index = updatedBooks.firstIndex(where: { $0.format == prepared.book.format && $0.sourceIdentity == prepared.identity }) {
+                if let cloud { updatedBooks[index].cloudLinks = Self.linking(updatedBooks[index].cloudLinks, cloud.book) }
+                let existing = updatedBooks[index]
                 advance(.commit)
                 try importEnvironment.beforeCommit(root)
                 try writeSnapshot(Snapshot(books: updatedBooks, positions: positions, bookmarks: bookmarks, settings: settings, sources: sources))
@@ -262,15 +306,73 @@ final class LibraryStore: ObservableObject {
             book.sourceIdentity = prepared.identity
             book.originURL = nil
             book.originalFile = book.format == .epub ? finalDirectory.appendingPathComponent("book.epub").path : finalDirectory.path
-            updatedBooks.insert(book, at: 0)
+            var updatedPositions = positions
+            var updatedBookmarks = bookmarks
+            var previous: Book?
+            if let cloud {
+                book.title = cloud.book.title; book.author = cloud.book.author.isEmpty ? "未知作者" : cloud.book.author
+                if let target {
+                    let old = updatedBooks[target]; previous = old
+                    book.id = old.id; book.importedAt = old.importedAt
+                    book.cloudLinks = Self.linking(old.cloudLinks, cloud.book)
+                    var used = Set<UUID>()
+                    for index in book.chapters.indices {
+                        if let match = old.chapters.first(where: { !used.contains($0.id) && Self.chapterKey($0) == Self.chapterKey(book.chapters[index]) }) {
+                            book.chapters[index].id = match.id; used.insert(match.id)
+                        }
+                    }
+                    if let position = positions[old.id] { updatedPositions[old.id] = remapCloudPosition(position, from: old, to: book) }
+                    updatedBookmarks = bookmarks.map { bookmark in
+                        guard bookmark.bookID == old.id else { return bookmark }
+                        var value = bookmark; value.position = remapCloudPosition(value.position, from: old, to: book); return value
+                    }
+                    updatedBooks[target] = book
+                } else { book.cloudLinks = Self.linking(nil, cloud.book); updatedBooks.insert(book, at: 0) }
+            } else { updatedBooks.insert(book, at: 0) }
             try importEnvironment.beforeCommit(root)
-            try writeSnapshot(Snapshot(books: updatedBooks, positions: positions, bookmarks: bookmarks, settings: settings, sources: sources))
+            if cloud?.cancellation.isCancelled == true { throw CloudError.cancelled }
+            try writeSnapshot(Snapshot(books: updatedBooks, positions: updatedPositions, bookmarks: updatedBookmarks, settings: settings, sources: sources))
             committed = true
-            books = updatedBooks
+            books = updatedBooks; positions = updatedPositions; bookmarks = updatedBookmarks
+            if let previous, let path = previous.originalFile {
+                let old = previous.format == .epub ? URL(fileURLWithPath: path).deletingLastPathComponent() : URL(fileURLWithPath: path)
+                if old.standardizedFileURL.path.hasPrefix(root.appendingPathComponent("books").path + "/"), old != finalDirectory {
+                    try? fm.removeItem(at: old)
+                }
+            }
             advance(.complete)
             return .success(ImportSuccess(book: book, duplicate: false))
         } catch {
             return .failure(ImportDiagnostics.failure(error, stage: stage, url: url, byteCount: byteCount))
         }
+    }
+
+    private static func linking(_ links: [CloudBookLink]?, _ book: CloudBook) -> [CloudBookLink] {
+        (links ?? []).filter { $0.id != book.id } + [CloudBookLink(id: book.id, sha256: book.sha256, revision: book.revision)]
+    }
+    private static func chapterKey(_ chapter: Chapter) -> String { chapter.href ?? chapter.title }
+    private func remapCloudPosition(_ position: ReadingPosition, from old: Book, to new: Book) -> ReadingPosition {
+        guard !new.chapters.isEmpty else { return .beginning }
+        var value = position
+        let original = old.chapters.indices.contains(position.chapter) ? old.chapters[position.chapter] : nil
+        let index = original.flatMap { chapter in new.chapters.firstIndex { $0.id == chapter.id } } ?? min(max(0, position.chapter), new.chapters.count - 1)
+        value.chapter = index
+        if new.format == .txt {
+            value.locatorJSON = nil
+            let text = chapterText(for: new.chapters[index], book: new) as NSString
+            value.characterOffset = min(max(0, position.characterOffset), text.length)
+            if let original {
+                let previous = chapterText(for: original, book: old) as NSString
+                let start = min(max(0, position.characterOffset), previous.length)
+                if previous.length - start >= 8 {
+                    let quote = previous.substring(with: NSRange(location: start, length: min(40, previous.length - start)))
+                    let range = text.range(of: quote)
+                    if range.location != NSNotFound { value.characterOffset = range.location }
+                }
+            }
+            let prefix = new.chapters.prefix(index).reduce(0) { $0 + $1.length }
+            value.progression = Double(prefix + value.characterOffset) / Double(max(1, new.characterCount))
+        } else if original?.href != new.chapters[index].href { value.locatorJSON = nil }
+        return value
     }
 }

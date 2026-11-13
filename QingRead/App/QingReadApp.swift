@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct QingReadApp: App {
     @StateObject private var library = LibraryStore()
+    @StateObject private var cloud = CloudLibraryStore()
 
     init() {
         YYTheme.configureNativeAppearance()
@@ -24,7 +25,7 @@ struct QingReadApp: App {
                 #else
                 RootView()
                 #endif
-            }.environmentObject(library)
+            }.environmentObject(library).environmentObject(cloud)
                 .tint(YYTheme.accent)
                 .preferredColorScheme(library.settings.systemColorScheme)
         }

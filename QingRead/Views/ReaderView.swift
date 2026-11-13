@@ -66,8 +66,8 @@ private struct ReaderHost: View {
         } message: { Text(session.error ?? "") }
         .onChange(of: library.settings) { _, _ in applyBrightness(); session.applySettings() }
         .onChange(of: scenePhase) { _, phase in if phase != .active { session.flush() } }
-        .onAppear { originalBrightness = UIScreen.main.brightness; applyBrightness() }
-        .onDisappear { session.flush(); if let originalBrightness { UIScreen.main.brightness = originalBrightness } }
+        .onAppear { library.readerOpened(session.book.id); originalBrightness = UIScreen.main.brightness; applyBrightness() }
+        .onDisappear { library.readerClosed(session.book.id); session.flush(); if let originalBrightness { UIScreen.main.brightness = originalBrightness } }
     }
     private var header: some View {
         ZStack {

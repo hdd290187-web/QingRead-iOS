@@ -1,6 +1,20 @@
 import SwiftUI
 
 struct DiscoverView: View {
+    @State private var section = 0
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                Picker("发现", selection: $section) { Text("云书库").tag(0); Text("在线书源").tag(1) }
+                    .pickerStyle(.segmented).padding(.horizontal, YYTheme.screenInset).padding(.vertical, 8)
+                    .accessibilityIdentifier("discover.section")
+                if section == 0 { CloudLibraryView() } else { OnlineSourcesView() }
+            }.navigationTitle("发现").yyPage()
+        }
+    }
+}
+
+private struct OnlineSourcesView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var query = ""
     @State private var selectedSource: BookSource?
@@ -9,7 +23,6 @@ struct DiscoverView: View {
     @State private var message: String?
     @State private var selectedBook: Book?
     var body: some View {
-        NavigationStack {
             List {
                 Section {
                     HStack {
@@ -37,11 +50,10 @@ struct DiscoverView: View {
                 if !results.isEmpty { Section("搜索结果") { ForEach(results) { result in OnlineBookRow(result: result) { open(result) }.disabled(busy) } } }
                 if let message { Section { Text(message).font(.footnote).foregroundStyle(.secondary) } }
             }
-            .navigationTitle("发现").yyPage()
+            .yyPage()
             .toolbar { ToolbarItem(placement: .topBarTrailing) { NavigationLink { SourceGuideView() } label: { Image(systemName: "info.circle") }.accessibilityLabel("书源说明") } }
             .fullScreenCover(item: $selectedBook) { ReaderView(book: $0) }
             .onAppear { if selectedSource == nil { selectedSource = library.sources.first(where: { $0.enabled }) } }
-        }
     }
     private func search() {
         guard !busy, let source = selectedSource, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }

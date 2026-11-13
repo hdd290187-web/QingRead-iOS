@@ -25,6 +25,7 @@ struct Book: Codable, Hashable, Identifiable {
     var source: BookSource? = nil
     var originURL: URL? = nil
     var sourceIdentity: String? = nil
+    var cloudLinks: [CloudBookLink]? = nil
     var characterCount: Int { chapters.reduce(0) { $0 + $1.length } }
 }
 struct ReadingPosition: Codable, Hashable {
