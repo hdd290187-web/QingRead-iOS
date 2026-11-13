@@ -1,5 +1,6 @@
 
 #if DEBUG
+import Foundation
 extension LibraryStore {
     func seedBrandBooksIfRequested() async {
         let args = ProcessInfo.processInfo.arguments

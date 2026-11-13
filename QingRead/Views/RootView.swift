@@ -125,9 +125,9 @@ struct LibraryView: View {
                     Button {
                         withAnimation(.easeOut(duration: 0.18)) { showSearch.toggle() }
                         if showSearch { searchFocused = true } else { query = "" }
-                    } label: { Image(systemName: "magnifyingglass").font(.system(size: 20, weight: .regular)) }
+                    } label: { Image(systemName: "magnifyingglass").font(.system(size: 20, weight: .regular)).foregroundStyle(YYTheme.foreground) }
                         .accessibilityLabel("搜索书架").accessibilityIdentifier("library.search")
-                    Button { imports.openPicker() } label: { Image(systemName: "plus").font(.system(size: 23, weight: .light)) }
+                    Button { imports.openPicker() } label: { Image(systemName: "plus").font(.system(size: 23, weight: .light)).foregroundStyle(YYTheme.foreground) }
                         .accessibilityLabel("导入书籍").accessibilityIdentifier("library.import").disabled(importDisabled)
                 }
             }.toolbarBackground(YYTheme.background, for: .tabBar)
