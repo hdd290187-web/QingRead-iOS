@@ -13,13 +13,13 @@ struct RootView: View {
                 .tabItem { Label("书架", systemImage: "books.vertical.fill") }
                 .tag(0)
             DiscoverView()
-                .tabItem { Label("找书", systemImage: "magnifyingglass") }
+                .tabItem { Label("发现", systemImage: "safari") }
                 .tag(1)
             SettingsView()
-                .tabItem { Label("设置", systemImage: "gearshape.fill") }
+                .tabItem { Label("我的", systemImage: "person.crop.circle") }
                 .tag(2)
         }
-        .tint(.primary)
+        .tint(YYTheme.accent)
         .onOpenURL { url in
             imports.openURL(url, library: library)
             selectedTab = 0
@@ -27,6 +27,7 @@ struct RootView: View {
         .task {
             #if DEBUG
             await library.seedUITestBookIfRequested()
+            await library.seedBrandBooksIfRequested()
             library.seedImportPickerDocumentsIfRequested()
             if let mode = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--uitest-import-result=") }) {
                 let directory = library.importTestFixtureDirectory
@@ -48,32 +49,56 @@ struct RootView: View {
     }
 }
 
+private enum ShelfSort: String, CaseIterable, Identifiable {
+    case imported, recent, title, progress
+    var id: String { rawValue }
+    var title: String { switch self { case .imported: "最近导入"; case .recent: "最近阅读"; case .title: "书名"; case .progress: "阅读进度" } }
+}
+
 struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var query = ""
     @ObservedObject var imports: DocumentImportController
     @State private var selectedBook: Book?
-    @State private var showGrid = false
+    @State private var showSearch = false
+    @FocusState private var searchFocused: Bool
+    @AppStorage("yuying.library.grid") private var showGrid = true
+    @AppStorage("yuying.library.sort") private var sortValue = ShelfSort.imported.rawValue
 
     private var filteredBooks: [Book] {
-        guard !query.isEmpty else { return library.books }
-        return library.books.filter { $0.title.localizedCaseInsensitiveContains(query) || $0.author.localizedCaseInsensitiveContains(query) }
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let books = library.books.filter { term.isEmpty || $0.title.localizedCaseInsensitiveContains(term) || $0.author.localizedCaseInsensitiveContains(term) }
+        return books.sorted { left, right in
+            switch ShelfSort(rawValue: sortValue) ?? .imported {
+            case .imported: return left.importedAt > right.importedAt
+            case .recent: return (library.positions[left.id]?.updatedAt ?? left.importedAt) > (library.positions[right.id]?.updatedAt ?? right.importedAt)
+            case .title: return left.title.localizedStandardCompare(right.title) == .orderedAscending
+            case .progress: return library.position(for: left).progression > library.position(for: right).progression
+            }
+        }
     }
+    private var importDisabled: Bool { library.isImporting || imports.awaitingImport }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                if showSearch { searchField }
                 if let status = imports.status, !library.isImporting {
-                    HStack {
-                        Text(status).font(.subheadline).accessibilityIdentifier("import.status")
-                        Spacer()
-                        if let feedback = imports.lastFeedback { Button("查看结果") { imports.feedback = feedback }.accessibilityIdentifier("import.showResult") }
-                    }.padding(.horizontal, 16).padding(.vertical, 8)
+                    HStack(spacing: 8) {
+                        Image(systemName: "doc.text").font(.caption)
+                        Text(status).font(.caption).accessibilityIdentifier("import.status")
+                        Spacer(minLength: 0)
+                        if let feedback = imports.lastFeedback { Button("查看结果") { imports.feedback = feedback }.font(.caption).accessibilityIdentifier("import.showResult") }
+                    }.foregroundStyle(YYTheme.secondary).padding(.horizontal, YYTheme.screenInset).padding(.vertical, 10)
                 }
-                Group { if filteredBooks.isEmpty { emptyState } else { bookList } }
-            }
+                Group {
+                    if library.books.isEmpty { emptyState }
+                    else if filteredBooks.isEmpty { ContentUnavailableView.search(text: query) }
+                    else { bookList }
+                }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            }.background(YYTheme.background)
             .overlay {
-                if library.isImporting || imports.awaitingImport {
+                if importDisabled {
                     VStack(spacing: 8) {
                         ProgressView("正在导入…")
                         if let progress = library.importProgress {
@@ -83,56 +108,91 @@ struct LibraryView: View {
                     }.padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)).accessibilityIdentifier("import.progress")
                 }
             }
-            .navigationTitle("书架")
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "搜索书名或作者")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { imports.openPicker() } label: { Image(systemName: "plus") }.accessibilityLabel("导入书籍").accessibilityIdentifier("library.import").disabled(library.isImporting || imports.awaitingImport)
+                    HStack(spacing: 12) {
+                        Text("书架").font(YYTheme.title(26)).foregroundStyle(YYTheme.foreground).accessibilityAddTraits(.isHeader)
+                        Menu {
+                            Picker("排序", selection: $sortValue) { ForEach(ShelfSort.allCases) { Text($0.title).tag($0.rawValue) } }
+                            Divider()
+                            Button { showGrid.toggle() } label: { Label(showGrid ? "列表视图" : "网格视图", systemImage: showGrid ? "list.bullet" : "square.grid.2x2") }
+                        } label: { Image(systemName: "chevron.down").font(.system(size: 11, weight: .medium)).foregroundStyle(YYTheme.secondary).frame(width: 28, height: 44) }
+                            .accessibilityLabel("书架选项").accessibilityIdentifier("library.options")
+                    }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { withAnimation { showGrid.toggle() } } label: { Image(systemName: showGrid ? "list.bullet" : "square.grid.2x2") }.accessibilityLabel(showGrid ? "列表视图" : "网格视图")
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation(.easeOut(duration: 0.18)) { showSearch.toggle() }
+                        if showSearch { searchFocused = true } else { query = "" }
+                    } label: { Image(systemName: "magnifyingglass").font(.system(size: 20, weight: .regular)) }
+                        .accessibilityLabel("搜索书架").accessibilityIdentifier("library.search")
+                    Button { imports.openPicker() } label: { Image(systemName: "plus").font(.system(size: 23, weight: .light)) }
+                        .accessibilityLabel("导入书籍").accessibilityIdentifier("library.import").disabled(importDisabled)
                 }
-            }
+            }.toolbarBackground(YYTheme.background, for: .tabBar)
             .sheet(isPresented: $imports.pickerPresented, onDismiss: {
                 if !imports.awaitingImport && imports.status == nil { imports.cancelled() }
-            }) {
-                bookPicker
-            }
-            .onChange(of: imports.lastFeedback?.id) { _, _ in query = "" }
+            }) { bookPicker }
+            .onChange(of: imports.lastFeedback?.id) { _, _ in query = ""; showSearch = false; searchFocused = false }
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
+            .yyPage()
         }
     }
-
+    private var searchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass").foregroundStyle(YYTheme.secondary)
+            TextField("搜索书名或作者", text: $query).focused($searchFocused).submitLabel(.search)
+                .accessibilityIdentifier("library.searchField")
+            Button { query = ""; showSearch = false; searchFocused = false } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(YYTheme.secondary) }.accessibilityLabel("关闭搜索")
+        }.padding(12).background(YYTheme.separator.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal, YYTheme.screenInset).padding(.top, 12).padding(.bottom, 4)
+    }
     private var bookPicker: some View {
         BookDocumentPicker { result in
             query = ""
             imports.consume(result, library: library)
         }
     }
-
     private var emptyState: some View {
-        ContentUnavailableView { Label("书架是空的", systemImage: "books.vertical") } description: { Text("导入 TXT 或 EPUB，打开后会自动保存阅读位置") } actions: { Button("导入书籍") { imports.openPicker() }.buttonStyle(.borderedProminent).disabled(library.isImporting || imports.awaitingImport) }
+        GeometryReader { proxy in
+            ZStack(alignment: .bottom) {
+                PaperWaves().fill(YYTheme.selection.opacity(0.35)).frame(height: proxy.size.height * 0.25).allowsHitTesting(false)
+                VStack(spacing: 0) {
+                    Spacer(minLength: 24)
+                    BrandMark(width: 102).padding(.bottom, 22)
+                    Text(YYTheme.name).font(YYTheme.title(34)).tracking(5).foregroundStyle(YYTheme.foreground)
+                    Text(YYTheme.subtitle).font(.system(size: 12)).tracking(2).foregroundStyle(YYTheme.secondary).padding(.top, 14)
+                    Text("你的书架，从这里开始").font(.subheadline).foregroundStyle(YYTheme.secondary).padding(.top, 38)
+                    Button { imports.openPicker() } label: {
+                        Label("导入第一本书", systemImage: "plus").font(.system(size: 15, weight: .medium)).padding(.horizontal, 24).padding(.vertical, 14)
+                    }.buttonStyle(.plain).foregroundStyle(YYTheme.foreground).background(YYTheme.selection, in: Capsule()).padding(.top, 18)
+                        .accessibilityIdentifier("library.emptyImport").disabled(importDisabled)
+                    Text("TXT · EPUB  /  阅读位置自动保存").font(.caption2).foregroundStyle(YYTheme.secondary).padding(.top, 16)
+                    Spacer(minLength: 40)
+                    Spacer(minLength: 0)
+                }.padding(.horizontal, 24)
+            }
+        }.accessibilityIdentifier("library.empty")
     }
-
     private var bookList: some View {
         ScrollView {
             if showGrid {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 155), spacing: 16)], spacing: 16) {
-                    ForEach(filteredBooks) { book in BookTile(book: book) { selectedBook = book } .contextMenu { removeButton(for: book) } }
-                }.padding(16)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 24), GridItem(.flexible(), spacing: 24)], alignment: .leading, spacing: 26) {
+                    ForEach(filteredBooks) { book in
+                        BookTile(book: book, progress: library.position(for: book).progression) { selectedBook = book }.contextMenu { removeButton(for: book) }
+                    }
+                }.padding(.horizontal, YYTheme.screenInset).padding(.top, 24).padding(.bottom, 28)
             } else {
                 LazyVStack(spacing: 0) {
-                    ForEach(filteredBooks) { book in BookRow(book: book, progress: progress(for: book)) { selectedBook = book } .contextMenu { removeButton(for: book) }; Divider().padding(.leading, 78) }
-                }.padding(.horizontal, 16)
+                    ForEach(filteredBooks) { book in
+                        BookRow(book: book, progress: library.position(for: book).progression) { selectedBook = book }.contextMenu { removeButton(for: book) }
+                        Rectangle().fill(YYTheme.separator).frame(height: 0.5).padding(.leading, 72)
+                    }
+                }.padding(.horizontal, YYTheme.screenInset).padding(.top, 12).padding(.bottom, 24)
             }
-        }
-        .background(Color(uiColor: .systemGroupedBackground))
+        }.accessibilityIdentifier("library.books")
     }
-
-    private func progress(for book: Book) -> Double {
-        library.position(for: book).progression
-    }
-
     @ViewBuilder private func removeButton(for book: Book) -> some View { Button("删除", role: .destructive) { library.remove(book) } }
 }
 
@@ -142,38 +202,31 @@ struct BookRow: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
-                CoverView(book: book, size: CGSize(width: 54, height: 76))
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(book.title).font(.headline).foregroundStyle(.primary).lineLimit(2)
-                    Text(book.author).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
-                    HStack(spacing: 8) { ProgressView(value: progress).tint(.primary); Text("\(Int(progress * 100))%").font(.caption2).foregroundStyle(.secondary).monospacedDigit() }
+            HStack(spacing: 16) {
+                CoverView(book: book, size: CGSize(width: 56, height: 82))
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(book.title).font(YYTheme.title(18)).foregroundStyle(YYTheme.foreground).lineLimit(2)
+                    Text(book.author).font(.caption).foregroundStyle(YYTheme.secondary).lineLimit(1)
+                    Text("已读 \(Int(min(1, max(0, progress)) * 100))%").font(.caption2).foregroundStyle(YYTheme.secondary).monospacedDigit()
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
-            }.padding(.vertical, 12).contentShape(Rectangle())
+                Image(systemName: "chevron.right").font(.caption2).foregroundStyle(YYTheme.secondary.opacity(0.65))
+            }.padding(.vertical, 16).contentShape(Rectangle())
         }.buttonStyle(.plain)
     }
 }
 
 struct BookTile: View {
     let book: Book
+    let progress: Double
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) { CoverView(book: book, size: CGSize(width: 155, height: 210)); Text(book.title).font(.headline).foregroundStyle(.primary).lineLimit(2); Text(book.author).font(.caption).foregroundStyle(.secondary).lineLimit(1) }.frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 0) {
+                CoverView(book: book)
+                Text(book.title).font(YYTheme.title(17, weight: .medium)).foregroundStyle(YYTheme.foreground).lineLimit(2).padding(.top, 10)
+                Text("已读 \(Int(min(1, max(0, progress)) * 100))%").font(.system(size: 12)).foregroundStyle(YYTheme.secondary).monospacedDigit().padding(.top, 5)
+            }.frame(maxWidth: .infinity, alignment: .topLeading).contentShape(Rectangle())
         }.buttonStyle(.plain)
-    }
-}
-
-struct CoverView: View {
-    let book: Book
-    let size: CGSize
-    var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 6).fill(Color(red: 0.18, green: 0.22, blue: 0.23))
-            
-            VStack(alignment: .leading, spacing: 4) { Text(book.format.title).font(.caption2.weight(.bold)).foregroundStyle(.white.opacity(0.7)); Text(book.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white).lineLimit(3) }.padding(10)
-        }.frame(width: size.width, height: size.height).clipShape(RoundedRectangle(cornerRadius: 6)).shadow(color: .black.opacity(0.12), radius: 4, y: 2)
     }
 }

@@ -43,16 +43,17 @@ struct Bookmark: Codable, Hashable, Identifiable {
     var createdAt = Date()
 }
 enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
-    case system, white, cream, dark, green
+    case system, white, cream, dark, green, gray
     var id: String { rawValue }
-    var title: String { switch self { case .system: "随系统"; case .white: "白纸"; case .cream: "米黄"; case .dark: "深色"; case .green: "护眼" } }
+    var title: String { switch self { case .system: "随系统"; case .white: "暖白"; case .cream: "米黄"; case .dark: "深色"; case .green: "护眼绿"; case .gray: "浅灰" } }
     var uiBackground: UIColor { switch self {
-    case .system: .systemBackground
-    case .white: UIColor(red: 0.98, green: 0.98, blue: 0.97, alpha: 1)
-    case .cream: UIColor(red: 0.96, green: 0.93, blue: 0.85, alpha: 1)
-    case .dark: UIColor(red: 0.075, green: 0.085, blue: 0.10, alpha: 1)
-    case .green: UIColor(red: 0.88, green: 0.93, blue: 0.84, alpha: 1) } }
-    var uiForeground: UIColor { self == .system ? .label : self == .dark ? UIColor(white: 0.86, alpha: 1) : UIColor(white: 0.15, alpha: 1) }
+    case .system: YYTheme.uiBackground
+    case .white: YYTheme.warmWhite
+    case .cream: UIColor(hex: 0xEFE3D2)
+    case .dark: UIColor(hex: 0x242321)
+    case .green: UIColor(hex: 0xE1E7D9)
+    case .gray: UIColor(hex: 0xEAE9E5) } }
+    var uiForeground: UIColor { self == .system ? YYTheme.uiForeground : self == .dark ? UIColor(hex: 0xDAD5CB) : YYTheme.ink }
     var background: Color { Color(uiColor: uiBackground) }
     var foreground: Color { Color(uiColor: uiForeground) }
 }
@@ -68,13 +69,13 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
 }
 struct ReaderSettings: Codable, Equatable {
     var fontSize: Double = 20
-    var font: ReaderFont = .system
+    var font: ReaderFont = .serif
     var fontWeight: Double = 0
     var lineSpacing: Double = 8
     var paragraphSpacing: Double = 12
-    var sidePadding: Double = 24
+    var sidePadding: Double = 28
     var firstLineIndent: Double = 2
-    var theme: ReaderTheme = .cream
+    var theme: ReaderTheme = .white
     var mode: ReaderMode = .slide
     var tapZoneRatio: Double = 0.28
     var rightHanded = false

@@ -59,12 +59,23 @@ jobs:
           test_args=(-parallel-testing-enabled NO)
           if test "$IMPORT_ONLY" = true; then test_args+=(-only-testing:QingReadUITests/DocumentImportTests "SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG SYSTEM_FILES_DIAGNOSTICS"); fi
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" "${test_args[@]}" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/tests.log
+      - name: Brand layouts on iPhone 15
+        if: ${{ !inputs.import_only }}
+        run: |
+          set -euo pipefail
+          simulator_id="$(python3 scripts/create-brand-simulator.py)"
+          printf 'iPhone 15 simulator=%s\n' "$simulator_id" > delivery/brand-simulator.txt
+          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Brand-iPhone15.xcresult" -parallel-testing-enabled NO -only-testing:QingReadUITests/BrandUITests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/brand-iphone15.log
       - name: Export test screenshots and summary
         if: always()
         run: |
           if test -d delivery/Tests.xcresult; then
             xcrun xcresulttool get test-results summary --path delivery/Tests.xcresult > delivery/test-summary.json
             xcrun xcresulttool export attachments --path delivery/Tests.xcresult --output-path delivery/screenshots
+          fi
+          if test -d delivery/Brand-iPhone15.xcresult; then
+            xcrun xcresulttool get test-results summary --path delivery/Brand-iPhone15.xcresult > delivery/brand-iphone15-summary.json
+            xcrun xcresulttool export attachments --path delivery/Brand-iPhone15.xcresult --output-path delivery/brand-iphone15-screenshots
           fi
       - name: Package unsigned arm64 IPA
         if: ${{ !inputs.import_only }}
@@ -76,13 +87,17 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")" = QingRead
           test -f "$app/NotoSerifSC.ttf"
           test -f "$app/Assets.car"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$app/Info.plist")" = 予盈
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = com.hdd290187.qingread
+          test -d "$app/LaunchScreen.storyboardc"
+          test "$GITHUB_RUN_NUMBER" -gt 24
           lipo -archs "$app/QingRead" | tee delivery/architectures.txt
           lipo -archs "$app/QingRead" | grep -qw arm64
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           ditto "$app" "$RUNNER_TEMP/ipa/Payload/QingRead.app"
           (cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/delivery/QingRead.ipa" Payload)
           unzip -t delivery/QingRead.ipa
-          { printf 'version=1.0.0\nbuild=%s\nminimum_ios=17.0\nsigning=unsigned\n' "$GITHUB_RUN_NUMBER"; printf 'commit=%s\nrun=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID"; xcodebuild -version; } > delivery/build-info.txt
+          { printf 'brand=予盈\nbundle_id=com.hdd290187.qingread\nversion=1.0.0\nbuild=%s\nminimum_ios=17.0\nsigning=unsigned\n' "$GITHUB_RUN_NUMBER"; printf 'commit=%s\nrun=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID"; xcodebuild -version; } > delivery/build-info.txt
           (cd delivery && shasum -a 256 QingRead.ipa > SHA256SUMS)
       - name: Upload build, logs and test evidence
         if: always()

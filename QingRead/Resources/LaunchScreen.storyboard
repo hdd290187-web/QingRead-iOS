@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23501" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="launch-controller">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies><plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23500"/><capability name="Safe area layout guides" minToolsVersion="9.0"/><capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/></dependencies>
+    <scenes>
+        <scene sceneID="launch-scene"><objects>
+            <viewController id="launch-controller" sceneMemberID="viewController"><view key="view" contentMode="scaleToFill" id="launch-root">
+                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                <subviews>
+                    <imageView userInteractionEnabled="NO" contentMode="scaleToFill" image="LaunchWaves" translatesAutoresizingMaskIntoConstraints="NO" id="waves"><rect key="frame" x="0" y="596" width="393" height="256"/></imageView>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="lockup"><rect key="frame" x="71.5" y="277" width="250" height="204"/>
+                        <subviews>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" image="BrandMark" translatesAutoresizingMaskIntoConstraints="NO" id="mark"><rect key="frame" x="67" y="0" width="116" height="76"/></imageView>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" image="BrandWordmark" translatesAutoresizingMaskIntoConstraints="NO" id="wordmark"><rect key="frame" x="80" y="100" width="90" height="48"/></imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="赠予盈盈的阅读时光" textAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="subtitle"><rect key="frame" x="0" y="166" width="250" height="20"/><fontDescription key="fontDescription" type="system" pointSize="12"/><color key="textColor" red="0.4588" green="0.4314" blue="0.3922" alpha="1" colorSpace="custom" customColorSpace="sRGB"/></label>
+                        </subviews>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="250" id="lockup-width"/><constraint firstAttribute="height" constant="204" id="lockup-height"/>
+                            <constraint firstItem="mark" firstAttribute="top" secondItem="lockup" secondAttribute="top" id="mark-top"/><constraint firstItem="mark" firstAttribute="centerX" secondItem="lockup" secondAttribute="centerX" id="mark-x"/><constraint firstItem="mark" firstAttribute="width" constant="116" id="mark-width"/><constraint firstItem="mark" firstAttribute="height" constant="76" id="mark-height"/>
+                            <constraint firstItem="wordmark" firstAttribute="top" secondItem="mark" secondAttribute="bottom" constant="24" id="wordmark-top"/><constraint firstItem="wordmark" firstAttribute="centerX" secondItem="lockup" secondAttribute="centerX" id="wordmark-x"/><constraint firstItem="wordmark" firstAttribute="width" constant="90" id="wordmark-width"/><constraint firstItem="wordmark" firstAttribute="height" constant="48" id="wordmark-height"/>
+                            <constraint firstItem="subtitle" firstAttribute="top" secondItem="wordmark" secondAttribute="bottom" constant="18" id="subtitle-top"/><constraint firstItem="subtitle" firstAttribute="leading" secondItem="lockup" secondAttribute="leading" id="subtitle-left"/><constraint firstItem="subtitle" firstAttribute="trailing" secondItem="lockup" secondAttribute="trailing" id="subtitle-right"/>
+                        </constraints>
+                    </view>
+                </subviews>
+                <viewLayoutGuide key="safeArea" id="launch-safe"/>
+                <color key="backgroundColor" red="0.96862745" green="0.96470588" blue="0.94901961" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                <constraints>
+                    <constraint firstItem="waves" firstAttribute="leading" secondItem="launch-root" secondAttribute="leading" id="waves-left"/><constraint firstItem="waves" firstAttribute="trailing" secondItem="launch-root" secondAttribute="trailing" id="waves-right"/><constraint firstItem="waves" firstAttribute="bottom" secondItem="launch-root" secondAttribute="bottom" id="waves-bottom"/><constraint firstItem="waves" firstAttribute="height" secondItem="launch-root" secondAttribute="height" multiplier="0.3" id="waves-height"/>
+                    <constraint firstItem="lockup" firstAttribute="centerX" secondItem="launch-safe" secondAttribute="centerX" id="lockup-x"/><constraint firstItem="lockup" firstAttribute="centerY" secondItem="launch-safe" secondAttribute="centerY" multiplier="0.89" id="lockup-y"/>
+                </constraints>
+            </view></viewController>
+            <placeholder placeholderIdentifier="IBFirstResponder" id="launch-responder" sceneMemberID="firstResponder"/>
+        </objects></scene>
+    </scenes>
+    <resources><image name="BrandMark" width="805" height="530"/><image name="BrandWordmark" width="228" height="118"/><image name="LaunchWaves" width="1200" height="760"/></resources>
+</document>

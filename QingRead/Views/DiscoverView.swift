@@ -37,7 +37,7 @@ struct DiscoverView: View {
                 if !results.isEmpty { Section("搜索结果") { ForEach(results) { result in OnlineBookRow(result: result) { open(result) }.disabled(busy) } } }
                 if let message { Section { Text(message).font(.footnote).foregroundStyle(.secondary) } }
             }
-            .navigationTitle("找书")
+            .navigationTitle("发现").yyPage()
             .toolbar { ToolbarItem(placement: .topBarTrailing) { NavigationLink { SourceGuideView() } label: { Image(systemName: "info.circle") }.accessibilityLabel("书源说明") } }
             .fullScreenCover(item: $selectedBook) { ReaderView(book: $0) }
             .onAppear { if selectedSource == nil { selectedSource = library.sources.first(where: { $0.enabled }) } }
@@ -71,6 +71,6 @@ struct SourceGuideView: View {
             Section("支持范围") { Text("Legado/阅读 3.0 的 CSS、class/id/tag 简写、@text/@href/@html、基础 JSONPath、## 正则清洗和 || 备选规则。支持 GET 搜索 {{key}} / {{page}}；目录和正文支持完整单页内容。") }
             Section("不兼容") { Text("JavaScript、XPath、变量存取、POST、动态签名、登录/验证码、复杂 JSONPath 和网页多页拼接。导入时逐条标注并禁用相关书源。") }
             Section("资源使用") { Text("只导入你有权访问的资源。阅读器尊重站点 robots.txt 禁止路径和 HTTP 限流；未内置盗版书源或完整小说。站点改版可能导致规则失效。") }
-        }.navigationTitle("书源说明")
+        }.navigationTitle("书源说明").yyPage()
     }
 }

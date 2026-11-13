@@ -113,7 +113,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             do {
                 let text = try await session.loadText(at: targetChapter)
                 guard generation == loadGeneration else { return }
-                let layout = TextPaginator.layout(text, size: textSize, settings: settings)
+                let layout = TextPaginator.layout(text, size: textSize, settings: settings, chapterTitle: session.chapters.indices.contains(targetChapter) ? session.chapters[targetChapter].title : nil)
                 rebuilding = true
                 clearChildren()
                 layouts = [targetChapter: layout]
@@ -142,7 +142,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
                 do {
                     let text = try await session.loadText(at: index)
                     guard generation == loadGeneration else { return }
-                    layouts[index] = TextPaginator.layout(text, size: textSize, settings: settings)
+                    layouts[index] = TextPaginator.layout(text, size: textSize, settings: settings, chapterTitle: session.chapters[index].title)
                     layouts = layouts.filter { abs($0.key - self.current.chapter) <= 1 }
                     if settings.mode == .scroll { appendScrollChapter(index) }
                     else { refreshPagerNeighbors() }

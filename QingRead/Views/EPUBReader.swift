@@ -21,6 +21,9 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
     required init?(coder: NSCoder) { fatalError("init(coder:) unavailable") }
     override func viewDidLoad() {
         super.viewDidLoad(); session.engine = self; view.backgroundColor = settings.theme.uiBackground
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (controller: EPUBReaderController, _: UITraitCollection) in
+            if controller.settings.theme == .system { controller.navigator?.submitPreferences(controller.preferences()) }
+        }
         Task { await open() }
     }
     private func open() async {
@@ -52,6 +55,9 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         return [CSSFontFamilyDeclaration(fontFamily: "Noto Serif SC", fontFaces: [CSSFontFace(file: file, style: .normal, weight: .variable(200...900))]).eraseToAnyHTMLFontFamilyDeclaration()]
     }
     private func preferences() -> EPUBPreferences {
+        Self.preferences(settings: settings, traits: traitCollection)
+    }
+    static func preferences(settings: ReaderSettings, traits: UITraitCollection) -> EPUBPreferences {
         var prefs = EPUBPreferences()
         prefs.fontSize = settings.fontSize / 16
         prefs.fontWeight = 1 + settings.fontWeight
@@ -62,10 +68,10 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         prefs.publisherStyles = false
         prefs.scroll = settings.mode == .scroll
         prefs.columnCount = .one
-        prefs.backgroundColor = ReadiumNavigator.Color(uiColor: settings.theme.uiBackground.resolvedColor(with: traitCollection))
-        prefs.textColor = ReadiumNavigator.Color(uiColor: settings.theme.uiForeground.resolvedColor(with: traitCollection))
-        prefs.fontFamily = FontFamily(rawValue: settings.font == .serif ? "Noto Serif SC" : "sans-serif")
-        prefs.theme = settings.theme == .dark ? .dark : settings.theme == .cream ? .sepia : .light
+        prefs.backgroundColor = ReadiumNavigator.Color(uiColor: settings.theme.uiBackground.resolvedColor(with: traits))
+        prefs.textColor = ReadiumNavigator.Color(uiColor: settings.theme.uiForeground.resolvedColor(with: traits))
+        prefs.fontFamily = FontFamily(rawValue: settings.font == .serif ? "Noto Serif SC" : settings.font == .rounded ? "ui-rounded" : "sans-serif")
+        prefs.theme = settings.theme == .dark || (settings.theme == .system && traits.userInterfaceStyle == .dark) ? .dark : settings.theme == .cream ? .sepia : .light
         return prefs
     }
     func apply(settings newSettings: ReaderSettings) { guard settings != newSettings else { return }; settings = newSettings; view.backgroundColor = settings.theme.uiBackground; navigator?.submitPreferences(preferences()) }

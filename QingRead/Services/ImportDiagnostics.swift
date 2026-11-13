@@ -122,8 +122,8 @@ enum ImportDiagnostics {
     }
     static func suggestion(for error: NSError, stage: ImportStage, ext: String) -> String {
         if error.domain == NSCocoaErrorDomain && error.code == NSFileWriteNoPermissionError { return "请检查设备存储状态或重启 App 后重试。原始文件和已有书架已保留。" }
-        if error.domain == NSCocoaErrorDomain && error.code == NSFileReadNoPermissionError { return "请在系统‘文件’中重新选择文件，并允许阅简访问；也可先复制到‘在我的 iPhone 上’后再试。" }
-        if stage == .download || error.code == NSURLErrorFileDoesNotExist { return "请先在‘文件’中打开该 iCloud 文件并等待下载完成，再返回阅简重新导入。" }
+        if error.domain == NSCocoaErrorDomain && error.code == NSFileReadNoPermissionError { return "请在系统‘文件’中重新选择文件，并允许予盈访问；也可先复制到‘在我的 iPhone 上’后再试。" }
+        if stage == .download || error.code == NSURLErrorFileDoesNotExist { return "请先在‘文件’中打开该 iCloud 文件并等待下载完成，再返回予盈重新导入。" }
         if stage == .decode { return "请确认文件是 UTF-8、UTF-16 或 GB18030/GBK 编码的纯文本；重新另存为 UTF-8 后再试。" }
         if stage == .epub || ext == "epub" { return "请确认这是未加密、未损坏的 EPUB 文件；本地副本无法解析时请从原来源重新下载。" }
         if stage == .commit || stage == .stage { return "请检查 iPhone 可用空间，然后重新选择原始文件。原文件和已有书架未被删除。" }

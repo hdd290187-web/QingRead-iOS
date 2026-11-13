@@ -28,7 +28,7 @@ final class DocumentImportTests: XCTestCase {
             }
             if local.waitForExistence(timeout: 5) { local.tap() }
             if !folder.exists {
-                let appFolder = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "阅简,", "QingRead,")).firstMatch
+                let appFolder = fileView.cells.matching(NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "予盈,", "QingRead,")).firstMatch
                 if appFolder.waitForExistence(timeout: 10) { appFolder.tap() }
             }
         }
