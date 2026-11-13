@@ -10,6 +10,10 @@ final class ScrollTextCell: UITableViewCell {
         textView.layoutManager.usesFontLeading = false
         textView.layoutManager.allowsNonContiguousLayout = false
         textView.textContainer.lineFragmentPadding = 0
+        // A fixed-height row clips the view, not the TextKit container. UIKit's
+        // half-point contentView rounding must not truncate the final text line.
+        textView.textContainer.heightTracksTextView = false
+        textView.textContainer.size.height = .greatestFiniteMagnitude
         textView.backgroundColor = .clear
         textView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(textView)
@@ -31,6 +35,8 @@ final class ScrollTextCell: UITableViewCell {
                 textView.attributedText = text
                 configuredText = ObjectIdentifier(text)
             }
+            textView.textContainer.heightTracksTextView = false
+            textView.textContainer.size.height = .greatestFiniteMagnitude
             applyTheme(settings)
             textView.accessibilityIdentifier = "reader.scrollContent"
         }

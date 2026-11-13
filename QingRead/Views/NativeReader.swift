@@ -76,6 +76,8 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private var loadGeneration = 0
     private var appliedPosition: ReadingPosition
     private var reflowAnchor: ReadingPosition?
+    private var acceptsScrollPosition = true
+    private var programmaticScrolling = false
     private var transitioning = false
     private var coverCurrent: PrintedPage?
     private var coverTarget: PrintedPage?
@@ -102,7 +104,8 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     }
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        guard view.bounds.width > 80, view.bounds.height > 100 else { return }
+        guard UIApplication.shared.applicationState == .active,
+              view.bounds.width > 80, view.bounds.height > 100 else { return }
         if view.bounds.size != lastSize { lastSize = view.bounds.size; reflow() }
     }
     func apply(settings newSettings: ReaderSettings) {
@@ -136,8 +139,15 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         frameProbe.stop()
         #endif
     }
+    override func viewWillDisappear(_ animated: Bool) {
+        if settings.mode == .scroll { saveScrollPosition() }
+        acceptsScrollPosition = false
+        super.viewWillDisappear(animated)
+    }
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        acceptsScrollPosition = true
+        view.setNeedsLayout()
         #if DEBUG
         if let table { frameProbe.attach(to: table) }
         #endif
@@ -159,9 +169,11 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             guard let self else { return }
             do {
                 let chapter = try await prepared(targetChapter)
-                var following: PreparedReaderChapter?
-                if settings.mode == .scroll, position.characterOffset > 0, session.chapters.indices.contains(targetChapter + 1) {
-                    following = try await prepared(targetChapter + 1)
+                var adjacentScroll: [Int: ScrollChapterLayout] = [:]
+                if settings.mode == .scroll {
+                    for index in (targetChapter - 2)...(targetChapter + 2) where index != targetChapter && session.chapters.indices.contains(index) {
+                        if let scroll = try await prepared(index).scroll { adjacentScroll[index] = scroll }
+                    }
                 }
                 guard generation == loadGeneration else { return }
                 #if DEBUG
@@ -176,7 +188,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
                 clearChildren()
                 layouts = chapter.pages.map { [targetChapter: $0] } ?? [:]
                 scrollLayouts = chapter.scroll.map { [targetChapter: $0] } ?? [:]
-                if let next = following?.scroll { scrollLayouts[targetChapter + 1] = next }
+                scrollLayouts.merge(adjacentScroll) { current, _ in current }
                 current = PageAddress(chapter: targetChapter, page: chapter.pages?.page(containing: position.characterOffset) ?? 0)
                 appliedPosition = position
                 pendingScrollPosition = nil
@@ -262,7 +274,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     func move(forward: Bool) {
         guard !transitioning else { return }
         reflowAnchor = nil
-        if settings.mode == .scroll, let table { table.setContentOffset(CGPoint(x: 0, y: min(max(-table.adjustedContentInset.top, table.contentOffset.y + (forward ? 1 : -1) * table.bounds.height * 0.85), max(0, table.contentSize.height - table.bounds.height))), animated: true); return }
+        if settings.mode == .scroll, let table { programmaticScrolling = true; table.setContentOffset(CGPoint(x: 0, y: min(max(-table.adjustedContentInset.top, table.contentOffset.y + (forward ? 1 : -1) * table.bounds.height * 0.85), max(0, table.contentSize.height - table.bounds.height))), animated: true); return }
         guard let target = neighbor(of: current, forward: forward), let page = printed(target) else {
             let chapter = current.chapter + (forward ? 1 : -1)
             guard session.chapters.indices.contains(chapter) else { UIImpactFeedbackGenerator(style: .soft).impactOccurred(); return }
@@ -410,6 +422,8 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         return cell
     }
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard acceptsScrollPosition, UIApplication.shared.applicationState == .active,
+              scrollView.isTracking || scrollView.isDragging || scrollView.isDecelerating || programmaticScrolling else { return }
         ReaderPerformance.measure(.scrollCallback) { updateScrollPosition() }
     }
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { reflowAnchor = nil }
@@ -435,14 +449,25 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         // Stable, text-free position diagnostic for restoration regressions.
         // Updated only at commit boundaries, never for every scrolling frame.
         table?.accessibilityValue = "\(pendingScrollPosition.chapter):\(pendingScrollPosition.characterOffset)"
+        if ProcessInfo.processInfo.arguments.contains("--uitest-seed") {
+            print("ReaderAnchor commit chapter=\(pendingScrollPosition.chapter) offset=\(pendingScrollPosition.characterOffset) y=\(table?.contentOffset.y ?? 0)")
+        }
         #endif
     }
     func flushPosition() {
-        if settings.mode == .scroll { updateScrollPosition(); saveScrollPosition() }
+        // The last delegate anchor remains valid while UIKit dismisses or takes
+        // a background snapshot. Teardown geometry must never replace it.
+        if settings.mode == .scroll { saveScrollPosition() }
     }
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) { synchronizeScrollRows(); updateScrollPosition(); saveScrollPosition() }
+    private func finishScrolling() {
+        if acceptsScrollPosition, UIApplication.shared.applicationState == .active {
+            synchronizeScrollRows(); updateScrollPosition()
+        }
+        saveScrollPosition(); programmaticScrolling = false
+    }
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) { finishScrolling() }
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        if !decelerate { synchronizeScrollRows(); updateScrollPosition(); saveScrollPosition() }
+        if !decelerate { finishScrolling() }
     }
-    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) { synchronizeScrollRows(); updateScrollPosition(); saveScrollPosition() }
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) { finishScrolling() }
 }

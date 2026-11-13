@@ -54,15 +54,33 @@
     "recordedVideos": []
   },
   "humanPending": [
-    "macOS build and same-device Simulator profiling",
     "real iPhone scroll/frame/thermal/touch profiling",
     "same-signature upgrade data preservation"
   ],
   "implementationCommit": "b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970",
   "observedFailures": [
-    "Worker/display TextKit row-height mismatch",
-    "Character anchor drift during repeated font-size reflow",
-    "DEBUG performance report JSON serialization exception on reader exit",
-    "EPUB cold-start content appeared after initial 15-second UI wait"
+    "Worker/display TextKit row-height mismatch remains; font-leading alignment did not change the measured discrepancy",
+    "Precise scroll restart changed chapter although within-chapter character offset matched"
+  ],
+  "targetedRuns": [
+    {
+      "id": 43392508035,
+      "number": 35,
+      "headSha": "79ece0f15314faaf5f4ed8d26c452ef0630a13fc",
+      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43392508035",
+      "conclusion": "failure",
+      "passed": 6,
+      "failed": 2,
+      "skipped": 0,
+      "total": 8
+    }
+  ],
+  "confirmedTargetedFixes": [
+    "JSON report serializes and scrolling reader exits/reopens without crashing",
+    "EPUB continuous scrolling and preference/restart UI regression",
+    "Paged font reflow retains the original character anchor"
+  ],
+  "automatedPending": [
+    "Targeted regressions, then the complete Release/Simulator and same-device baseline comparison"
   ]
 }

@@ -52,6 +52,17 @@ final class ReaderPerformanceTests: XCTestCase {
             let tail = chunk.range.end < layout.length ? manager.extraLineFragmentRect.minY : manager.extraLineFragmentRect.maxY
             let measured = ceil(max(manager.usedRect(for: cell.textView.textContainer).maxY, tail))
             print("ReaderTextKit: workerHeight=\(chunk.height) visibleHeight=\(measured) width=\(cell.textView.textContainer.size.width) leading=\(manager.usesFontLeading) lines=\(chunk.lines.count)")
+            if abs(chunk.height - measured) > 1.1 {
+                var visible: [(Int, CGFloat, CGFloat)] = []
+                let glyphs = manager.glyphRange(for: cell.textView.textContainer)
+                manager.enumerateLineFragments(forGlyphRange: glyphs) { rect, _, _, range, _ in
+                    visible.append((manager.characterRange(forGlyphRange: range, actualGlyphRange: nil).location, rect.minY, rect.height))
+                }
+                print("ReaderTextKit mismatch: containerHeight=\(cell.textView.textContainer.size.height) visibleUTF16=\(manager.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil).length) expectedUTF16=\(chunk.attributed.length) visibleLines=\(visible.count)")
+                for index in 0..<min(10, min(chunk.lines.count, visible.count)) {
+                    print("ReaderTextKit line \(index): workerStart=\(chunk.lines[index].start) workerY=\(chunk.lines[index].y) visible=\(visible[index])")
+                }
+            }
             XCTAssertEqual(chunk.height, measured, accuracy: 1.1)
             if let line = chunk.lines.dropFirst(3).first {
                 XCTAssertEqual(chunk.character(atY: line.y + 1), line.start)
