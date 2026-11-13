@@ -72,4 +72,18 @@ import UIKit
             XCTAssertEqual(value["anchorFailures"] as? Int, 0)
         }
     }
+    func testMissingPreparedAnchorNeverFallsBackToChapterZero() throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let library=LibraryStore(rootURL:root);library.settings.mode = .scroll
+        let book=library.add(Book(title:"保留锚点",format:.txt,chapters:(0..<8).map { Chapter(title:"第\($0+1)章",length:1000) }))
+        let position=ReadingPosition(chapter:5,characterOffset:123,progression:0.65)
+        library.update(position:position,for:book)
+        let session=ReaderSession(book:book,library:library)
+        let controller=NativeReaderController(session:session,settings:library.settings)
+        XCTAssertThrowsError(try controller.installIntegrityFixture([:],at:position))
+        XCTAssertEqual(session.position.chapter,5)
+        XCTAssertEqual(library.position(for:book).characterOffset,123)
+        XCTAssertNil(controller.integritySnapshot())
+    }
 }

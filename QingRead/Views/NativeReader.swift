@@ -490,17 +490,17 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
                     } completion: { [weak self, weak table] _ in
                         guard let self, let table, self.table === table, generation == self.loadGeneration else { return }
                         ReaderPerformance.measure(.chapterUpdate) {
-                            rebuilding = false
+                            self.rebuilding = false
                             #if DEBUG
-                            integrityMutations += 1
-                            if let row = scrollRows.firstIndex(where: { $0.id == anchor.id }),
-                               abs(table.rectForRow(at: IndexPath(row: row, section: 0)).minY - oldAnchorY) > 0.5 { integrityFailures += 1 }
-                            recordScrollDiagnostic(event: "append", inserted: inserted.map(\.row))
+                            self.integrityMutations += 1
+                            if let row = self.scrollRows.firstIndex(where: { $0.id == anchor.id }),
+                               abs(table.rectForRow(at: IndexPath(row: row, section: 0)).minY - oldAnchorY) > 0.5 { self.integrityFailures += 1 }
+                            self.recordScrollDiagnostic(event: "append", inserted: inserted.map(\.row))
                             #endif
                             // The finger/inertia may have advanced while UIKit
                             // completed. Never restore an old moving offset here.
-                            updateScrollPosition(); synchronizeScrollRows()
-                            if !table.isTracking && !table.isDragging && !table.isDecelerating && !programmaticScrolling { saveScrollPosition() }
+                            self.updateScrollPosition(); self.synchronizeScrollRows()
+                            if !table.isTracking && !table.isDragging && !table.isDecelerating && !self.programmaticScrolling { self.saveScrollPosition() }
                         }
                     }
                 }
@@ -649,13 +649,25 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         let prefix = session.chapters.prefix(row.chapter).reduce(0) { $0 + $1.length }
         let actualText = cell.renderedText
         let marker = actualText.range(of: "样本章节[0-9]+", options: .regularExpression).map { Int(actualText[$0].dropFirst(4)) ?? 0 }
+        // A chapter heading intentionally keeps its brand serif. Inspect the
+        // real body attributes rather than mistaking that heading for the user's
+        // selected reading font or line spacing.
+        var bodyFont: UIFont?, bodyStyle: NSParagraphStyle?
+        var fontLength = 0, styleLength = 0
+        row.chunk.attributed.enumerateAttribute(.font, in: NSRange(location: 0, length: row.chunk.attributed.length)) { value, range, _ in
+            if range.length > fontLength, let face = value as? UIFont { bodyFont = face; fontLength = range.length }
+        }
+        row.chunk.attributed.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: row.chunk.attributed.length)) { value, range, _ in
+            if range.length > styleLength, let style = value as? NSParagraphStyle { bodyStyle = style; styleLength = range.length }
+        }
         return ["chapter": row.chapter, "offset": logical, "drawnOffset": drawn,
                 "drawnFixtureChapter": marker.map { $0 - 1 } ?? -1,
                 "globalOffset": prefix + logical, "rowID": row.id,
                 "y": Double(table.contentOffset.y), "worldY": Double(table.contentOffset.y + scrollWorldBase), "size": Double(table.contentSize.height),
                 "viewport": Double(table.bounds.height), "generation": loadGeneration,
-                "fontSize": Double((row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)?.pointSize ?? 0),
-                "fontName": (row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)?.fontName ?? "",
+                "fontSize": Double(bodyFont?.pointSize ?? 0),
+                "lineSpacing": Double(bodyStyle?.lineSpacing ?? 0),
+                "fontName": bodyFont?.fontName ?? "",
                 "theme": settings.theme.rawValue,
                 "mutations": integrityMutations, "anchorFailures": integrityFailures,
                 "staleResultsDiscarded": stalePreloads,

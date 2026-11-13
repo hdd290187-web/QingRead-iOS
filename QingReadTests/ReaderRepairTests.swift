@@ -88,4 +88,31 @@ import CoreText
             }
         }
     }
+    func testRapidSuccessfulImportsReplaceOneToastAndAutoDismiss() async throws {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        let library=LibraryStore(rootURL:root.appendingPathComponent("library"))
+        let controller=DocumentImportController()
+        func waitForToast(_ title:String) async throws {
+            for _ in 0..<100 {
+                if controller.toast?.result.imported == [title] { return }
+                try await Task.sleep(nanoseconds:30_000_000)
+            }
+            XCTFail("成功导入应出现对应的单个轻提示")
+        }
+        for title in ["先导入","后导入"] {
+            let url=root.appendingPathComponent(title+".txt")
+            try Data(("第一章\n"+title+"的独立原创内容。\n").utf8).write(to:url)
+            controller.consume(.success([url]),library:library)
+            try await waitForToast(title)
+            XCTAssertNil(controller.feedback,"全部成功不能自动弹出结果 sheet")
+        }
+        try await Task.sleep(nanoseconds:1_400_000_000)
+        XCTAssertEqual(controller.toast?.result.imported,["后导入"],"旧提示的计时器不能清除新结果")
+        try await Task.sleep(nanoseconds:600_000_000)
+        XCTAssertNil(controller.toast)
+        XCTAssertEqual(controller.lastFeedback?.result.imported,["后导入"])
+        XCTAssertEqual(library.books.count,2)
+    }
 }

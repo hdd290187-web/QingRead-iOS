@@ -40,12 +40,38 @@ final class ReaderIntegrityTests: XCTestCase {
             for _ in 0..<(direction ? 24 : 16) {
                 if direction { table.swipeUp(velocity: .fast) } else { table.swipeDown(velocity: .fast) }
                 let next = snapshot(table); verify(next, table: table)
+                XCTAssertEqual(next["generation"] as? Int, previous["generation"] as? Int, "正常甩动不得偷偷重建或恢复到其他章节")
                 let pixels = (next["worldY"] as? Double ?? 0) - (previous["worldY"] as? Double ?? 0)
                 let characters = (next["globalOffset"] as? Int ?? 0) - (previous["globalOffset"] as? Int ?? 0)
                 if direction { XCTAssertGreaterThanOrEqual(characters, -96) }
                 else { XCTAssertLessThanOrEqual(characters, 96) }
                 XCTAssertLessThanOrEqual(Double(abs(characters)), abs(pixels) * 3 + 160, "字符跨度必须与实际纸面位移相符，不能瞬移章节")
                 previous = next
+            }
+        }
+        if fixture == "long" {
+            // Exercise the actual progress slider too: its controls must not be
+            // intercepted by the compact footer's new menu gesture.
+            app.coordinate(withNormalizedOffset: CGVector(dx:0.5,dy:0.3)).tap()
+            let slider=app.sliders["阅读进度"]
+            XCTAssertTrue(slider.waitForExistence(timeout:5));slider.adjust(toNormalizedSliderPosition:1)
+            expectation(for:NSPredicate { _,_ in
+                guard let data=table.label.data(using:.utf8),let value=try? JSONSerialization.jsonObject(with:data) as? [String:Any] else { return false }
+                return value["chapter"] as? Int == 95 && (table.value as? String ?? "").hasPrefix("95:")
+            },evaluatedWith:nil);waitForExpectations(timeout:30)
+            previous=snapshot(table);verify(previous,table:table)
+            XCTAssertEqual(previous["chapter"] as? Int,95)
+            for direction in [true,false] {
+                for _ in 0..<8 {
+                    if direction { table.swipeUp(velocity:.fast) } else { table.swipeDown(velocity:.fast) }
+                    let next=snapshot(table);verify(next,table:table)
+                    XCTAssertEqual(next["generation"] as? Int,previous["generation"] as? Int)
+                    let distance=(next["worldY"] as? Double ?? 0)-(previous["worldY"] as? Double ?? 0)
+                    let characters=(next["globalOffset"] as? Int ?? 0)-(previous["globalOffset"] as? Int ?? 0)
+                    XCTAssertLessThanOrEqual(Double(abs(characters)),abs(distance)*3+160)
+                    if direction { XCTAssertGreaterThanOrEqual(characters,-96) } else { XCTAssertLessThanOrEqual(characters,96) }
+                    previous=next
+                }
             }
         }
         XCUIDevice.shared.press(.home); app.activate()
@@ -60,6 +86,10 @@ final class ReaderIntegrityTests: XCTestCase {
         let relaxed = app.buttons["settings.line.12"]
         for _ in 0..<5 { if relaxed.isHittable { break }; app.swipeUp() }
         relaxed.tap(); app.buttons["reader.settings.done"].tap()
+        expectation(for:NSPredicate { _,_ in
+            guard let data=table.label.data(using:.utf8),let state=try? JSONSerialization.jsonObject(with:data) as? [String:Any] else { return false }
+            return (state["fontSize"] as? Double ?? 0)>=25 && state["lineSpacing"] as? Double == 12 && !(state["fontName"] as? String ?? "Noto").contains("Noto")
+        },evaluatedWith:nil);waitForExpectations(timeout:30)
         let reflowed = snapshot(table); verify(reflowed, table: table)
         XCTAssertLessThanOrEqual(abs((reflowed["globalOffset"] as? Int ?? 0) - originalAnchor), 64)
         table.swipeUp(velocity: .fast)

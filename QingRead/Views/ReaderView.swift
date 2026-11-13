@@ -52,7 +52,7 @@ private struct ReaderHost: View {
                 ReaderSettingsForm().toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showSettings = false }.accessibilityIdentifier("reader.settings.done") } }
             }.environment(\.readerSettingsOverlay, true)
                 .presentationDetents([.fraction(0.55), .fraction(0.78)], selection: $settingsDetent)
-                .presentationDragIndicator(.visible)
+                .presentationDragIndicator(.visible).presentationCompactAdaptation(.none)
                 .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.78)))
                 .presentationBackground {
                     Rectangle().fill(.thinMaterial).overlay(library.settings.theme.background.opacity(0.28))
