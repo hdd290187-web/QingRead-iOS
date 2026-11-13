@@ -171,6 +171,13 @@ final class ReaderAcceptanceTests: XCTestCase {
     @MainActor func testProfileKeepsTechnicalDetailsInsideAbout() {
         let app=XCUIApplication();app.launchArguments=["--uitest-reset"];app.launch()
         app.tabBars.buttons["我的"].tap()
+        let sections = element(app, "profile.sections")
+        XCTAssertTrue(sections.waitForExistence(timeout: 10))
+        for _ in 0..<6 {
+            let about = app.buttons["profile.about"]
+            if about.exists && about.isHittable { break }
+            sections.swipeUp(velocity: .slow)
+        }
         XCTAssertTrue(app.buttons["profile.about"].waitForExistence(timeout:10))
         XCTAssertFalse(app.staticTexts["版本"].exists)
         XCTAssertFalse(app.staticTexts["开源许可与素材来源"].exists)

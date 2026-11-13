@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DiscoverView: View {
+    @Binding var selectedBook: Book?
     @State private var section = 0
     var body: some View {
         NavigationStack {
@@ -8,7 +9,7 @@ struct DiscoverView: View {
                 Picker("发现", selection: $section) { Text("云书库").tag(0); Text("在线书源").tag(1) }
                     .pickerStyle(.segmented).padding(.horizontal, YYTheme.screenInset).padding(.vertical, 8)
                     .accessibilityIdentifier("discover.section")
-                if section == 0 { CloudLibraryView() } else { OnlineSourcesView() }
+                if section == 0 { CloudLibraryView() } else { OnlineSourcesView(selectedBook: $selectedBook) }
             }.navigationTitle("发现").yyPage()
         }
     }
@@ -21,7 +22,7 @@ private struct OnlineSourcesView: View {
     @State private var results: [OnlineBook] = []
     @State private var busy = false
     @State private var message: String?
-    @State private var selectedBook: Book?
+    @Binding var selectedBook: Book?
     var body: some View {
             List {
                 Section {
@@ -52,7 +53,6 @@ private struct OnlineSourcesView: View {
             }
             .yyPage()
             .toolbar { ToolbarItem(placement: .topBarTrailing) { NavigationLink { SourceGuideView() } label: { Image(systemName: "info.circle") }.accessibilityLabel("书源说明") } }
-            .fullScreenCover(item: $selectedBook) { ReaderView(book: $0) }
             .onAppear { if selectedSource == nil { selectedSource = library.sources.first(where: { $0.enabled }) } }
     }
     private func search() {

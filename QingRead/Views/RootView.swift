@@ -6,15 +6,16 @@ struct RootView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var cloud: CloudLibraryStore
     @State private var selectedTab = 0
+    @State private var selectedBook: Book?
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var imports = DocumentImportController()
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            LibraryView(imports: imports)
+            LibraryView(imports: imports, selectedBook: $selectedBook)
                 .tabItem { Label("书架", systemImage: "books.vertical.fill") }
                 .tag(0)
-            DiscoverView()
+            DiscoverView(selectedBook: $selectedBook)
                 .tabItem { Label("发现", systemImage: "safari") }
                 .tag(1)
             SettingsView()
@@ -61,7 +62,12 @@ struct RootView: View {
         }.animation(.easeInOut(duration: 0.18), value: imports.toast?.id)
         .onChange(of: scenePhase) { _, phase in if phase != .active { library.flushSettingsIfNeeded() } }
         .sheet(item: $imports.feedback) { ImportFeedbackView(feedback: $0) }
-        .fullScreenCover(item: $cloud.bookToOpen) { ReaderView(book: $0) }
+        .onChange(of: cloud.bookToOpen) { _, book in
+            guard let book else { return }
+            selectedBook = book
+            cloud.bookToOpen = nil
+        }
+        .fullScreenCover(item: $selectedBook) { ReaderView(book: $0) }
         #if DEBUG
         .overlay(alignment: .topTrailing) {
             if ProcessInfo.processInfo.arguments.contains("--uitest-import-after-launch") {
@@ -87,7 +93,7 @@ struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var query = ""
     @ObservedObject var imports: DocumentImportController
-    @State private var selectedBook: Book?
+    @Binding var selectedBook: Book?
     @State private var showSearch = false
     @FocusState private var searchFocused: Bool
     @AppStorage("yuying.library.grid") private var showGrid = true
@@ -143,7 +149,6 @@ struct LibraryView: View {
                 if !imports.awaitingImport && imports.status == nil { imports.cancelled() }
             }) { bookPicker }
             .onChange(of: imports.lastFeedback?.id) { _, _ in query = ""; showSearch = false; searchFocused = false }
-            .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
             .yyPage()
         }
     }

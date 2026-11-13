@@ -28,7 +28,7 @@ struct SettingsView: View {
                 Section {
                     NavigationLink("关于予盈") { AboutYuyingView() }.accessibilityIdentifier("profile.about")
                 }.listRowBackground(YYTheme.background)
-            }.navigationTitle("我的").yyPage()
+            }.accessibilityIdentifier("profile.sections").navigationTitle("我的").yyPage()
         }
     }
 }
