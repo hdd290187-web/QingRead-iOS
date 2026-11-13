@@ -93,8 +93,8 @@ final class ReaderAcceptanceTests: XCTestCase {
         func state() -> [String:Any] {
             guard let bytes=app.staticTexts["settings.readerProbe"].label.data(using:.utf8),let v=try? JSONSerialization.jsonObject(with:bytes) as? [String:Any] else { return [:] };return v
         }
-        reveal(app); let table=element(app,"reader.scrollViewport")
-        let original = table.value.flatMap { String(describing:$0).split(separator:":").last.flatMap { Int($0) } } ?? 0
+        reveal(app); let readerTable=element(app,"reader.scrollViewport")
+        let original = readerTable.value.flatMap { String(describing:$0).split(separator:":").last.flatMap { Int($0) } } ?? 0
         reveal(app);app.buttons["reader.settings"].tap()
         XCTAssertFalse(app.staticTexts["即时预览"].exists)
         app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition:0.6)
