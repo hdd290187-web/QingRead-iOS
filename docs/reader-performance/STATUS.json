@@ -2,7 +2,7 @@
   "status": "IMPLEMENTED_PENDING_IOS_VALIDATION",
   "baselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
   "repoVisibility": "Private",
-  "publicationAudit": "NOT_APPROVED_PENDING_HISTORICAL_IMAGE_RIGHTS",
+  "publicationAudit": "APPROVED_FOR_PUBLICATION",
   "newActionsRun": null,
   "newIPA": null,
   "baselineIPA": {
@@ -45,7 +45,6 @@
     "recordedVideos": []
   },
   "humanPending": [
-    "historical reference image redistribution authorization",
     "macOS build and same-device Simulator profiling",
     "real iPhone scroll/frame/thermal/touch profiling",
     "same-signature upgrade data preservation"

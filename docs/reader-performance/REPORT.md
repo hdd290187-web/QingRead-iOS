@@ -1,6 +1,6 @@
 # 阅读布局与连续滚动候选改动
 
-状态：源码、回归用例、采样与对照流程已实现；iOS 编译、XCTest、性能采样和新 IPA 尚未执行/生成。公开前审计仍有历史图片公开再分发权待确认，因此仓库保持 Private。本报告不宣称用户真机的滚动卡顿已验收修复。
+状态：源码、回归用例、采样与对照流程已实现；iOS 编译、XCTest、性能采样和新 IPA 尚未执行/生成。用户已确认历史图片为其自行生成，公开前审计通过，正在执行已授权的公开及构建。本报告不宣称用户真机的滚动卡顿已验收修复。
 
 ## 布局根因与改动
 
@@ -50,8 +50,8 @@ Bundle ID、Application Support/QingRead、书籍/章节 ID、library.json 格�
 
 ## 发布与构建状态
 
-[公开审计](../security/PUBLICATION_AUDIT.md) 凭据部分未发现真实秘密，但历史参考图片的公开再分发权仍待确认，结论为未通过公开条件。未执行 Public 修改，也未反复触发已知计费阻塞的任务；最近实际 Actions 仍为 [Build 32](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43357914231)，在任务开始前因 GitHub 付款/支出上限被拒绝。标准公开 Runner 不保证解除账户锁定。
+[公开审计](../security/PUBLICATION_AUDIT.md) 未发现真实秘密；用户确认历史参考图为其自行生成，唯一来源条件已经解决。正在执行已授权的 Public 修改与完整工作流。上次实际 Actions 为 [Build 32](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43357914231)，在任务开始前因 GitHub 付款/支出上限被拒绝。新运行的真实执行结果将另行记录，标准公开 Runner 不保证解除账户锁定。
 
 可用旧 IPA 仍是已验证 Build 31，SHA256：5e6358f23ea8715eb5d2010c0797a4f9ad2ea4db6cb6cd55661ed5c5452289b6；它不含本次候选优化，也不含后续矢量新图标。没有把旧 IPA 重新命名为新包。通过安全条件、真实构建与回归后才能生成并交付本次 IPA。
 
-源码已备份，后续提交以 [skip ci] 避免重复失败运行。恢复条件满足后，先由管理员按已授权范围改为 Public 并核对 API，再完整 dispatch build-ios.yml（不使用 import_only）。同签名升级及真机卡顿复测仍为 HUMAN_PENDING，覆盖时不要先卸载旧 App。
+源码已备份，后续提交以 [skip ci] 避免重复失败运行。来源条件已经满足，先由管理员按已授权范围改为 Public 并核对 API，再完整 dispatch build-ios.yml（不使用 import_only）。同签名升级及真机卡顿复测仍为 HUMAN_PENDING，覆盖时不要先卸载旧 App。

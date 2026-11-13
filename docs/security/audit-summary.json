@@ -2,13 +2,13 @@
   "dateUTC": "2026-11-13",
   "repository": "hdd290187-web/QingRead-iOS",
   "visibility": "Private",
-  "decision": "NOT_APPROVED_FOR_PUBLICATION",
-  "reason": "Redistribution rights for user-supplied historical reference/PNG assets are not yet established. User clarification is pending.",
+  "decision": "APPROVED_FOR_PUBLICATION",
+  "reason": "User confirmed on 2026-11-13 that the historical reference images were self-generated, resolving the only outstanding provenance condition within the explicit request to publish this repository.",
   "historyBaselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
   "remoteBranches": 1,
   "tags": 4,
   "pullRequests": 0,
-  "commitsScanned": 36,
+  "commitsScanned": 38,
   "gitObjectsIncludingUnreachable": 569,
   "gitBlobsIncludingUnreachable": 292,
   "actionsRuns": 32,
@@ -28,19 +28,22 @@
     "contents": "read"
   },
   "untrustedPRWriteWorkflow": false,
-  "imageRightsPendingPaths": [
-    "design/yuying-reference/brand-reference.jpeg",
-    "design/yuying-reference/icon-reference.png",
-    "design/yuying-reference/*-reference.png",
-    "design/yuying-reference/app-icon-1024.png",
-    "historical Git commits and private Release source archives containing these files"
-  ],
   "rawEvidenceLocation": "VPS private audit directory, excluded from source and delivery archives",
-  "sourceScanScopeNote": "After candidate implementation is committed, the history scan is repeated before delivery. No repository visibility change is authorized until the outstanding safety condition is resolved.",
+  "sourceScanScopeNote": "Full history scanned again after candidate delivery; final publication documentation commit is scanned before visibility changes.",
   "candidateHistoryScan": {
-    "commit": "b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970",
-    "commits": 37,
+    "commit": "e86ae2221ef2879b3ebd4d14eabc41f0e73c09e8",
+    "commits": 38,
     "gitleaksFindings": 0,
     "dateUTC": "2026-11-13"
+  },
+  "imageProvenance": {
+    "confirmedUTC": "2026-11-13",
+    "statement": "是我自己生成的",
+    "record": "design/yuying-reference/README.md",
+    "publicationContext": "User explicitly requested publishing the existing repository after a clear audit."
+  },
+  "remoteInventoryRechecked": {
+    "dateUTC": "2026-11-13",
+    "newUnreviewedRunsArtifactsOrReleases": 0
   }
 }

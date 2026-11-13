@@ -1,6 +1,6 @@
-# 仓库公开前审计：未通过公开条件，保持 Private
+# 仓库公开前审计：通过，适合公开
 
-审计目标：hdd290187-web/QingRead-iOS。当前 API 返回 Private，当前账号有 ADMIN 权限；没有执行公开操作。遵守最新用户说明中的“无法确认是否安全时视为未通过”，不能把未发现凭据当作全部审计通过。
+审计目标：hdd290187-web/QingRead-iOS。完整历史、Actions 日志/附件与 Release 审查未发现真实凭据或隐私阻塞。用户于 2026-11-13 确认历史品牌参考图为其自行生成，结合本次明确公开授权，唯一待确认的素材来源条件已解决。结论为 APPROVED_FOR_PUBLICATION；实际可见性另以 GitHub API 操作后核实为准。
 
 ## 扫描范围与方法
 
@@ -17,20 +17,20 @@ Gitleaks 8.30.1 从官方发布下载并验证 SHA256。运行全历史、全 bl
 - 未发现 p12、mobileprovision、私钥等敏感文件候选；未发现私有 IPv4 候选或图片 GPS/作者等隐私 EXIF。历史提交作者使用 noreply 身份。
 - 额外网络引用核对为公开的第三方许可证/Readium CSS 引用及 URL 输入占位符。长文本为原创测试资料、XCTest 层级/错误记录和已有说明；未发现真实用户小说正文。日志中的 CoreSimulator 路径与 UUID 属于托管测试环境，未当作用户真机信息。
 
-## 许可核对与唯一待确认条件
+## 许可与素材来源
 
 App 独立源码为 MIT；Readium、SwiftSoup 及锁定传递依赖保留各自许可证和 NOTICE；Noto Serif SC 保持原字体与 SIL OFL，固定源版本和哈希保留。未引入此前列为许可不明的参考仓库源码。最新 SVG 路径及自然封面代码为本项目独立绘制。
 
-**尚无法确认历史用户上传参考图和旧 PNG 的公开再分发权。** 这些文件同时存在于 Git 历史与现有私有 Release 源码归档中，不能通过只在 main 删除文件就排除公开风险。范围包括 design/yuying-reference 的品牌拼图、局部参考图与旧 app-icon-1024.png。原有记录仅说明私人 App 的使用，未附明确的公共再分发许可；这不是已经认定侵权，而是公开前的许可事实尚不充分。已请求用户确认来源和授权。
+用户在被询问历史上传参考图及旧 PNG 的来源时回复“是我自己生成的”。该声明记录在 design/yuying-reference/README.md 及随 App 的素材说明中。结合用户本次明确要求审计通过后公开现有仓库，design/yuying-reference 的品牌拼图、局部参考图、旧 app-icon-1024.png，以及含有它们的历史 Git / Release 源码归档已具备本次公开依据。没有把用户声明扩展为额外的第三方保证。
 
-在确认前保持 Private，不强制推送改写历史、不删除历史日志/附件、不删除仓库，也不擅自声称图片可公开。用户若确认拥有相应权利，可补入许可说明后复核；若不能确认，应另行讨论经授权的历史及 Release 清理方案。
+不需要重写历史、删除日志/附件或清理仓库；未执行这些操作。原始候选秘密、私有审计资料和凭据不进入公开源码或交付归档。
 
 ## CI 与公开操作准备
 
 保持标准 GitHub 托管 macos-15，未使用 larger/self-hosted/第三方付费 Runner；Xcode 26.3 和依赖版本保持。工作流仅 push main / workflow_dispatch，contents: read，不从不可信 PR 执行带写权限或秘密的工作流；checkout 已关闭凭据持久化。
 
-满足许可条件并复核最新提交后，现有管理员权限可执行用户授权的 Public 修改并查询 API 验证，再触发一次完整工作流。目前不执行该条件动作。公开标准 Runner 不保证解除账户锁定；最近 Build 32 的 GitHub 注释仍是付款/支出上限阻塞。
+素材来源条件已解决，当前管理员权限可执行用户已授权的 Public 修改。2026-11-13 再次获取分支、tag、PR、Actions runs/artifacts 及 Release 清单：仍为 1 / 4 / 0 / 32 / 31 / 1（5 个附件），与已下载审查范围一致，没有新增未审查的远端附件。
 
-脱敏机器可读结论见 audit-summary.json。后续新增代码提交还会再次进行全历史凭据扫描，但图片许可未确认前，结论仍为 NOT_APPROVED_FOR_PUBLICATION。
+候选实现及交付元数据提交后再次扫描完整 Git 历史（38 个提交），Gitleaks 为 0 命中；公开说明提交后再扫描一次。机器可读结论见 audit-summary.json。
 
-候选实现提交 `b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970` 后再次扫描全部 Git 历史（37 个提交），Gitleaks 仍为 0 命中。许可条件仍未解决，保持 Private。
+随后查询 API 核实实际 Public，并且只触发一次完整标准 macos-15 工作流。公开标准 Runner 不保证解除账户锁定；之前 Build 32 的 GitHub 注释是付款/支出上限阻塞，新运行结果必须单独确认。
