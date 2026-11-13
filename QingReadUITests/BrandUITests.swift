@@ -12,13 +12,21 @@ final class BrandUITests: XCTestCase {
     }
     @MainActor private func element(_ app: XCUIApplication, _ id: String) -> XCUIElement { app.descendants(matching: .any).matching(identifier: id).firstMatch }
     @MainActor private func scrollTo(_ target: XCUIElement, app: XCUIApplication) {
-        for _ in 0..<8 {
+        for _ in 0..<16 {
             let top=(app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }.map { $0.frame.maxY }.max() ?? 0)+12
-            if target.isHittable && target.frame.midY>top { break }
+            if target.exists && target.isHittable && target.frame.midY>top && target.frame.maxY<app.frame.maxY-16 { return }
             let picker=element(app,"settings.font.list"),form=element(app,"settings.form.scroll")
-            let container=picker.isHittable ? picker : form
-            if target.exists && target.frame.midY<=top { container.swipeDown(velocity:.slow) }
-            else { container.swipeUp(velocity:.slow) }
+            let container=picker.exists && picker.isHittable ? picker : form
+            XCTAssertTrue(container.exists)
+            let frame = container.frame.intersection(app.frame)
+            let upper = max(top + 8, frame.minY + 10)
+            let lower = min(frame.maxY - 16, app.frame.maxY - 24)
+            let center = (upper + lower) / 2
+            let distance = max(12, (lower - upper) * 0.25)
+            let downward = target.exists && target.frame.midY <= top
+            let start = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: frame.midX, dy: center + (downward ? -distance : distance)))
+            let end = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: frame.midX, dy: center + (downward ? distance : -distance)))
+            start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.1)
         }
         XCTAssertTrue(target.isHittable)
     }
