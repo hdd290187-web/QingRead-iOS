@@ -26,7 +26,7 @@ final class ScrollTextDrawing {
     @MainActor func setForeground(_ color: UIColor) {
         guard !foreground.isEqual(color) else { return }
         foreground = color
-        manager.addTemporaryAttribute(.foregroundColor, value: color, forCharacterRange: NSRange(location: 0, length: storage.length))
+        storage.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: storage.length))
     }
     @MainActor func draw(at origin: CGPoint) {
         manager.drawBackground(forGlyphRange: glyphs, at: origin)

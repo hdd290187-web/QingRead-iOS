@@ -85,6 +85,15 @@
       "failed": 3,
       "skipped": 0,
       "total": 8
+    },
+    {
+      "id": 43398281801,
+      "number": 37,
+      "headSha": "489e4203b1166f59e4847371514c6d2de88e1cdf",
+      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43398281801",
+      "conclusion": "compilation_failure",
+      "reason": "NSLayoutManager.addTemporaryAttribute is unavailable on iOS; replaced with NSTextStorage foreground color attribute update.",
+      "testsExecuted": false
     }
   ],
   "confirmedTargetedFixes": [
