@@ -20,6 +20,8 @@ struct RootView: View {
                 .tag(2)
         }
         .tint(YYTheme.accent)
+        .toolbarBackground(YYTheme.background, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .onOpenURL { url in
             imports.openURL(url, library: library)
             selectedTab = 0
@@ -82,6 +84,7 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                shelfHeader
                 if showSearch { searchField }
                 if let status = imports.status, !library.isImporting {
                     HStack(spacing: 8) {
@@ -108,29 +111,8 @@ struct LibraryView: View {
                     }.padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)).accessibilityIdentifier("import.progress")
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: 12) {
-                        Text("书架").font(YYTheme.title(26)).foregroundStyle(YYTheme.foreground).accessibilityAddTraits(.isHeader)
-                        Menu {
-                            Picker("排序", selection: $sortValue) { ForEach(ShelfSort.allCases) { Text($0.title).tag($0.rawValue) } }
-                            Divider()
-                            Button { showGrid.toggle() } label: { Label(showGrid ? "列表视图" : "网格视图", systemImage: showGrid ? "list.bullet" : "square.grid.2x2") }
-                        } label: { Image(systemName: "chevron.down").font(.system(size: 11, weight: .medium)).foregroundStyle(YYTheme.secondary).frame(width: 28, height: 44) }
-                            .accessibilityLabel("书架选项").accessibilityIdentifier("library.options")
-                    }
-                }
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        withAnimation(.easeOut(duration: 0.18)) { showSearch.toggle() }
-                        if showSearch { searchFocused = true } else { query = "" }
-                    } label: { Image(systemName: "magnifyingglass").font(.system(size: 20, weight: .regular)).foregroundStyle(YYTheme.foreground) }
-                        .accessibilityLabel("搜索书架").accessibilityIdentifier("library.search")
-                    Button { imports.openPicker() } label: { Image(systemName: "plus").font(.system(size: 23, weight: .light)).foregroundStyle(YYTheme.foreground) }
-                        .accessibilityLabel("导入书籍").accessibilityIdentifier("library.import").disabled(importDisabled)
-                }
-            }.toolbarBackground(YYTheme.background, for: .tabBar)
+            .toolbar(.hidden, for: .navigationBar)
+            .toolbarBackground(YYTheme.background, for: .tabBar)
             .sheet(isPresented: $imports.pickerPresented, onDismiss: {
                 if !imports.awaitingImport && imports.status == nil { imports.cancelled() }
             }) { bookPicker }
@@ -138,6 +120,26 @@ struct LibraryView: View {
             .fullScreenCover(item: $selectedBook) { book in ReaderView(book: book) }
             .yyPage()
         }
+    }
+    private var shelfHeader: some View {
+        HStack(spacing: 0) {
+            Text("书架").font(YYTheme.title(26)).fixedSize().foregroundStyle(YYTheme.foreground)
+                .accessibilityAddTraits(.isHeader).accessibilityIdentifier("library.title")
+            Menu {
+                Picker("排序", selection: $sortValue) { ForEach(ShelfSort.allCases) { Text($0.title).tag($0.rawValue) } }
+                Divider()
+                Button { showGrid.toggle() } label: { Label(showGrid ? "列表视图" : "网格视图", systemImage: showGrid ? "list.bullet" : "square.grid.2x2") }
+            } label: { Image(systemName: "chevron.down").font(.system(size: 11, weight: .medium)).foregroundStyle(YYTheme.secondary).frame(width: 32, height: 44) }
+                .accessibilityLabel("书架选项").accessibilityIdentifier("library.options")
+            Spacer()
+            Button {
+                withAnimation(.easeOut(duration: 0.18)) { showSearch.toggle() }
+                if showSearch { searchFocused = true } else { query = "" }
+            } label: { Image(systemName: "magnifyingglass").font(.system(size: 20, weight: .regular)).frame(width: 44, height: 44) }
+                .accessibilityLabel("搜索书架").accessibilityIdentifier("library.search")
+            Button { imports.openPicker() } label: { Image(systemName: "plus").font(.system(size: 25, weight: .light)).frame(width: 44, height: 44) }
+                .accessibilityLabel("导入书籍").accessibilityIdentifier("library.import").disabled(importDisabled)
+        }.foregroundStyle(YYTheme.foreground).buttonStyle(.plain).frame(height: 56).padding(.horizontal, YYTheme.screenInset)
     }
     private var searchField: some View {
         HStack(spacing: 10) {
@@ -173,7 +175,7 @@ struct LibraryView: View {
                     Spacer(minLength: 0)
                 }.padding(.horizontal, 24)
             }
-        }.accessibilityIdentifier("library.empty")
+        }
     }
     private var bookList: some View {
         ScrollView {

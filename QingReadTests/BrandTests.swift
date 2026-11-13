@@ -35,7 +35,7 @@ final class BrandTests: XCTestCase {
     }
     func testStyledHeadingPreservesEveryCharacterAndReflowAnchor() {
         let title = "第一章 纸上的时光"
-        let text = title + "\n" + String(repeating: "窗外的雨下得很轻，像是不忍打扰屋内的安静。😊𠮷\n", count: 120)
+        let text = title + "\n" + String(repeating: "窗外的雨下得很轻，像是不忍打扰屋内的安静。😊𠮷\n\n", count: 120)
         var settings = ReaderSettings()
         let original = TextPaginator.layout(text, size: CGSize(width: 264, height: 460), settings: settings, chapterTitle: title)
         XCTAssertEqual(original.attributed.string, text)
@@ -44,6 +44,9 @@ final class BrandTests: XCTestCase {
         XCTAssertEqual(heading?.firstLineHeadIndent, 0)
         let body = original.attributed.attribute(.paragraphStyle, at: title.utf16.count + 1, effectiveRange: nil) as? NSParagraphStyle
         XCTAssertEqual(body?.firstLineHeadIndent, settings.firstLineIndent * settings.fontSize)
+        let blank = (text as NSString).range(of: "\n\n").location + 1
+        let blankFont = original.attributed.attribute(.font, at: blank, effectiveRange: nil) as? UIFont
+        XCTAssertLessThan(blankFont?.pointSize ?? 100, settings.fontSize / 2)
         let anchor = original.ranges[3].start
         settings.fontSize = 30; settings.sidePadding = 36; settings.theme = .gray
         let changed = TextPaginator.layout(text, size: CGSize(width: 248, height: 460), settings: settings, chapterTitle: title)

@@ -20,6 +20,15 @@ struct TextPaginator {
         style.alignment = .justified
         style.lineBreakMode = .byWordWrapping
         let result = NSMutableAttributedString(string: text, attributes: [.font: settings.uiFont, .foregroundColor: settings.theme.uiForeground, .paragraphStyle: style])
+        // TXT often contains blank lines between paragraphs. Keep the characters,
+        // while avoiding an extra full CJK line box in addition to paragraph spacing.
+        if let blankLines = try? NSRegularExpression(pattern: "(?m)^[\\t ]*\\r?\\n") {
+            let blankStyle = NSMutableParagraphStyle()
+            blankStyle.lineSpacing = 0; blankStyle.paragraphSpacing = 0
+            for match in blankLines.matches(in: text, range: NSRange(location: 0, length: result.length)) {
+                result.addAttributes([.font: UIFont.systemFont(ofSize: max(2, settings.fontSize * 0.18)), .paragraphStyle: blankStyle], range: match.range)
+            }
+        }
         // Decorate the existing heading without adding/removing a single UTF-16 unit.
         // Persisted positions and bookmarks therefore retain their original meaning.
         if let chapterTitle, let regex = try? NSRegularExpression(pattern: "\\A[\\r\\n\\t ]*([^\\r\\n]+)"),

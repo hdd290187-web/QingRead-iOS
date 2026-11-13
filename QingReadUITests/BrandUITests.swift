@@ -21,6 +21,8 @@ final class BrandUITests: XCTestCase {
     @MainActor func testEmptyBrandAndThreeTabs() {
         let app = launch()
         XCTAssertTrue(app.buttons["library.emptyImport"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["library.emptyImport"].isHittable)
+        XCTAssertGreaterThan(app.staticTexts["library.title"].frame.width, 40)
         XCTAssertTrue(app.staticTexts["予盈"].exists)
         XCTAssertTrue(app.staticTexts["赠予盈盈的阅读时光"].exists)
         XCTAssertFalse(app.staticTexts["阅简"].exists)
@@ -34,6 +36,10 @@ final class BrandUITests: XCTestCase {
         capture(app, "予盈-我的")
         app.staticTexts["字体、排版与主题"].tap()
         XCTAssertTrue(app.buttons["settings.font"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["字体"].isHittable)
+        XCTAssertTrue(app.staticTexts["字号"].isHittable)
+        XCTAssertGreaterThanOrEqual(app.buttons["settings.font"].frame.minX, 0)
+        XCTAssertLessThanOrEqual(app.buttons["settings.font"].frame.maxX, app.frame.width)
         capture(app, "予盈-阅读设置")
     }
     @MainActor func testTwoColumnCoversSearchAndListSwitch() {
@@ -64,6 +70,7 @@ final class BrandUITests: XCTestCase {
         XCTAssertTrue(book.waitForExistence(timeout: 20)); book.tap()
         let content = element(app, "reader.content")
         XCTAssertTrue(content.waitForExistence(timeout: 15))
+        let originalPageCount = app.staticTexts["reader.pageInfo"].label.components(separatedBy: "/").last
         capture(app, "予盈-TXT阅读工具栏")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap()
         let before = content.value as? String
@@ -73,7 +80,7 @@ final class BrandUITests: XCTestCase {
         capture(app, "予盈-TXT沉浸阅读")
         revealTools(app); app.buttons["reader.settings"].tap()
         XCTAssertTrue(app.sliders["settings.fontSize"].waitForExistence(timeout: 5))
-        app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition: 0.55)
+        app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition: 0.85)
         app.buttons["settings.font"].tap()
         XCTAssertTrue(app.buttons["settings.font.system"].waitForExistence(timeout: 5)); app.buttons["settings.font.system"].tap()
         app.navigationBars.buttons.firstMatch.tap()
@@ -82,7 +89,8 @@ final class BrandUITests: XCTestCase {
         app.buttons["reader.settings.done"].tap()
         XCTAssertTrue(content.waitForExistence(timeout: 10))
         let after = content.value as? String
-        XCTAssertNotNil(after); XCTAssertNotEqual(before, after)
+        XCTAssertFalse((after ?? "").isEmpty)
+        XCTAssertNotEqual(originalPageCount, app.staticTexts["reader.pageInfo"].label.components(separatedBy: "/").last)
         capture(app, "予盈-TXT设置实时生效")
         revealTools(app); app.buttons["返回书架"].tap()
         app.terminate(); app.launchArguments = []; app.launch()
@@ -97,12 +105,12 @@ final class BrandUITests: XCTestCase {
         capture(app, "予盈-EPUB原封面")
         app.staticTexts["封面与排版测试"].firstMatch.tap()
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20))
-        let text = app.webViews.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "中文测试正文")).firstMatch
+        let text = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "这是专为自动测试原创的短文")).firstMatch
         XCTAssertTrue(text.waitForExistence(timeout: 15))
         let originalTextHeight = text.frame.height
         capture(app, "予盈-EPUB阅读")
         revealTools(app); app.buttons["reader.settings"].tap()
-        XCTAssertTrue(app.sliders["settings.fontSize"].waitForExistence(timeout: 5)); app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition: 0.55)
+        XCTAssertTrue(app.sliders["settings.fontSize"].waitForExistence(timeout: 5)); app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition: 0.85)
         let cream = app.buttons["settings.theme.cream"]; scrollTo(cream, app: app); cream.tap()
         app.buttons["reader.settings.done"].tap()
         XCTAssertTrue(text.waitForExistence(timeout: 15))

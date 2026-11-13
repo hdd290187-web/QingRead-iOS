@@ -39,6 +39,7 @@ struct SettingsView: View {
 struct ReaderSettingsForm: View {
     @EnvironmentObject private var library: LibraryStore
     var body: some View {
+        GeometryReader { geometry in
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 fontSection
@@ -60,7 +61,9 @@ struct ReaderSettingsForm: View {
                     ReadingPreview(settings: library.settings).frame(height: 180).clipShape(RoundedRectangle(cornerRadius: 10))
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(YYTheme.separator, lineWidth: 0.5))
                 }.padding(.top, 24).padding(.bottom, 32)
-            }.frame(maxWidth: 560).padding(.horizontal, YYTheme.screenInset).frame(maxWidth: .infinity)
+            }.frame(width: max(240, min(geometry.size.width, 560) - YYTheme.screenInset * 2))
+                .padding(.horizontal, YYTheme.screenInset).frame(maxWidth: .infinity)
+        }
         }.navigationTitle("阅读设置").navigationBarTitleDisplayMode(.inline).yyPage()
     }
     private var rule: some View { Rectangle().fill(YYTheme.separator).frame(height: 0.5) }
