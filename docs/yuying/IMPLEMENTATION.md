@@ -6,7 +6,7 @@
 
 | 文件/区域 | 改动与需要回归的影响 |
 | --- | --- |
-| Design/Theme.swift、品牌资产、LaunchScreen.storyboard、Info.plist | 统一色彩、宋体标题、原生导航和系统静态启动屏；桌面名称改为予盈。图标原始 PNG 必须逐字节匹配用户提供版本。 |
+| Design/Theme.swift、品牌资产、LaunchScreen.storyboard、Info.plist | 统一色彩、宋体标题、原生导航和系统静态启动屏；桌面名称改为予盈。最新文字说明要求独立矢量重绘图标，源稿、渲染脚本与 PNG 校验值一并保留。 |
 | Views/RootView.swift、BookCoverView.swift、Services/BookCoverCache.swift | 默认双列、真实 EPUB 封面、稳定本地自然风格封面、搜索及排序菜单；复用同一个 DocumentImportController 与 BookDocumentPicker，保留所有反馈入口。 |
 | Views/ReaderView.swift、SettingsView.swift、Services/Paginator.swift | 工具栏和纸张排版，标题通过 attributed string 设置样式而不插入或删除字符；设置即时传递到现有阅读引擎，保持 UTF-16 位置语义。 |
 | Models/BookModels.swift | 调整纸张色及新安装默认值，新增浅灰主题；不删除或改名旧枚举值，不更改 Book / Snapshot 字段和持久化键。 |

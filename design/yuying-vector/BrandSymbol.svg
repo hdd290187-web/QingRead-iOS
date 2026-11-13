@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:ns1="http://www.w3.org/1999/xlink" width="804" height="546" viewBox="110 274 804 546">
+  <title>予盈 · 书页</title>
+  <desc>Original editable Bézier drawing based on the user's brand reference. Square canvas; iOS supplies the icon mask. No raster images or lettering.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FCFAF6" /><stop offset="1" stop-color="#F7F6F2" />
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0.85" y2="1">
+      <stop stop-color="#30302E" /><stop offset="0.65" stop-color="#242424" /><stop offset="1" stop-color="#242424" />
+    </linearGradient>
+    <linearGradient id="front-paper" x1="0" y1="0" x2="0.8" y2="1">
+      <stop stop-color="#FBF0E1" /><stop offset="0.55" stop-color="#EEDDC8" /><stop offset="1" stop-color="#D9BDA1" />
+    </linearGradient>
+    <linearGradient id="back-paper" x1="0" y1="0" x2="0.8" y2="1">
+      <stop stop-color="#E7D6C2" /><stop offset="0.65" stop-color="#DCC5AB" /><stop offset="1" stop-color="#C5A88B" />
+    </linearGradient>
+    <path id="lower-leaf" d="M 204 601 C 323 604 447 683 500 804 C 460 765 389 735 310 738 C 265 740 235 751 216 742 C 206 737 202 724 201 704 Z" />
+    <path id="middle-leaf" d="M 139 547 C 282 552 414 651 500 804 C 456 732 380 692 294 682 C 246 677 195 684 163 672 C 145 665 140 650 139 627 Z" />
+    <path id="ink-leaf" d="M 142 286 C 235 286 376 313 443 376 C 486 416 500 460 500 514 L 500 804 C 474 730 429 678 347 643 C 280 615 214 619 157 606 C 134 601 126 586 126 560 L 126 317 C 126 294 128 286 142 286 Z" />
+  </defs>
+  <g id="book-symbol">
+    <g id="lower-paper-pages" fill="url(#back-paper)">
+      <use href="#lower-leaf" ns1:href="#lower-leaf" />
+      <use href="#lower-leaf" ns1:href="#lower-leaf" transform="translate(1024 0) scale(-1 1)" />
+    </g>
+    <g id="front-paper-pages" fill="url(#front-paper)">
+      <use href="#middle-leaf" ns1:href="#middle-leaf" />
+      <use href="#middle-leaf" ns1:href="#middle-leaf" transform="translate(1024 0) scale(-1 1)" />
+    </g>
+    <g id="ink-pages" fill="url(#ink)">
+      <use href="#ink-leaf" ns1:href="#ink-leaf" />
+      <use href="#ink-leaf" ns1:href="#ink-leaf" transform="translate(1024 0) scale(-1 1)" />
+    </g>
+  </g>
+</svg>

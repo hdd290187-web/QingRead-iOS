@@ -44,7 +44,9 @@ with ZipFile(ipa) as archive:
     font = json.loads((repo / 'docs/font-lock.json').read_text())
     assert hashlib.sha256(archive.read('Payload/QingRead.app/NotoSerifSC.ttf')).hexdigest() == font['sha256']
 source_icon = repo / 'QingRead/Assets.xcassets/AppIcon.appiconset/AppIcon.png'
-assert hashlib.sha256(source_icon.read_bytes()).hexdigest() == '47bb96e82f2988b1de39a11245aaa6bf6c7c0b867464e1942cebb6784842b7b0'
+icon_lock = json.loads((repo / 'design/yuying-vector/asset-lock.json').read_text())
+assert hashlib.sha256(source_icon.read_bytes()).hexdigest() == icon_lock['pngSHA256']
+assert hashlib.sha256((repo / icon_lock['source']).read_bytes()).hexdigest() == icon_lock['sourceSHA256']
 print(json.dumps({
     'run': sys.argv[1], 'commit': metadata['commit'], 'brand': info['CFBundleDisplayName'],
     'bundleID': info['CFBundleIdentifier'], 'version': info['CFBundleShortVersionString'],

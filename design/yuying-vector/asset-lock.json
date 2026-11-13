@@ -1,0 +1,17 @@
+{
+  "origin": "Original editable vector reconstruction following the latest user instruction",
+  "request": "design/yuying-reference/latest-instructions.txt",
+  "source": "design/yuying-vector/AppIcon.svg",
+  "sourceSHA256": "d016f6bb7f8d26e1659a491c1f3238d7b06189fcd46e30330bb5e18180e21e07",
+  "png": "QingRead/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+  "pngSHA256": "cc8858c7cf96d4355859ac6d2d88343f94a1135efda57c3e3027c633ddc62e8e",
+  "pixels": [
+    1024,
+    1024
+  ],
+  "mode": "RGB",
+  "alpha": false,
+  "bakedSystemCorners": false,
+  "renderer": "CairoSVG 2.8.2, 4x supersampling, Pillow Lanczos",
+  "license": "Original paths/code under the repository MIT license; user supplied design reference"
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Linux checks. Does not claim to typecheck UIKit or run Xcode."""
-import hashlib, json, plistlib, subprocess, zipfile, xml.etree.ElementTree as ET
+import hashlib, json, plistlib, struct, subprocess, zipfile, xml.etree.ElementTree as ET
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 plist=plistlib.loads((root/'QingRead/Info.plist').read_bytes())
@@ -10,7 +10,16 @@ assert plist['UIAppFonts']==['NotoSerifSC.ttf']
 assert plist['CFBundleDisplayName']=='予盈'
 assert plist['UILaunchStoryboardName']=='LaunchScreen'
 ET.parse(root/'QingRead/Resources/LaunchScreen.storyboard')
-assert hashlib.sha256((root/'QingRead/Assets.xcassets/AppIcon.appiconset/AppIcon.png').read_bytes()).hexdigest()=='47bb96e82f2988b1de39a11245aaa6bf6c7c0b867464e1942cebb6784842b7b0'
+icon_lock=json.loads((root/'design/yuying-vector/asset-lock.json').read_text())
+icon_data=(root/icon_lock['png']).read_bytes()
+assert hashlib.sha256(icon_data).hexdigest()==icon_lock['pngSHA256']
+assert hashlib.sha256((root/icon_lock['source']).read_bytes()).hexdigest()==icon_lock['sourceSHA256']
+assert struct.unpack_from('>IIBB',icon_data,16)==(1024,1024,8,2)  # 8-bit RGB, no alpha
+icon_svg=ET.parse(root/icon_lock['source']).getroot()
+assert icon_svg.attrib['viewBox']=='0 0 1024 1024'
+assert not icon_svg.findall('.//{http://www.w3.org/2000/svg}image')
+assert not icon_svg.findall('.//{http://www.w3.org/2000/svg}text')
+assert icon_lock['alpha'] is False and icon_lock['bakedSystemCorners'] is False
 for path in (root/'QingRead').rglob('*.swift'):
     assert '阅简' not in path.read_text(), f'Old visible brand in {path}'
 plistlib.loads((root/'QingRead/PrivacyInfo.xcprivacy').read_bytes())
