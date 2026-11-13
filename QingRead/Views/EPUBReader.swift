@@ -2,7 +2,6 @@ import SwiftUI
 import UIKit
 import ReadiumShared
 import ReadiumNavigator
-import WebKit
 
 struct EPUBReader: UIViewControllerRepresentable {
     @ObservedObject var session: ReaderSession
@@ -75,7 +74,13 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         prefs.theme = settings.theme == .dark || (settings.theme == .system && traits.userInterfaceStyle == .dark) ? .dark : settings.theme == .cream ? .sepia : .light
         return prefs
     }
-    func apply(settings newSettings: ReaderSettings) { guard settings != newSettings else { return }; settings = newSettings; view.backgroundColor = settings.theme.uiBackground; navigator?.submitPreferences(preferences()) }
+    func apply(settings newSettings: ReaderSettings) {
+        guard settings != newSettings else { return }
+        settings = newSettings
+        view.backgroundColor = settings.theme.uiBackground
+        navigator?.submitPreferences(preferences())
+        updateHeadingStyle()
+    }
     func move(forward: Bool) { Task { guard let navigator else { return }; if forward { _ = await navigator.goForward() } else { _ = await navigator.goBackward() } } }
     func navigate(to position: ReadingPosition) {
         Task {
@@ -89,23 +94,40 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         // toolbars. Readium's window-based defaults would apply those insets twice.
         UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
     }
-    func navigator(_ navigator: EPUBNavigatorViewController, setupUserScripts controller: WKUserContentController) {
-        guard publication?.metadata.layout != .fixed else { return }
+    private func updateHeadingStyle() {
+        guard publication?.metadata.layout != .fixed, let navigator else { return }
+        let size = max(22, settings.fontSize * 1.15)
         let script = """
         (() => {
-          const style = document.createElementNS('http://www.w3.org/1999/xhtml', 'style');
-          style.setAttribute('type', 'text/css');
-          style.textContent = 'html body h1,html body h2 { font-size:1.15em !important; font-family:inherit !important; font-weight:600 !important; line-height:1.5 !important; text-align:left !important; margin-block-start:12px !important; margin-block-end:24px !important; }';
-          (document.head || document.documentElement).appendChild(style);
+          const titleSize = Math.round(\(size) * 100) / 100;
+          const values = {'font-size': titleSize + 'px', 'font-family': 'inherit', 'font-weight': '600', 'line-height': '1.5', 'text-align': 'left', 'margin-top': '12px', 'margin-bottom': '24px'};
+          let changed = false;
+          document.querySelectorAll('h1,h2').forEach(heading => {
+            Object.entries(values).forEach(([key, value]) => {
+              if (heading.style.getPropertyValue(key) !== value || heading.style.getPropertyPriority(key) !== 'important') {
+                heading.style.setProperty(key, value, 'important');
+                changed = true;
+              }
+            });
+          });
+          if (changed) window.dispatchEvent(new Event('resize'));
+          return changed;
         })();
         """
-        controller.addUserScript(WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: false))
+        // Run on the loaded publication, after Readium has applied user preferences.
+        // Inline pixel sizing avoids publisher/default em scales multiplying the title.
+        // Writes are idempotent; a resize caused by the first application cannot loop.
+        Task { _ = await navigator.evaluateJavaScript(script) }
+    }
+    func navigator(_ navigator: VisualNavigator, presentationDidChange presentation: VisualNavigatorPresentation) {
+        updateHeadingStyle()
     }
     func navigator(_ navigator: Navigator, locationDidChange locator: Locator) {
         let href = locator.href.string.components(separatedBy: "#")[0]
         let index = toc.lastIndex(where: { $0.href.components(separatedBy: "#")[0] == href }) ?? 0
         let json = try? locator.jsonString()
         session.report(ReadingPosition(chapter: index, locatorJSON: json, progression: locator.locations.totalProgression ?? 0), pageInfo: "\(Int((locator.locations.totalProgression ?? 0) * 100))%")
+        updateHeadingStyle()
     }
     func navigator(_ navigator: Navigator, presentError error: NavigatorError) { session.error = "阅读器无法完成当前操作。" }
     func navigator(_ navigator: Navigator, presentExternalURL url: URL) { /* Book links cannot silently leave the reader. */ }
