@@ -12,6 +12,11 @@ on:
         description: 'Run targeted reader failure regressions; never package an IPA'
         type: boolean
         default: false
+      standard_runner:
+        description: 'Standard hosted macOS runner; Intel is available when arm64 capacity is constrained'
+        type: choice
+        default: macos-15
+        options: [macos-15, macos-15-intel]
 permissions:
   contents: read
 concurrency:
@@ -19,7 +24,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: ${{ inputs.standard_runner || 'macos-15' }}
     timeout-minutes: 90
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
@@ -127,7 +132,7 @@ jobs:
   layouts:
     name: Layouts (${{ matrix.label }})
     if: ${{ !inputs.import_only && !inputs.reader_diagnostics }}
-    runs-on: macos-15
+    runs-on: ${{ inputs.standard_runner || 'macos-15' }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
