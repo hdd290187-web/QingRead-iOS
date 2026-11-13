@@ -90,7 +90,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
     }
     func navigator(_ navigator: EPUBNavigatorViewController, setupUserScripts controller: WKUserContentController) {
-        guard publication?.metadata.epubLayout != .fixed else { return }
+        guard publication?.metadata.layout != .fixed else { return }
         let script = """
         (() => {
           const style = document.createElement('style');
