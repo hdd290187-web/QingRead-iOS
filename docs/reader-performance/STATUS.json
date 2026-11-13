@@ -1,17 +1,15 @@
 {
-  "status": "FIXES_PENDING_TARGETED_MACOS_REGRESSION",
+  "status": "TARGETED_REGRESSIONS_PASSED_PENDING_FULL_RELEASE",
   "baselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
   "repoVisibility": "Public",
   "publicationAudit": "APPROVED_FOR_PUBLICATION",
   "newActionsRun": {
-    "id": 43388748089,
-    "build": 34,
-    "headSha": "7934a48d5e1a31a5b94d2c58520ad20588992c47",
-    "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43388748089",
-    "status": "CANCELLED_WITH_REAL_TEST_FAILURES_OBSERVED",
-    "deviceReleaseCompilation": "PASS",
+    "build": 39,
+    "id": null,
+    "status": "PREPARING_FULL_VALIDATION",
     "runner": "macos-15",
-    "import_only": false
+    "import_only": false,
+    "reader_diagnostics": false
   },
   "newIPA": null,
   "baselineIPA": {
@@ -38,12 +36,19 @@
     },
     "repositoryResourcesAndScripts": "PASS",
     "xcodeCompilation": "PASS_RELEASE_AND_DEBUG_BUILD34",
-    "xctest": "FAILED_PARTIAL_BUILD34",
+    "xctest": "TARGETED_PASS_FULL_PLAN_PENDING",
     "workflowYAMLAndShell": "PASS",
-    "criticalImportAndStorageFilesUnchanged": 7
+    "criticalImportAndStorageFilesUnchanged": 7,
+    "targetedReaderRegressions": {
+      "status": "PASS",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "run": 43398806434
+    }
   },
   "performanceComparison": {
-    "status": "NOT_COMPLETED_REPORT_SERIALIZATION_FIX_REQUIRED",
+    "status": "PENDING_FULL_SAME_DEVICE_RUN",
     "sameDeviceWorkloads": [
       "short",
       "long",
@@ -57,12 +62,8 @@
     "real iPhone scroll/frame/thermal/touch profiling",
     "same-signature upgrade data preservation"
   ],
-  "implementationCommit": "b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970",
-  "observedFailures": [
-    "The worker and UITextView have identical characters/line counts but different paragraph-end glyph metrics; the fixed-height/leading hypothesis was disproved by run36",
-    "At a chapter boundary, selecting the minimum visible row included the preceding row under the top paper inset",
-    "EPUB async locator updates could hide freshly opened tools"
-  ],
+  "implementationCommit": "a5618f1e0bb09e837d52b31a1871fc2f99f0c605",
+  "observedFailures": [],
   "targetedRuns": [
     {
       "id": 43392508035,
@@ -94,6 +95,17 @@
       "conclusion": "compilation_failure",
       "reason": "NSLayoutManager.addTemporaryAttribute is unavailable on iOS; replaced with NSTextStorage foreground color attribute update.",
       "testsExecuted": false
+    },
+    {
+      "id": 43398806434,
+      "number": 38,
+      "headSha": "a5618f1e0bb09e837d52b31a1871fc2f99f0c605",
+      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43398806434",
+      "conclusion": "success",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "total": 9
     }
   ],
   "confirmedTargetedFixes": [
