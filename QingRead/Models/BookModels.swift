@@ -42,13 +42,24 @@ struct Bookmark: Codable, Hashable, Identifiable {
     var title: String
     var createdAt = Date()
     var locationKey: String {
-        if let json = position.locatorJSON {
-            // Readium locators can include incidental text/title fields. The
-            // resource and location identify the reading anchor across reflows.
-            if let value = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] {
-                let anchor: [String: Any] = ["href": value["href"] ?? "", "locations": value["locations"] ?? [:]]
-                if let data = try? JSONSerialization.data(withJSONObject: anchor, options: .sortedKeys), let key = String(data: data, encoding: .utf8) { return bookID.uuidString + ":epub:" + key }
+        if let json = position.locatorJSON,
+           let value = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] {
+            let locations = value["locations"] as? [String: Any] ?? [:]
+            let text = value["text"] as? [String: Any] ?? [:]
+            let stableLocations: [String: Any] = [
+                "fragments": locations["fragments"] ?? [],
+                "position": locations["position"] ?? NSNull()
+            ]
+            let stableText: [String: Any] = ["before": text["before"] ?? NSNull(), "after": text["after"] ?? NSNull()]
+            var anchor: [String: Any] = ["href": value["href"] ?? "", "locations": stableLocations, "text": stableText]
+            if stableLocations["position"] is NSNull,
+               (stableLocations["fragments"] as? [Any] ?? []).isEmpty,
+               stableText["before"] is NSNull, stableText["after"] is NSNull {
+                let progression = (locations["progression"] as? Double) ?? position.progression
+                anchor["progressionBucket"] = (progression * 10_000).rounded() / 10_000
             }
+            if let data = try? JSONSerialization.data(withJSONObject: anchor, options: [.sortedKeys]),
+               let key = String(data: data, encoding: .utf8) { return bookID.uuidString + ":epub:" + key }
             return bookID.uuidString + ":epub:" + json
         }
         return "\(bookID.uuidString):\(position.chapter):\(position.characterOffset)"

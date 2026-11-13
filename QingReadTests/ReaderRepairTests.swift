@@ -115,4 +115,17 @@ import CoreText
         XCTAssertEqual(controller.lastFeedback?.result.imported,["后导入"])
         XCTAssertEqual(library.books.count,2)
     }
+    func testEPUBBookmarkIdentitySurvivesReflowButDistinguishesAnchors() {
+        let book=UUID()
+        func mark(_ offset:Int,_ progression:Double,_ fragment:String?=nil) -> Bookmark {
+            let fragmentJSON=fragment.map { "[\"\($0)\"]" } ?? "[]"
+            let json="{\"href\":\"chapter.xhtml\",\"locations\":{\"fragments\":\(fragmentJSON),\"position\":\(offset),\"progression\":\(progression),\"totalProgression\":\(progression)},\"text\":{\"before\":\"before\",\"after\":\"after\"}}"
+            return Bookmark(bookID:book,position:ReadingPosition(chapter:2,locatorJSON:json,progression:progression),title:"章")
+        }
+        XCTAssertEqual(mark(40,0.2).locationKey,mark(40,0.201).locationKey)
+        XCTAssertNotEqual(mark(40,0.2).locationKey,mark(41,0.2).locationKey)
+        XCTAssertNotEqual(mark(40,0.2,"page=1").locationKey,mark(40,0.2,"page=2").locationKey)
+        let first=mark(40,0.2)
+        XCTAssertEqual(first.locationKey,Bookmark(id:first.id,bookID:book,position:first.position,title:first.title,createdAt:first.createdAt).locationKey)
+    }
 }
