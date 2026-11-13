@@ -1,0 +1,110 @@
+[
+  {
+    "path": "screenshots/small/008-4C3BE4A6-D704-44AA-A191-9B1770F202F9.png",
+    "name": "scroll-竖屏沉浸_0_64474DB4-B790-495C-A9C6-6BB2492929AC.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "iPhone SE (3rd generation)",
+    "deviceId": "A1285399-F2F4-46E9-8CF2-4AA227FF7EF3",
+    "failureAttachment": false,
+    "sourceRun": "43411473924",
+    "publishedPath": "docs/reader-performance/screenshots/small-scroll-immersive.png",
+    "originalSHA256": "7ae210a064150292c66b344f80f52eadc30f0dbca69c749df82eb3743e556952",
+    "presentationChange": "unchanged original"
+  },
+  {
+    "path": "screenshots/small/007-BC354EE7-C51A-4820-9426-8B4F27E622E4.png",
+    "name": "scroll-浮层工具栏_0_7ECC3820-5F74-4D39-9BD2-0C7EAB21AD04.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "iPhone SE (3rd generation)",
+    "deviceId": "A1285399-F2F4-46E9-8CF2-4AA227FF7EF3",
+    "failureAttachment": false,
+    "sourceRun": "43411473924",
+    "publishedPath": "docs/reader-performance/screenshots/small-scroll-tools.png",
+    "originalSHA256": "ce5d8b22afcaa88d8c79892faee9b4fe7aaac2bee8e9f4a224ed14938001ff93",
+    "presentationChange": "unchanged original"
+  },
+  {
+    "path": "screenshots/small/006-73E118E9-2ACA-40B4-B9CA-955D37229D41.png",
+    "name": "scroll-横屏沉浸_0_338F2848-D57C-400D-8AF7-E8AD86158BAD.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "iPhone SE (3rd generation)",
+    "deviceId": "A1285399-F2F4-46E9-8CF2-4AA227FF7EF3",
+    "failureAttachment": false,
+    "sourceRun": "43411473924",
+    "publishedPath": "docs/reader-performance/screenshots/small-scroll-landscape.png",
+    "originalSHA256": "7786d63159b45cf66301a47c9e4adf1aced31c95723a6f198ed7dcc9a3079f7b",
+    "presentationChange": "90-degree orientation only; original PNG is retained in review ZIP"
+  },
+  {
+    "path": "screenshots/iphone15/008-C0F96AE3-F084-4663-99CA-F025787F49B0.png",
+    "name": "scroll-竖屏沉浸_0_3510BC39-B41C-4C61-87BA-89435EBC07C8.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "Yuying iPhone 15",
+    "deviceId": "3B27E0B5-8C3E-4201-9B90-1643C7CCB31F",
+    "failureAttachment": false,
+    "sourceRun": "43411473924",
+    "publishedPath": "docs/reader-performance/screenshots/iphone15-scroll-immersive.png",
+    "originalSHA256": "8406e9e15255554de606e7f2841a374c7d16bd287dbe4e28e09967f40902047e",
+    "presentationChange": "unchanged original"
+  },
+  {
+    "path": "screenshots/iphone15/007-283056D6-62E1-4168-8727-B1C2A21F182C.png",
+    "name": "scroll-浮层工具栏_0_65EF3617-D452-4883-AAA9-F85318D46518.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "Yuying iPhone 15",
+    "deviceId": "3B27E0B5-8C3E-4201-9B90-1643C7CCB31F",
+    "failureAttachment": false,
+    "sourceRun": "43411473924",
+    "publishedPath": "docs/reader-performance/screenshots/iphone15-scroll-tools.png",
+    "originalSHA256": "5bbaa2ca03a74528c8defed5345d5de8b79f915a4a09f2e8315885d4332e0deb",
+    "presentationChange": "unchanged original"
+  },
+  {
+    "path": "screenshots/iphone15/006-050D3D6C-14A3-418E-9BE4-4FA9150F66F7.png",
+    "name": "scroll-横屏沉浸_0_8205D325-2D55-4873-9C82-F100FA369319.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "Yuying iPhone 15",
+    "deviceId": "3B27E0B5-8C3E-4201-9B90-1643C7CCB31F",
+    "failureAttachment": false,
+    "sourceRun": "43411473924",
+    "publishedPath": "docs/reader-performance/screenshots/iphone15-scroll-landscape.png",
+    "originalSHA256": "7d38409fc05a2d3bf9820136fc6dd9135f7341d182d467379b7cd2ce80fa4dcb",
+    "presentationChange": "90-degree orientation only; original PNG is retained in review ZIP"
+  },
+  {
+    "path": "screenshots/large/003-29F656B0-A055-4133-8952-20F352E42246.png",
+    "name": "scroll-竖屏沉浸_0_6C8998D5-4D31-42C0-A30B-D9B5D01D7812.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "iPhone 17 Pro Max",
+    "deviceId": "17F0E734-D183-4810-AB97-F27FD9968039",
+    "failureAttachment": false,
+    "sourceRun": "43425216709",
+    "publishedPath": "docs/reader-performance/screenshots/large-scroll-immersive.png",
+    "originalSHA256": "890f7d8edd11c8607a59ac88333be1e1c2ce7056a4516c5b161dbbc2d90ef98b",
+    "presentationChange": "unchanged original"
+  },
+  {
+    "path": "screenshots/large/002-5110A097-BA65-408D-A829-F43D2BA887DA.png",
+    "name": "scroll-浮层工具栏_0_72E592A2-F74B-4AB0-9F24-586EB01BDB94.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "iPhone 17 Pro Max",
+    "deviceId": "17F0E734-D183-4810-AB97-F27FD9968039",
+    "failureAttachment": false,
+    "sourceRun": "43425216709",
+    "publishedPath": "docs/reader-performance/screenshots/large-scroll-tools.png",
+    "originalSHA256": "8770d60ed231626ad2c9fffc29977e5587fd05ce971e29b8c42f50ef71ea1a56",
+    "presentationChange": "unchanged original"
+  },
+  {
+    "path": "screenshots/large/001-A9BE1A1E-F4DC-4848-9967-C2C1B2C55F16.png",
+    "name": "scroll-横屏沉浸_0_BA976356-13E0-431A-97A5-BECEF095C6F1.png",
+    "test": "ReaderLayoutTests/testAllModesImmersionOverlayAndLandscape()",
+    "device": "iPhone 17 Pro Max",
+    "deviceId": "17F0E734-D183-4810-AB97-F27FD9968039",
+    "failureAttachment": false,
+    "sourceRun": "43425216709",
+    "publishedPath": "docs/reader-performance/screenshots/large-scroll-landscape.png",
+    "originalSHA256": "cc62760ce110b0820d998f1a917b1f86bca05c07d5e50064bdcb84d6f1d6f42d",
+    "presentationChange": "90-degree orientation only; original PNG is retained in review ZIP"
+  }
+]

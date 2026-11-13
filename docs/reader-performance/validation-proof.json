@@ -1,0 +1,38 @@
+{
+  "regressionRun": 43411473924,
+  "regressionSourceCommit": "e3710be50e07e381ad9ace38c3c800027c7b9784",
+  "regressionOverallConclusion": "cancelled",
+  "releaseCodeMatchesRegressions": true,
+  "main": {
+    "passedTests": 62,
+    "failedTests": 0,
+    "skippedTests": 3,
+    "totalTestCount": 65
+  },
+  "iPhone15": {
+    "passedTests": 10,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "totalTestCount": 10
+  },
+  "calibratedBenchmarkSourceCommit": "ef03a5535e4daeb4e7f791edfff0e28ba69b8d75",
+  "calibratedBenchmarkRun": 43418894170,
+  "releaseCodeMatchesCalibratedBenchmark": true,
+  "completionSourceCommit": "ee08a791ca570b09481c92d9a07314a6614f657c",
+  "preBuildRemainingValidation": "Fresh large-iPhone layouts and the actual arm64 Release package",
+  "remainingValidation": [],
+  "completedValidation": {
+    "run": 43425216709,
+    "conclusion": "success",
+    "largeDevice": "iPhone 17 Pro Max",
+    "largeTests": {
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    "actualReleaseBuild": "43",
+    "arch": "arm64",
+    "unsigned": true,
+    "ipaSHA256": "c27da8248b7f20920b84e4a38de83a7d7c0cce5647aad52320d61468241c722e"
+  }
+}

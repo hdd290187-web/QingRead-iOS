@@ -2,9 +2,9 @@
 
 最新版本与校验值见 [本次交付报告](yuying/DELIVERY.md)。内部工程仍名为 QingRead；最低 iOS 17.0，支持 iPhone 竖屏/横屏，无需 VPS 服务、云账号或服务器 API。
 
-## 从 Build 24 升级
+## 覆盖现有版本（包括 Build 24）
 
-本包是 **未签名的 iOS arm64 IPA**。使用你安装 Build 24 时的有效签名身份、Team、描述文件和工具覆盖安装，应用标识继续保持 `com.hdd290187.qingread`。不要先卸载旧 App，不要启用清除数据，不要让重签工具改成新的随机 Bundle ID。签名身份或应用标识变化会影响系统是否允许覆盖，不能通过卸载来解决并同时声称保留数据。
+本包是 **未签名的 iOS arm64 IPA**。使用安装现有版本时的有效签名身份、Team、描述文件和工具覆盖安装，应用标识继续保持 `com.hdd290187.qingread`。不要先卸载旧 App，不要启用清除数据，不要让重签工具改成新的随机 Bundle ID。签名身份或应用标识变化会影响系统是否允许覆盖，不能通过卸载来解决并同时声称保留数据。
 
 解压交付 ZIP，取出 QingRead.ipa，按原有流程签名并安装。桌面名称改为“予盈”，书库、书签、阅读进度和自定义设置沿用。IPA 没有 Apple 签名，不能不经签名直接安装。
 
@@ -29,3 +29,12 @@ python3 scripts/verify-brand-ipa.py <成功的 Actions run ID>
 ```
 
 下载脚本等待运行成功并验证 SHA256/ZIP，归档 releases/QingRead-版本-build编号-run编号.ipa，最新副本为 releases/latest/QingRead.ipa。完整日志、xcresult、截图、环境和生成工程保留在 releases/run编号/。macOS 本地可先运行 XcodeGen 2.46.0 的 `xcodegen generate` 再构建；不能以模拟器成功代替 iPhone device Release 编译。
+
+Build 43 的完整主计划/iPhone 15 回归、校准性能对照和最终 Release/大屏验证分别有原始运行记录，来源与发布代码等价校验写在交付报告及 validation-proof.json。在完整 Git clone 中复核此包时，额外下载校准 benchmark：
+
+```bash
+gh run download 43418894170 --repo hdd290187-web/QingRead-iOS --name Yuying-reader-benchmark --dir releases/run43418894170
+python3 scripts/verify-brand-ipa.py 43425216709 --benchmark-run 43418894170
+```
+
+源码 tar.gz 是不含 .git 的提交归档，附带实际生成工程，可用于 Mac 构建；涉及历史提交等价性的复核需要从公开仓库获取完整 Git 历史。真实 iPhone 的同签名升级和连续滚动验收仍按 [本次真机步骤](reader-performance/DEVICE_VALIDATION.md) 执行。

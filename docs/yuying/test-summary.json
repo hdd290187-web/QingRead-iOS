@@ -12,7 +12,7 @@
       },
       "expectedFailures" : 0,
       "failedTests" : 0,
-      "passedTests" : 52,
+      "passedTests" : 62,
       "skippedTests" : 3,
       "testPlanConfiguration" : {
         "configurationId" : "1",
@@ -23,13 +23,16 @@
   "environmentDescription" : "QingRead · Built with macOS 15.8.2",
   "expectedFailures" : 0,
   "failedTests" : 0,
-  "finishTime" : 1794539137.217,
-  "passedTests" : 52,
+  "finishTime" : 1794568469.653,
+  "passedTests" : 62,
   "result" : "Passed",
   "skippedTests" : 3,
-  "startTime" : 1794538783.321,
+  "startTime" : 1794567262.387,
   "statistics" : [
-
+    {
+      "subtitle" : "65 test runs",
+      "title" : "1 configuration ran with test repetitions"
+    }
   ],
   "testFailures" : [
 
@@ -38,14 +41,9 @@
   "topInsights" : [
     {
       "category" : "Longest Test Runs",
-      "impact" : "19% of duration",
-      "text" : "1 longest test run with outlier durations exceeding 45.84s (three standard deviations)"
-    },
-    {
-      "category" : "Longest Test Runs",
-      "impact" : "76% of duration",
-      "text" : "2 longest test runs with outlier durations exceeding 0.78s (three standard deviations)"
+      "impact" : "73% of duration",
+      "text" : "3 longest test runs with outlier durations exceeding 1.03s (three standard deviations)"
     }
   ],
-  "totalTestCount" : 55
+  "totalTestCount" : 65
 }

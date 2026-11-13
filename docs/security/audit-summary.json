@@ -3,48 +3,60 @@
   "repository": "hdd290187-web/QingRead-iOS",
   "visibility": "Public",
   "decision": "APPROVED_FOR_PUBLICATION",
-  "reason": "User confirmed on 2026-11-13 that the historical reference images were self-generated, resolving the only outstanding provenance condition within the explicit request to publish this repository.",
-  "historyBaselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
-  "remoteBranches": 1,
-  "tags": 4,
-  "pullRequests": 0,
-  "commitsScanned": 39,
-  "gitObjectsIncludingUnreachable": 569,
-  "gitBlobsIncludingUnreachable": 292,
-  "actionsRuns": 32,
-  "actionsArtifacts": 31,
-  "releases": 1,
-  "releaseAssets": 5,
-  "recursiveMembersInspected": 31253,
+  "actualUserOrRepositoryCredentialsFound": 0,
   "gitleaksVersion": "8.30.1",
-  "actualCredentialsFound": 0,
-  "genericCandidates": 7,
-  "falsePositiveClassification": "UIKit view-controller connection UUIDs in two historical simulator logs; not authentication credentials.",
-  "privateIPv4Candidates": 0,
-  "privateImageExif": 0,
-  "credentialOrSigningFileCandidates": 0,
-  "runner": "GitHub-hosted macos-15 (standard)",
-  "workflowPermissions": {
-    "contents": "read"
+  "prePublicationScope": {
+    "remoteBranches": 1,
+    "tags": 4,
+    "pullRequests": 0,
+    "actionsRuns": 32,
+    "actionsArtifacts": 31,
+    "releases": 1,
+    "releaseAssets": 5,
+    "recursiveArchiveMembersInspected": 31253,
+    "commits": 36,
+    "allGitObjectsIncludingUnreachable": 569,
+    "gitBlobs": 292
   },
-  "untrustedPRWriteWorkflow": false,
-  "rawEvidenceLocation": "VPS private audit directory, excluded from source and delivery archives",
-  "sourceScanScopeNote": "Full history scanned again after candidate delivery; final publication documentation commit is scanned before visibility changes.",
-  "candidateHistoryScan": {
-    "commit": "e86ae2221ef2879b3ebd4d14eabc41f0e73c09e8",
-    "commits": 38,
-    "gitleaksFindings": 0,
-    "dateUTC": "2026-11-13"
+  "prePublicationFalsePositives": {
+    "candidates": 7,
+    "classification": "UIKit view-controller connection UUIDs, not authentication credentials"
   },
-  "imageProvenance": {
-    "confirmedUTC": "2026-11-13",
-    "statement": "是我自己生成的",
-    "record": "design/yuying-reference/README.md",
-    "publicationContext": "User explicitly requested publishing the existing repository after a clear audit."
+  "latestBuildSourceAudit": {
+    "head": "ee08a791ca570b09481c92d9a07314a6614f657c",
+    "reachableCommitsAcrossAllRefs": 50,
+    "objectCountIncludingUnreachable": 817,
+    "objectTypes": {
+      "tree": 348,
+      "blob": 416,
+      "commit": 50,
+      "tag": 3
+    },
+    "newBlobsExported": 13,
+    "fullHistoryCredentialFindings": 0,
+    "allObjectsCredentialFindings": 0
   },
-  "remoteInventoryRechecked": {
-    "dateUTC": "2026-11-13",
-    "newUnreviewedRunsArtifactsOrReleases": 0
+  "postPublicationAudit": {
+    "runsReviewed": [
+      43387462670,
+      43388748089,
+      43392508035,
+      43394574823,
+      43398281801,
+      43398806434,
+      43401100910,
+      43404759462,
+      43408768485,
+      43411473924,
+      43418894170,
+      43425216709
+    ],
+    "newLogsCredentialFindings": 0,
+    "newFinalReleaseArtifactCredentialFindings": 0,
+    "simulatorDiagnosticClassification": "Apple shared-cache static strings, HomeUI method names, FontParser embedded test material, and ephemeral simulator archive/checksum keys; system-image hashes match the reviewed Apple images.",
+    "run42LogsEndpointReturnedEmptyZIP": true,
+    "run42AuditEvidence": "All embedded build/test/export logs, original summaries and job step statuses; the accessible API log archive was empty.",
+    "rawSimulatorSystemDiagnosticsIncludedInDelivery": false
   },
   "publication": {
     "verifiedUTC": "2026-11-13T07:41:56Z",
@@ -53,5 +65,26 @@
     "authenticatedAndUnauthenticatedAPIVerified": true,
     "publicationCommit": "d8b730a0f0cec70eda2a1ef2d599927249f85dcd",
     "gitleaksFindings": 0
-  }
+  },
+  "imageProvenance": {
+    "confirmedUTC": "2026-11-13",
+    "statement": "是我自己生成的",
+    "record": "design/yuying-reference/README.md",
+    "publicationContext": "User explicitly requested publishing the existing repository after a clear audit."
+  },
+  "visibilityRechecked": {
+    "authenticatedAPI": true,
+    "unauthenticatedAPI": true,
+    "visibility": "public",
+    "private": false
+  },
+  "workflow": {
+    "runner": "GitHub-hosted macos-15 (standard)",
+    "contents": "read",
+    "completionEvidenceDownloadActionsPermission": "read",
+    "persistCredentials": false,
+    "untrustedPRWriteWorkflow": false
+  },
+  "finalDeliveryAudit": "Source history and all objects are scanned again after the final evidence commit; delivery archives are scanned before GitHub Release upload. Final source commit and archive hashes are recorded in the external delivery manifest.",
+  "rawEvidenceLocation": "Private VPS audit directory; excluded from Git, source archives and delivery packages"
 }

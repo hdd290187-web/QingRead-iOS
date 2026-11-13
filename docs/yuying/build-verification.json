@@ -1,26 +1,64 @@
 {
-  "run": "43355596782",
-  "commit": "8bb6d683702d35907f9826a0d3558d995fef101d",
+  "run": "43425216709",
+  "benchmarkRun": "43418894170",
+  "commit": "ee08a791ca570b09481c92d9a07314a6614f657c",
   "brand": "予盈",
   "bundleID": "com.hdd290187.qingread",
   "version": "1.0.0",
-  "build": "31",
+  "build": "43",
   "sdk": "iphoneos26.2",
   "unsigned": true,
   "arch": "arm64",
   "mainTests": {
-    "passedTests": 52,
+    "passedTests": 62,
     "failedTests": 0,
     "skippedTests": 3,
-    "totalTestCount": 55
+    "totalTestCount": 65
   },
   "iPhone15BrandTests": {
-    "passedTests": 5,
+    "passedTests": 10,
     "failedTests": 0,
     "skippedTests": 0,
-    "totalTestCount": 5
+    "totalTestCount": 10
   },
-  "sha256": "5e6358f23ea8715eb5d2010c0797a4f9ad2ea4db6cb6cd55661ed5c5452289b6",
-  "bytes": 23981086,
-  "iconSourceSHA256": "47bb96e82f2988b1de39a11245aaa6bf6c7c0b867464e1942cebb6784842b7b0"
+  "largeReaderTests": {
+    "passedTests": 2,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "totalTestCount": 2
+  },
+  "sha256": "c27da8248b7f20920b84e4a38de83a7d7c0cce5647aad52320d61468241c722e",
+  "bytes": 23437264,
+  "regressionRun": "43411473924",
+  "regressionSourceCommit": "e3710be50e07e381ad9ace38c3c800027c7b9784",
+  "benchmarkSourceCommit": "ef03a5535e4daeb4e7f791edfff0e28ba69b8d75",
+  "regressionRunOverallConclusion": "cancelled: 90-minute timeout in large-device phase after complete main/iPhone15 success",
+  "releaseCodeMatchesAllValidationSources": true,
+  "largeDevice": "iPhone 17 Pro Max",
+  "runner": "GitHub-hosted macos-15 (standard)",
+  "iconSourceSHA256": "cc8858c7cf96d4355859ac6d2d88343f94a1135efda57c3e3027c633ddc62e8e",
+  "humanPending": [
+    "real iPhone Instruments/frame/touch/thermal profiling",
+    "same-signature upgrade with original books, progress and bookmarks"
+  ],
+  "recordedRetryAttempts": {
+    "tests.log": 0,
+    "brand-iphone15.log": 0,
+    "reader-large.log": 0
+  },
+  "compiledIconVerification": {
+    "status": "PASS",
+    "asset": "AppIcon60x60@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "format": "Apple CgBI decoded to RGB",
+    "meanRGBDeltaFromLatestSourcePNGResized": [
+      1.1390972222222222,
+      1.199513888888889,
+      1.2821527777777777
+    ],
+    "maximumAllowedMeanChannelDelta": 1.5
+  }
 }

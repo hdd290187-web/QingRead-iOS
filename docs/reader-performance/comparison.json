@@ -1,0 +1,838 @@
+{
+  "baselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
+  "optimizedCommit": "ef03a5535e4daeb4e7f791edfff0e28ba69b8d75",
+  "sameDevice": true,
+  "platform": "iOS Simulator",
+  "workloads": [
+    {
+      "fixture": "short",
+      "baseline": {
+        "activeScrollFrames": 2043,
+        "baseline": true,
+        "environment": "iPhone / iOS 26.2",
+        "fixture": "short",
+        "frameMaxMs": 70.47383333338075,
+        "frameP95Ms": 16.666666666878882,
+        "framesOver1_5Budgets": 55,
+        "mainThreadOperations": {
+          "attributedText": {
+            "count": 6,
+            "maxMs": 0.7843333332857583,
+            "p95Ms": 0.5952083333795599,
+            "totalMs": 3.5069583332187904
+          },
+          "cellConfiguration": {
+            "count": 150,
+            "maxMs": 13.442833333328963,
+            "p95Ms": 1.482833333511735,
+            "totalMs": 125.54499999828295
+          },
+          "chapterUpdate": {
+            "count": 6,
+            "maxMs": 60.78591666664579,
+            "p95Ms": 50.501124999982494,
+            "totalMs": 235.78712499988796
+          },
+          "fileRead": {
+            "count": 6,
+            "maxMs": 5.468541666687088,
+            "p95Ms": 0.8837499999572174,
+            "totalMs": 8.243958333196133
+          },
+          "pagination": {
+            "count": 6,
+            "maxMs": 8.337875000052009,
+            "p95Ms": 2.906416666746736,
+            "totalMs": 20.667583333533912
+          },
+          "progressCommit": {
+            "count": 46,
+            "maxMs": 54.426874999990105,
+            "p95Ms": 3.8516666666055244,
+            "totalMs": 118.58054166668808
+          },
+          "scrollCallback": {
+            "count": 1931,
+            "maxMs": 5.776458333230039,
+            "p95Ms": 0.5893333332096518,
+            "totalMs": 585.0787499978196
+          }
+        },
+        "operations": {
+          "attributedText": {
+            "count": 6,
+            "maxMs": 0.7843333332857583,
+            "p95Ms": 0.5952083333795599,
+            "totalMs": 3.5069583332187904
+          },
+          "cellConfiguration": {
+            "count": 150,
+            "maxMs": 13.442833333328963,
+            "p95Ms": 1.482833333511735,
+            "totalMs": 125.54499999828295
+          },
+          "chapterUpdate": {
+            "count": 6,
+            "maxMs": 60.78591666664579,
+            "p95Ms": 50.501124999982494,
+            "totalMs": 235.78712499988796
+          },
+          "fileRead": {
+            "count": 6,
+            "maxMs": 5.468541666687088,
+            "p95Ms": 0.8837499999572174,
+            "totalMs": 8.243958333196133
+          },
+          "pagination": {
+            "count": 6,
+            "maxMs": 8.337875000052009,
+            "p95Ms": 2.906416666746736,
+            "totalMs": 20.667583333533912
+          },
+          "progressCommit": {
+            "count": 46,
+            "maxMs": 54.426874999990105,
+            "p95Ms": 3.8516666666055244,
+            "totalMs": 118.58054166668808
+          },
+          "scrollCallback": {
+            "count": 1931,
+            "maxMs": 5.776458333230039,
+            "p95Ms": 0.5893333332096518,
+            "totalMs": 585.0787499978196
+          }
+        },
+        "peakResidentBytes": 378667008,
+        "simulator": true,
+        "viewport": {
+          "height": 609.6666666666666,
+          "initialVisibleLines": 16,
+          "width": 393
+        },
+        "fixtureMetadata": {
+          "chapterUTF16Lengths": [
+            878,
+            878,
+            878,
+            878,
+            878
+          ],
+          "contentSHA256": "54b3b0a6829f45c63ff99d2d5493fb0936afa733c65956faa0659ba8f045e509",
+          "engineChapterCount": 5,
+          "fixture": "short",
+          "normalImportPartitionUTF16": 24000,
+          "paragraphsPerChapter": 12,
+          "schema": 1,
+          "singleChapterStressFixture": false,
+          "totalUTF16": 4390
+        },
+        "simulatorTargetID": "9DF96DE7-A4B3-41A1-B1C9-71D4688087AC"
+      },
+      "optimized": {
+        "activeScrollFrames": 2576,
+        "baseline": false,
+        "environment": "iPhone / iOS 26.2",
+        "fixture": "short",
+        "frameMaxMs": 63.528125000061664,
+        "frameP95Ms": 16.666666666765195,
+        "framesOver1_5Budgets": 8,
+        "mainThreadOperations": {
+          "cellConfiguration": {
+            "count": 17,
+            "maxMs": 0.2671250000503278,
+            "p95Ms": 0.17645833338519878,
+            "totalMs": 1.7262500002743764
+          },
+          "chapterUpdate": {
+            "count": 21,
+            "maxMs": 4.573708333282411,
+            "p95Ms": 2.306833333364011,
+            "totalMs": 15.734291666490208
+          },
+          "progressCommit": {
+            "count": 18,
+            "maxMs": 44.72449999991568,
+            "p95Ms": 8.132791666639605,
+            "totalMs": 85.40262499991513
+          },
+          "scrollCallback": {
+            "count": 2436,
+            "maxMs": 4.3792916666234305,
+            "p95Ms": 0.2312500000698492,
+            "totalMs": 317.9624583316354
+          }
+        },
+        "operations": {
+          "attributedText": {
+            "count": 7,
+            "maxMs": 1.4811666667355894,
+            "p95Ms": 0.563041666623576,
+            "totalMs": 4.032999999822096
+          },
+          "cellConfiguration": {
+            "count": 17,
+            "maxMs": 0.2671250000503278,
+            "p95Ms": 0.17645833338519878,
+            "totalMs": 1.7262500002743764
+          },
+          "chapterUpdate": {
+            "count": 21,
+            "maxMs": 4.573708333282411,
+            "p95Ms": 2.306833333364011,
+            "totalMs": 15.734291666490208
+          },
+          "fileRead": {
+            "count": 7,
+            "maxMs": 1.8751666666503297,
+            "p95Ms": 0.9893750000173895,
+            "totalMs": 5.460291666622652
+          },
+          "progressCommit": {
+            "count": 18,
+            "maxMs": 44.72449999991568,
+            "p95Ms": 8.132791666639605,
+            "totalMs": 85.40262499991513
+          },
+          "scrollCallback": {
+            "count": 2436,
+            "maxMs": 4.3792916666234305,
+            "p95Ms": 0.2312500000698492,
+            "totalMs": 317.9624583316354
+          },
+          "scrollLayout": {
+            "count": 7,
+            "maxMs": 28.054166666720448,
+            "p95Ms": 7.344791666582751,
+            "totalMs": 54.375583333239774
+          }
+        },
+        "peakResidentBytes": 479232000,
+        "simulator": true,
+        "viewport": {
+          "height": 731,
+          "initialVisibleLines": 21,
+          "width": 393
+        },
+        "fixtureMetadata": {
+          "chapterUTF16Lengths": [
+            878,
+            878,
+            878,
+            878,
+            878
+          ],
+          "contentSHA256": "54b3b0a6829f45c63ff99d2d5493fb0936afa733c65956faa0659ba8f045e509",
+          "engineChapterCount": 5,
+          "fixture": "short",
+          "normalImportPartitionUTF16": 24000,
+          "paragraphsPerChapter": 12,
+          "schema": 1,
+          "singleChapterStressFixture": false,
+          "totalUTF16": 4390
+        },
+        "simulatorTargetID": "9DF96DE7-A4B3-41A1-B1C9-71D4688087AC"
+      }
+    },
+    {
+      "fixture": "long",
+      "baseline": {
+        "activeScrollFrames": 2481,
+        "baseline": true,
+        "environment": "iPhone / iOS 26.2",
+        "fixture": "long",
+        "frameMaxMs": 79.00937499994143,
+        "frameP95Ms": 16.666666666878882,
+        "framesOver1_5Budgets": 66,
+        "mainThreadOperations": {
+          "attributedText": {
+            "count": 2,
+            "maxMs": 2.5052083333321207,
+            "p95Ms": 1.0101666666741949,
+            "totalMs": 3.5153750000063155
+          },
+          "cellConfiguration": {
+            "count": 138,
+            "maxMs": 25.218125000037617,
+            "p95Ms": 2.410250000139058,
+            "totalMs": 166.68887500054552
+          },
+          "chapterUpdate": {
+            "count": 2,
+            "maxMs": 236.22295833320095,
+            "p95Ms": 21.927708333350893,
+            "totalMs": 258.15066666655184
+          },
+          "fileRead": {
+            "count": 2,
+            "maxMs": 0.45108333324606065,
+            "p95Ms": 0.3393333333860937,
+            "totalMs": 0.7904166666321544
+          },
+          "pagination": {
+            "count": 2,
+            "maxMs": 57.72708333324772,
+            "p95Ms": 16.524041666571065,
+            "totalMs": 74.25112499981878
+          },
+          "progressCommit": {
+            "count": 56,
+            "maxMs": 75.17408333342246,
+            "p95Ms": 5.799958333454924,
+            "totalMs": 202.54383333281112
+          },
+          "scrollCallback": {
+            "count": 2327,
+            "maxMs": 7.638791666749967,
+            "p95Ms": 0.6529166664677177,
+            "totalMs": 827.3670833195865
+          }
+        },
+        "operations": {
+          "attributedText": {
+            "count": 2,
+            "maxMs": 2.5052083333321207,
+            "p95Ms": 1.0101666666741949,
+            "totalMs": 3.5153750000063155
+          },
+          "cellConfiguration": {
+            "count": 138,
+            "maxMs": 25.218125000037617,
+            "p95Ms": 2.410250000139058,
+            "totalMs": 166.68887500054552
+          },
+          "chapterUpdate": {
+            "count": 2,
+            "maxMs": 236.22295833320095,
+            "p95Ms": 21.927708333350893,
+            "totalMs": 258.15066666655184
+          },
+          "fileRead": {
+            "count": 2,
+            "maxMs": 0.45108333324606065,
+            "p95Ms": 0.3393333333860937,
+            "totalMs": 0.7904166666321544
+          },
+          "pagination": {
+            "count": 2,
+            "maxMs": 57.72708333324772,
+            "p95Ms": 16.524041666571065,
+            "totalMs": 74.25112499981878
+          },
+          "progressCommit": {
+            "count": 56,
+            "maxMs": 75.17408333342246,
+            "p95Ms": 5.799958333454924,
+            "totalMs": 202.54383333281112
+          },
+          "scrollCallback": {
+            "count": 2327,
+            "maxMs": 7.638791666749967,
+            "p95Ms": 0.6529166664677177,
+            "totalMs": 827.3670833195865
+          }
+        },
+        "peakResidentBytes": 388890624,
+        "simulator": true,
+        "viewport": {
+          "height": 609.6666666666666,
+          "initialVisibleLines": 16,
+          "width": 393
+        },
+        "fixtureMetadata": {
+          "chapterUTF16Lengths": [
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404
+          ],
+          "contentSHA256": "899b29921118297d8b31927a09bba9f100725f9126bb914d02aeec0b69272ef2",
+          "engineChapterCount": 80,
+          "fixture": "long",
+          "normalImportPartitionUTF16": 24000,
+          "paragraphsPerChapter": 100,
+          "schema": 1,
+          "singleChapterStressFixture": false,
+          "totalUTF16": 591411
+        },
+        "simulatorTargetID": "9DF96DE7-A4B3-41A1-B1C9-71D4688087AC"
+      },
+      "optimized": {
+        "activeScrollFrames": 2580,
+        "baseline": false,
+        "environment": "iPhone / iOS 26.2",
+        "fixture": "long",
+        "frameMaxMs": 81.97112499999548,
+        "frameP95Ms": 16.666666666765195,
+        "framesOver1_5Budgets": 7,
+        "mainThreadOperations": {
+          "cellConfiguration": {
+            "count": 22,
+            "maxMs": 0.7963749999362335,
+            "p95Ms": 0.33804166673689906,
+            "totalMs": 4.6644999998761705
+          },
+          "chapterUpdate": {
+            "count": 17,
+            "maxMs": 0.5920416666640449,
+            "p95Ms": 0.4920000000083746,
+            "totalMs": 4.485458333419956
+          },
+          "progressCommit": {
+            "count": 18,
+            "maxMs": 102.35083333327566,
+            "p95Ms": 6.224499999916588,
+            "totalMs": 153.85349999974096
+          },
+          "scrollCallback": {
+            "count": 2409,
+            "maxMs": 1.3450833333763512,
+            "p95Ms": 0.2437499999814463,
+            "totalMs": 304.8178749999124
+          }
+        },
+        "operations": {
+          "attributedText": {
+            "count": 3,
+            "maxMs": 9.468625000067732,
+            "p95Ms": 6.843583333420611,
+            "totalMs": 17.24554166685266
+          },
+          "cellConfiguration": {
+            "count": 22,
+            "maxMs": 0.7963749999362335,
+            "p95Ms": 0.33804166673689906,
+            "totalMs": 4.6644999998761705
+          },
+          "chapterUpdate": {
+            "count": 17,
+            "maxMs": 0.5920416666640449,
+            "p95Ms": 0.4920000000083746,
+            "totalMs": 4.485458333419956
+          },
+          "fileRead": {
+            "count": 3,
+            "maxMs": 2.287874999979067,
+            "p95Ms": 1.067333333253373,
+            "totalMs": 4.120916666579433
+          },
+          "progressCommit": {
+            "count": 18,
+            "maxMs": 102.35083333327566,
+            "p95Ms": 6.224499999916588,
+            "totalMs": 153.85349999974096
+          },
+          "scrollCallback": {
+            "count": 2409,
+            "maxMs": 1.3450833333763512,
+            "p95Ms": 0.2437499999814463,
+            "totalMs": 304.8178749999124
+          },
+          "scrollLayout": {
+            "count": 3,
+            "maxMs": 187.2000416666424,
+            "p95Ms": 65.56620833339366,
+            "totalMs": 285.08766666675456
+          }
+        },
+        "peakResidentBytes": 468385792,
+        "simulator": true,
+        "viewport": {
+          "height": 731,
+          "initialVisibleLines": 21,
+          "width": 393
+        },
+        "fixtureMetadata": {
+          "chapterUTF16Lengths": [
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7303,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404,
+            7404
+          ],
+          "contentSHA256": "899b29921118297d8b31927a09bba9f100725f9126bb914d02aeec0b69272ef2",
+          "engineChapterCount": 80,
+          "fixture": "long",
+          "normalImportPartitionUTF16": 24000,
+          "paragraphsPerChapter": 100,
+          "schema": 1,
+          "singleChapterStressFixture": false,
+          "totalUTF16": 591411
+        },
+        "simulatorTargetID": "9DF96DE7-A4B3-41A1-B1C9-71D4688087AC"
+      }
+    },
+    {
+      "fixture": "monolith",
+      "baseline": {
+        "activeScrollFrames": 2471,
+        "baseline": true,
+        "environment": "iPhone / iOS 26.2",
+        "fixture": "monolith",
+        "frameMaxMs": 83.78229166669371,
+        "frameP95Ms": 16.666666666878882,
+        "framesOver1_5Budgets": 83,
+        "mainThreadOperations": {
+          "attributedText": {
+            "count": 1,
+            "maxMs": 38.97712500020134,
+            "p95Ms": 38.97712500020134,
+            "totalMs": 38.97712500020134
+          },
+          "cellConfiguration": {
+            "count": 1758,
+            "maxMs": 15.943083333468167,
+            "p95Ms": 1.5390416667742102,
+            "totalMs": 1265.5771250006183
+          },
+          "chapterUpdate": {
+            "count": 1,
+            "maxMs": 66.04995833345129,
+            "p95Ms": 66.04995833345129,
+            "totalMs": 66.04995833345129
+          },
+          "fileRead": {
+            "count": 1,
+            "maxMs": 1.8318333331990289,
+            "p95Ms": 1.8318333331990289,
+            "totalMs": 1.8318333331990289
+          },
+          "pagination": {
+            "count": 1,
+            "maxMs": 645.3183333333072,
+            "p95Ms": 645.3183333333072,
+            "totalMs": 645.3183333333072
+          },
+          "progressCommit": {
+            "count": 69,
+            "maxMs": 74.40470833330437,
+            "p95Ms": 5.452458333365939,
+            "totalMs": 213.58266666675263
+          },
+          "scrollCallback": {
+            "count": 2354,
+            "maxMs": 16.83254166664483,
+            "p95Ms": 0.9407083332462207,
+            "totalMs": 1173.0141666625968
+          }
+        },
+        "operations": {
+          "attributedText": {
+            "count": 1,
+            "maxMs": 38.97712500020134,
+            "p95Ms": 38.97712500020134,
+            "totalMs": 38.97712500020134
+          },
+          "cellConfiguration": {
+            "count": 1758,
+            "maxMs": 15.943083333468167,
+            "p95Ms": 1.5390416667742102,
+            "totalMs": 1265.5771250006183
+          },
+          "chapterUpdate": {
+            "count": 1,
+            "maxMs": 66.04995833345129,
+            "p95Ms": 66.04995833345129,
+            "totalMs": 66.04995833345129
+          },
+          "fileRead": {
+            "count": 1,
+            "maxMs": 1.8318333331990289,
+            "p95Ms": 1.8318333331990289,
+            "totalMs": 1.8318333331990289
+          },
+          "pagination": {
+            "count": 1,
+            "maxMs": 645.3183333333072,
+            "p95Ms": 645.3183333333072,
+            "totalMs": 645.3183333333072
+          },
+          "progressCommit": {
+            "count": 69,
+            "maxMs": 74.40470833330437,
+            "p95Ms": 5.452458333365939,
+            "totalMs": 213.58266666675263
+          },
+          "scrollCallback": {
+            "count": 2354,
+            "maxMs": 16.83254166664483,
+            "p95Ms": 0.9407083332462207,
+            "totalMs": 1173.0141666625968
+          }
+        },
+        "peakResidentBytes": 744095744,
+        "simulator": true,
+        "viewport": {
+          "height": 609.6666666666666,
+          "initialVisibleLines": 16,
+          "width": 393
+        },
+        "fixtureMetadata": {
+          "chapterUTF16Lengths": [
+            373904
+          ],
+          "contentSHA256": "11f1194d8db965dadc802a849e203c90799c6e3e2bb4f379317c80f254790fee",
+          "engineChapterCount": 1,
+          "fixture": "monolith",
+          "normalImportPartitionUTF16": 24000,
+          "paragraphsPerChapter": 5000,
+          "schema": 1,
+          "singleChapterStressFixture": true,
+          "totalUTF16": 373904
+        },
+        "simulatorTargetID": "9DF96DE7-A4B3-41A1-B1C9-71D4688087AC"
+      },
+      "optimized": {
+        "activeScrollFrames": 2588,
+        "baseline": false,
+        "environment": "iPhone / iOS 26.2",
+        "fixture": "monolith",
+        "frameMaxMs": 53.8080416666844,
+        "frameP95Ms": 16.666666666765195,
+        "framesOver1_5Budgets": 3,
+        "mainThreadOperations": {
+          "cellConfiguration": {
+            "count": 260,
+            "maxMs": 0.3411249999771826,
+            "p95Ms": 0.10020833337875956,
+            "totalMs": 16.96116666676062
+          },
+          "chapterUpdate": {
+            "count": 17,
+            "maxMs": 2.7454166666984747,
+            "p95Ms": 2.2897916667261597,
+            "totalMs": 20.397208333747585
+          },
+          "progressCommit": {
+            "count": 18,
+            "maxMs": 46.46875000003092,
+            "p95Ms": 3.1827916666316014,
+            "totalMs": 77.8059999998959
+          },
+          "scrollCallback": {
+            "count": 2444,
+            "maxMs": 1.3297083332872717,
+            "p95Ms": 0.19883333322923136,
+            "totalMs": 256.62345833143263
+          }
+        },
+        "operations": {
+          "attributedText": {
+            "count": 1,
+            "maxMs": 37.62491666668666,
+            "p95Ms": 37.62491666668666,
+            "totalMs": 37.62491666668666
+          },
+          "cellConfiguration": {
+            "count": 260,
+            "maxMs": 0.3411249999771826,
+            "p95Ms": 0.10020833337875956,
+            "totalMs": 16.96116666676062
+          },
+          "chapterUpdate": {
+            "count": 17,
+            "maxMs": 2.7454166666984747,
+            "p95Ms": 2.2897916667261597,
+            "totalMs": 20.397208333747585
+          },
+          "fileRead": {
+            "count": 1,
+            "maxMs": 2.2380833333954797,
+            "p95Ms": 2.2380833333954797,
+            "totalMs": 2.2380833333954797
+          },
+          "progressCommit": {
+            "count": 18,
+            "maxMs": 46.46875000003092,
+            "p95Ms": 3.1827916666316014,
+            "totalMs": 77.8059999998959
+          },
+          "scrollCallback": {
+            "count": 2444,
+            "maxMs": 1.3297083332872717,
+            "p95Ms": 0.19883333322923136,
+            "totalMs": 256.62345833143263
+          },
+          "scrollLayout": {
+            "count": 1,
+            "maxMs": 1221.4316666666036,
+            "p95Ms": 1221.4316666666036,
+            "totalMs": 1221.4316666666036
+          }
+        },
+        "peakResidentBytes": 517210112,
+        "simulator": true,
+        "viewport": {
+          "height": 731,
+          "initialVisibleLines": 21,
+          "width": 393
+        },
+        "fixtureMetadata": {
+          "chapterUTF16Lengths": [
+            373904
+          ],
+          "contentSHA256": "11f1194d8db965dadc802a849e203c90799c6e3e2bb4f379317c80f254790fee",
+          "engineChapterCount": 1,
+          "fixture": "monolith",
+          "normalImportPartitionUTF16": 24000,
+          "paragraphsPerChapter": 5000,
+          "schema": 1,
+          "singleChapterStressFixture": true,
+          "totalUTF16": 373904
+        },
+        "simulatorTargetID": "9DF96DE7-A4B3-41A1-B1C9-71D4688087AC"
+      }
+    }
+  ],
+  "humanPending": "Real iPhone frame pacing, thermal behavior, inertia and touch feel require device profiling."
+}

@@ -1,75 +1,75 @@
-# 阅读布局与连续滚动优化
+# 阅读布局、连续滚动与 Build 43 验证
 
-状态：源码已实现，真实 macOS 的[针对性回归第 38 轮](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43398806434)为 **9 通过 / 0 失败 / 0 跳过**。完整设备 Release、三种尺寸回归和同设备前后采样尚待完成，新 IPA 尚未生成。本报告不宣称真实 iPhone 的卡顿已经验收修复。仓库已经实际 Public。
+2026-11-13 UTC：阅读修改已在标准 macOS GitHub Actions 编译为真实 unsigned arm64 Release IPA，并完成小屏、iPhone 15、大屏布局及同设备前后性能采样。仓库已实际 Public。真实 iPhone 的卡顿体验、Instruments 采样及同签名覆盖升级仍为 HUMAN_PENDING。
 
-## 布局与工具栏
+## 阅读布局
 
-旧 ReaderHost 即使工具栏透明，也保留 52pt 顶栏、8pt 正文上边距和约 88pt 页脚。新布局默认沉浸，正文使用安全区中的空间，仅保留 28pt 章节/进度底栏；上下工具浮在正文上，显隐不改变分页容器或滚动视口。纯容器预算归还约 120pt，实际每屏增加多少正文行尚待同设备截图测量。
+旧容器在隐藏工具栏后仍预留 52pt 顶栏、8pt 上边距及约 88pt 页脚。新阅读会话默认沉浸，仅保留 28pt 进度底栏；工具栏使用浮层，不改变正文容器、分页高度或滚动位置。正文按系统安全区布局，没有负 padding 或针对机型写死屏幕坐标。章标题前后段距为 8/16pt，纸边 8pt；正文字号、字重、左右边距、行距及段距保持原有设置语义。
 
-章标题前后段距由 12/24pt 调为 8/16pt，配合 8pt 纸边和系统安全区。正文字号、字重、左右边距、行距、段距及用户既有偏好保持原有语义。没有使用负 padding 或按某台设备写死屏幕坐标。异步进度更新不再关闭用户刚打开的工具栏；用户翻页、目录导航或拖动时隐藏工具。
+同一 iPhone 15、相同原创内容和 20pt 字号，正文视口由 **393×609.67pt 增至 393×731pt**，增加 **121.33pt**。首屏可见排版行 16→21，其中包含标题与空行，不能等同于增加 5 行连续正文。
 
-优化前已验证 Build 31 历史截图：
+![同设备相同内容与字号的前后对照](screenshots/before-after-iphone15.png)
 
-![优化前阅读截图](../yuying/screenshots/03-reader.png)
+小屏、iPhone 15、iPhone 17 Pro Max 的四种 TXT 模式均验证竖屏沉浸、浮层工具栏与横屏。工具栏显隐前后严格比较正文 frame 和内容；跨章末页、字号/行距/主题重排、后台及重进的字符锚点有回归断言。横屏截图采用完整屏幕采集，等待视口和内容稳定后导出并人工检查；展示图仅旋转方向，未裁切正文，原图和对应测试保留在证据包。
 
-完整流程还会导出小屏、iPhone 15、大屏及横屏的沉浸/浮层截图，以及同一 iPhone 15 模拟器上相同原创样本的前后画面。没有把历史截图冒充本次对照。
+![小屏连续滚动横屏](screenshots/small-scroll-landscape.png)
+![iPhone 15 连续滚动横屏](screenshots/iphone15-scroll-landscape.png)
+![大屏连续滚动横屏](screenshots/large-scroll-landscape.png)
 
-## 滚动开销、测量发现与修正
+## 连续滚动的根因与改动
 
-修改前的源码路径见 INVESTIGATION.md。MainActor 中存在章节同步读取/解码、整章 CoreText 分页；UITextView 自动高度及相邻章节 reloadData 会重复排版；滚动回调查询 TextKit 字形、遍历章节并定期同步写 library.json。
+旧路径在 MainActor 同步读取/解码章节并整章 CoreText 分页；UITextView 高度测量、配置及相邻章节 reload 会重复排版；滚动回调查询字形并频繁写入进度。固定 d75d7b6 基线加入相同 DEBUG 探针，实际捕捉到超长单章的主线程整章分页最大 645.32ms、长篇章节更新最大 236.22ms。原始路径分析见 [INVESTIGATION.md](INVESTIGATION.md)。
 
-现在文件读取和解码在后台任务，排版在串行 actor。滚动直接准备约 1600 UTF-16 的有界块，保持组合字符/CRLF、章节顺序及段落缩进。后台完成的 TextKit stack 在交付后仅由主线程绘制，显示视图直接使用同一套已排好的 glyph、固定高度和行锚点。UIKit 表格只创建可见 canvas，保持系统惯性、回弹及减速。
+现在文件读取/解码由后台任务完成，串行 actor 准备约 1600 UTF-16 的文本块，尊重组合字符和 CRLF。TextKit 在后台完成字形布局后，UIKit canvas 直接绘制同一套已准备的 glyph，避免 UITextView 再次排版。表格使用固定行高、稳定 row ID 和缓存行锚点，保留原生惯性、回弹和减速；相邻章按有界窗口预加载，没有每帧 scrollTo、分页吸附或人为降低刷新率。
 
-真实回归发现，最初的“后台测量、UITextView 再排版”方案在相同字符/行数下有段末度量差异：5425/1005pt 的预排版分别变成 5357/992pt。调整 leading 和容器高度没有解决，因此改为直接绘制准备好的 TextKit glyph。第 38 轮实际结果为 **5425→5425pt、1005→1005pt**，分别完整绘制 1597/297 UTF-16；位图末尾仍有正文，字符锚点测试通过。保留原 1.1pt 精度，并增加实际绘制检查。
+真实字形回归验证预排版和绘制高度 **5425→5425pt、1005→1005pt**，完整绘制 1597/297 UTF-16，检查位图末行及字符命中。滚动回调用缓存锚点二分和章节前缀和，不进行文件读取、整章分页或 TextKit 排版。字号/尺寸重排保留原始字符目标，实际用户拖动或导航后才解除；退出和后台保存最后有效锚点。
 
-相邻章节用稳定 row ID 差异插入/删除；首次展示前准备目标附近两章，空闲保留约 ±2 章、活动时约 ±3 章。追加内容不设置滚动偏移，仅视口前的插入/裁剪补偿锚点。滚动回调使用缓存行位置二分和章节前缀和，不在每帧读取、整章分页或计算字形。
+滚动时最多每 0.5 秒暂存位置；停止、后台、退出和书签时提交原有 ReadingPosition，重复 flush 不重复写 JSON。提交仍使用原有同步持久化方式，不能宣称所有主线程工作或写盘都已消除。
 
-滚动中最多每 0.5 秒暂存阅读页状态；停止、后台、退出或书签时提交原有 ReadingPosition，重复 flush 不重复写 JSON。退出/后台保存最后有效锚点，不从过渡几何重新计算。正文起点按 contentOffset + 顶部纸边定位 row，避免上一章末行只在 8pt 纸边中可见时错误覆盖下一章位置。连续字号/尺寸重排保留原字符目标，真实翻页/导航/拖动才清除，避免中间页首累积后退。
+## 相同设备、内容与手势的实测
 
-## 已通过的针对性验证
+[校准 benchmark 43418894170](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43418894170)：同一 iPhone 15 / iOS 26.2 Simulator，基线 d75d7b6 与优化后 ef03a55，三种样本各执行相同 12 次向上快甩、4 次反向和慢拖，并验证退出重进的精确位置。两边各 3 通过 / 0 失败 / 0 跳过。比较脚本强制章节结构、UTF-16 长度、内容 SHA256 和模拟器 ID 一致。
 
-真实环境为标准 GitHub 托管 macos-15，macOS 15.8.2 / Xcode 26.3 / iOS 26.2 Simulator（iPhone SE 3）。9 项全通过包含：
+| 原创样本 | 实际章节 / UTF-16 | 帧间隔 p95 ms 前→后 | 超过 1.5 倍预算的采样 前→后 | resident 峰值 MiB 前→后 |
+| --- | --- | --- | --- | --- |
+| short | 5 / 4,390 | 16.67 → 16.67 | 55/2043 (2.69%) → 8/2576 (0.31%) | 361.1 → 457.0 |
+| long | 80 / 591,411 | 16.67 → 16.67 | 66/2481 (2.66%) → 7/2580 (0.27%) | 370.9 → 446.7 |
+| monolith | 1 / 373,904 | 16.67 → 16.67 | 83/2471 (3.36%) → 3/2588 (0.12%) | 709.6 → 493.2 |
 
-- 原字体与字符命中；UTF-16、组合字符及 CRLF 完整分块。
-- 后台读取/缓存、后台排版不整章分页；进度暂存及幂等提交。
-- 固定 row 的实际字形位图、末行、完整字符范围和行锚点。
-- 跨章、连续字号调整、滚动模式字号/行距/主题、后台与退出重进的精确章节/字符恢复。
-- EPUB 正文、排版、连续滚动及重进；短 TXT 相同快甩/反向/慢拖及退出重进。
+这里的长帧统计为活动滚动期间 CADisplayLink 回调间隔超过 1.5 倍显示预算的采样，**不是精确 GPU 掉帧率**。p95 均为 16.67ms，没有声称 p95 提升。长篇主线程章节更新最大 **236.223→0.592ms**；超长单章滚动回调最大 **16.833→1.330ms**。优化后的三组报告没有主线程文件读取、整章分页或滚动排版记录，滚动模式也没有整章分页操作。
 
-DEBUG 采样报告的 JSON 类型已修正并有可序列化断言，退出不会再触发 JSON writer 异常。DEBUG 探针不进入 Release。本地资源、哈希、依赖/许可、Swift 语法、工作流 YAML/shell 检查通过；本地 Linux 不冒充 iOS 类型检查。
+内存存在取舍：短篇/长篇 resident 峰值分别增加约 **96/76MiB**，超长单章减少约 **216MiB**；保留已排字形和绘制缓存有成本。最长帧并非每组都下降：长篇 **79.01→81.97ms**。停滚后的长篇进度提交单次采样峰值 **75.17→102.35ms**。所有原始次数、p95、峰值、设备和样本内容哈希见 comparison.json。
 
-## 完整发布与性能对照待完成
+short/long 是实际正常导入的 5/80 章。monolith 为 DEBUG 合成夹具中合并的 1 章、373904 UTF-16；生产 TXT 解析器原有 24000 UTF-16 存储分片保持原样。旧夹具可能把段落识别为章节，相关旧数据不进入本报告。录屏来自 simctl 的可变帧率采集，供核对动作与章节接续，不能从编码帧率推断显示掉帧。
 
-默认流程仍使用标准 macos-15，保留设备 arm64 Release、全部 XCTest 和打包。reader_diagnostics 默认关闭，仅用于已发现失败项的 9 项验证且从不打包 IPA。完整流程计划主测试 65 项（预计 62 通过及既有 3 项 Files 诊断跳过），iPhone 15 为 10 项，固定 d75d7b6 基线 3 项、大屏 2 项；这些数字尚不是本轮完整通过结果。
+这些值来自共享标准 Runner 上的 Simulator DEBUG 仪表采样，不能作为真实 iPhone 流畅度保证。设备 Time Profiler / Hangs / Core Animation、发热、惯性触感仍需真机验收。
 
-同一 iPhone 15 模拟器分别测试 short / long / monolith 原创样本，执行相同 12 次快甩、4 次反向及慢拖，导出前后录屏、活动滚动帧时间、预算超时数量、主线程固定操作耗时和 resident memory。before/after 目前仍未完成，不填写推测的 FPS 或内存数值。模拟器共享资源与触摸自动化会影响帧时间，真实 iPhone 的 Time Profiler / Hangs / Core Animation 验证仍为 HUMAN_PENDING。
+## 编译、回归与证据来源
 
-为容纳实测编译耗时、三种设备和基线的完整顺序验证，任务上限由 60 调为 90 分钟；使用同一标准 Runner，正常结束立即退出，不循环触发任务。
+| 运行与来源 | 实际结果 | 说明 |
+| --- | --- | --- |
+| [完整运行 42](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43411473924)，e3710be | arm64 Release 通过；主计划 **62 通过 / 0 失败 / 3 跳过（65）**；iPhone 15 **10/0/0** | 主计划为 42 单元 + 20 UI 通过；3 项既有原生 Files 诊断跳过。大屏阶段超时导致整轮 cancelled、未打包，不能称该轮整体成功。 |
+| 校准 benchmark，ef03a55 | 优化后 **3/0/0**；同设备基线 **3/0/0** | 仅接受通过结构与哈希校验的本轮数据。 |
+| [Release 收尾运行](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43425216709)，ee08a79 | **success**；真实 arm64 Release、iPhone 17 Pro Max **2/0/0**；IPA 已生成 | 先严格验证上述原始证据与发布源码等价，再在新 Runner 上编译并完成大屏测试。 |
 
-## 数据、公开与交付
+重复设备执行的用例不累加成更多独立用例。各源提交在 QingRead 目录下仅有合成 benchmark 夹具文件不同，该文件全部由 `#if DEBUG` 包裹，发布代码一致；validation-proof.json 保留校验结果。没有把超时的旧 IPA 或 Build 31 当作本次产物。
 
-Bundle ID、Application Support/QingRead、书籍/章节 ID、library.json、书签与设置键不变。LibraryStore、文件选择/协调暂存、导入事务、解析及错误反馈七个关键文件与 d75d7b6 一致。新增布局/前缀/内存锚点均为临时数据。没有上传或清空用户书库。
+三项原生 Files 诊断是已有的 FileProvider 环境限制，未算作通过；选择回调后的 5 项实际复制/解析/入库 UI 测试和原生取消回归都通过。可用 import_only 单独诊断，不能用此模式交付 IPA。EPUB 正文、封面、字号主题、连续滚动和重进回归通过。
 
-[公开审计](../security/PUBLICATION_AUDIT.md)已通过；用户确认历史图为自行生成，来源声明已记录，认证与未登录 API 均验证仓库为 [Public](https://github.com/hdd290187-web/QingRead-iOS)。之后源码提交均再次全历史遮蔽扫描，没有真实凭据。
+仅失败用例允许重试一次，原始日志/xcresult 留存；本次三组回归均无失败重试，真实计数见 [构建校验](../yuying/build-verification.json)。运行 42 大屏在第二用例停滞，未证明具体系统根因；收尾任务使用新 Runner、单个大屏目标和显式超时，未删除测试断言或更改阅读实现。
 
-完整构建与校验后才能生成本次 IPA。旧 Build 31 不含本次阅读优化或后续矢量图标，不能重新标为新包。同签名覆盖安装、旧书库/进度/书签和真机滚动仍需按 DEVICE_VALIDATION.md 验收；不要先卸载旧 App。
+标准 GitHub 托管 **macos-15**，实际 macOS 15.8.2、Xcode 26.3 / 17C529、Swift 6.2.4、iPhoneOS / Simulator SDK 26.2。没有 larger 或 self-hosted Runner，没有新增依赖。Linux 只进行资源、语法和工作流检查，不冒充 UIKit 编译。
 
-## 完整第 39 轮实际结果
+## 真实安装包与兼容性
 
-[Build 39](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43401100910) 的 arm64 Release 编译通过；完整主计划为 61 通过 / 1 失败 / 3 跳过（65 项），42 个单元用例及所有阅读、EPUB、布局、三样本滚动压力用例均通过。唯一失败是首次启动原生 Files 时 Cancel 控件超过原来的 15 秒等待，随后在同一用例中实际出现并正常取消。保留原取消行为断言，将已证实的系统冷启动等待扩为 60 秒；没有把该用例跳过或当作成功。独立的 FileProvider 日志观察进程也增加对 simctl 冷启动超时的继续采集处理。后续 iPhone 15、基线和大屏阶段因主组失败尚未执行，需在修正后的完整 Build 40 中验证；没有新 IPA。
+- 版本 **1.0.0 Build 43**，arm64，unsigned，最低 iOS 17.0。
+- 构建提交 `ee08a791ca570b09481c92d9a07314a6614f657c`；[实际构建](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43425216709)；[GitHub 发布](https://github.com/hdd290187-web/QingRead-iOS/releases/tag/v1.0.0-build43)。
+- IPA SHA256：`c27da8248b7f20920b84e4a38de83a7d7c0cce5647aad52320d61468241c722e`；大小 23,437,264 bytes。
+- 本地归档：`releases/QingRead-1.0.0-build43-run43425216709.ipa`。
+- 下载后验证 ZIP、Mach-O arm64、Bundle/名称/版本、编译启动屏、字体/图标锁及无签名/描述文件；Release 不含 DEBUG 测试或合成样本启动入口。
 
-## 完整第 40 轮实际结果
+Bundle ID 固定 com.hdd290187.qingread，Application Support/QingRead、书籍/章节 ID、library.json 格式、书签和设置键保持。导入及持久化 7 个关键文件与 d75d7b6 逐字节一致。予盈名称及最新可编辑 SVG 图标保留；ScreenTranslator-iOS 未修改。源码归档后续提交只同步工程、CI 和交付证据，App 构建提交始终单独记录。
 
-[Build 40](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43404759462) 的真实 arm64 Release 和完整 XCTest 已通过：62 通过 / 0 失败 / 3 项既有 Files 跳过（65 项）。上轮的 Files 冷启动取消用例已通过。后续性能导出失败，错误为 CoreSimulator “Unable to lookup in current state: Shutdown”：Xcode 在测试结束后自动关闭了目标模拟器，容器仍在，但 get_app_container 要求 Booted。修正仅在导出脚本中重新启动同一目标并等待 bootstatus，不更改模拟器数据、阅读实现或测试断言。其后 iPhone 15、基线、大屏和打包尚未执行，不能把该轮整体标为成功；完整 Build 41 将验证导出修正并继续后续流程。
+仓库完整历史、全部可访问分支/tag、Actions 日志/产物及 Release 附件审计通过，素材来源由用户确认；[公开审计](../security/PUBLICATION_AUDIT.md)列明范围与增量复核，原始候选值及全系统模拟器诊断不进入交付。
 
-## 第 41 轮的测试启动与截图采集修正
-
-[Build 41](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43408768485) Release 编译与 42 项单元用例通过；最初 3 个 UI 用例在 app.launch 处因 XCTest “Timed out while acquiring background assertion”失败，后续导入及阅读场景均通过。下一轮在测试前显式启动并等待同一模拟器的 bootstatus，XCTest 只对失败项最多再执行一次，原始失败和重试留在日志/xcresult，所有断言保留。每次新的合成性能测试尝试只清理该 fixture/variant 的测试报告，避免沿用失败尝试的采样；不操作真实用户书库。
-
-人工检查完整第 40 轮截图发现 app.screenshot 横屏裁剪异常，虽然逻辑视口的旋转/边界断言通过，PNG 有黑边和内容截断，不能作为合格的横屏图。采集改为 XCUIScreen.main.screenshot，并等到实际视口尺寸/内容稳定后再截取；下一轮需要人工查看新图和全屏录屏。没有将旧的异常截图作为正式优化后证据。
-
-## 性能样本结构校准
-
-截图与生成文本复核发现，旧样本的部分段落以“第…章第…段”开头，满足 TXT 章节标题规则，实际结构与“5/80/1 章”标签不一致；正常导入还按 24000 UTF-16 保留存储分片。因此旧样本的采样不能作为真实超长单章对照。当前样本段落改用不会命中标题规则的“原创段落”前缀，短篇与长篇通过正常导入后断言实际为 5/80 章；超长单章在 DEBUG 合成夹具中明确合并为一个超过 300000 UTF-16 的引擎章节，生产解析和存储分片保持原实现。每个夹具写出实际章节数、每章长度、总 UTF-16 及内容 SHA256，导出和比较均严格校验。
-
-专用 Reader benchmark 工作流只运行三类真实结构的滚动场景，在同一 iPhone 15 上测试当前实现和固定 d75d7b6；保持标准 macos-15、相同探针、内容、手势与录屏。当前完整发布批次继续负责 Release、全部回归和三尺寸布局。新夹具的源码变化全部位于 #if DEBUG 内，验证脚本会核对发布代码与安装包构建提交一致，最终记录安装包与校准性能各自的运行来源。旧夹具采样不进入最终性能结论。
+**未签名 IPA 需要有效签名和设备授权。使用原有签名身份、Team 与 Bundle ID 覆盖安装，保留旧 App，不要先卸载或清除数据。** 同签名升级后的真实书库、进度、书签及真机连续滚动仍为 HUMAN_PENDING，步骤见 DEVICE_VALIDATION.md。

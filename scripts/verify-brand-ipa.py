@@ -36,13 +36,27 @@ if args.benchmark_run:
     assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
     seed = (repo / 'QingRead/Services/ReaderPerformanceSeed.swift').read_text().strip()
     assert seed.startswith('#if DEBUG\n') and seed.endswith('#endif') and '#else' not in seed
+    for source in [comparison['optimizedCommit'], metadata['commit']]:
+        changes = subprocess.check_output(['git', 'diff', '--name-only', source, metadata['commit'], '--', 'QingRead'], cwd=repo, text=True).splitlines()
+        assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
+    proof_path = folder / 'validation-proof.json'
+    if proof_path.exists():
+        proof = json.loads(proof_path.read_text())
+        assert proof['completionSourceCommit'] == metadata['commit']
+        assert proof['calibratedBenchmarkRun'] == int(args.benchmark_run)
+        assert proof['calibratedBenchmarkSourceCommit'] == comparison['optimizedCommit']
+        assert proof['releaseCodeMatchesRegressions'] and proof['releaseCodeMatchesCalibratedBenchmark']
+        changes = subprocess.check_output(['git', 'diff', '--name-only', proof['regressionSourceCommit'], metadata['commit'], '--', 'QingRead'], cwd=repo, text=True).splitlines()
+        assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
 for row in comparison['workloads']:
     before, after = row['baseline'], row['optimized']
     assert before['fixtureMetadata'] == after['fixtureMetadata']
+    assert before['simulatorTargetID'] == after['simulatorTargetID']
     assert after['fixtureMetadata']['engineChapterCount'] == {'short': 5, 'long': 80, 'monolith': 1}[row['fixture']]
 assert 'BUILD SUCCEEDED' in (folder / 'device-release.log').read_text()
 assert 'TEST SUCCEEDED' in (folder / 'tests.log').read_text()
 assert 'TEST SUCCEEDED' in (folder / 'brand-iphone15.log').read_text()
+assert 'TEST SUCCEEDED' in (folder / 'reader-large.log').read_text()
 with ZipFile(ipa) as archive:
     assert archive.testzip() is None
     names = archive.namelist()

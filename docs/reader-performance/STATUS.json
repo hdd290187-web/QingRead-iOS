@@ -1,181 +1,131 @@
 {
-  "status": "TARGETED_REGRESSIONS_PASSED_PENDING_FULL_RELEASE",
-  "baselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
+  "status": "RELEASE_IPA_AND_SIMULATOR_VALIDATION_COMPLETE",
+  "dateUTC": "2026-11-13",
   "repoVisibility": "Public",
   "publicationAudit": "APPROVED_FOR_PUBLICATION",
-  "newActionsRun": {
-    "id": null,
-    "build": 42,
-    "status": "PREPARING_FULL_VALIDATION_WITH_BOOT_AND_ONE_FAILURE_RETRY",
-    "runner": "macos-15",
-    "import_only": false,
-    "reader_diagnostics": false
+  "newIPA": {
+    "run": "43425216709",
+    "benchmarkRun": "43418894170",
+    "commit": "ee08a791ca570b09481c92d9a07314a6614f657c",
+    "brand": "予盈",
+    "bundleID": "com.hdd290187.qingread",
+    "version": "1.0.0",
+    "build": "43",
+    "sdk": "iphoneos26.2",
+    "unsigned": true,
+    "arch": "arm64",
+    "mainTests": {
+      "passedTests": 62,
+      "failedTests": 0,
+      "skippedTests": 3,
+      "totalTestCount": 65
+    },
+    "iPhone15BrandTests": {
+      "passedTests": 10,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 10
+    },
+    "largeReaderTests": {
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 2
+    },
+    "sha256": "c27da8248b7f20920b84e4a38de83a7d7c0cce5647aad52320d61468241c722e",
+    "bytes": 23437264,
+    "regressionRun": "43411473924",
+    "regressionSourceCommit": "e3710be50e07e381ad9ace38c3c800027c7b9784",
+    "benchmarkSourceCommit": "ef03a5535e4daeb4e7f791edfff0e28ba69b8d75",
+    "regressionRunOverallConclusion": "cancelled: 90-minute timeout in large-device phase after complete main/iPhone15 success",
+    "releaseCodeMatchesAllValidationSources": true,
+    "largeDevice": "iPhone 17 Pro Max",
+    "runner": "GitHub-hosted macos-15 (standard)",
+    "iconSourceSHA256": "cc8858c7cf96d4355859ac6d2d88343f94a1135efda57c3e3027c633ddc62e8e",
+    "humanPending": [
+      "real iPhone Instruments/frame/touch/thermal profiling",
+      "same-signature upgrade with original books, progress and bookmarks"
+    ],
+    "recordedRetryAttempts": {
+      "tests.log": 0,
+      "brand-iphone15.log": 0,
+      "reader-large.log": 0
+    },
+    "compiledIconVerification": {
+      "status": "PASS",
+      "asset": "AppIcon60x60@2x.png",
+      "size": [
+        120,
+        120
+      ],
+      "format": "Apple CgBI decoded to RGB",
+      "meanRGBDeltaFromLatestSourcePNGResized": [
+        1.1390972222222222,
+        1.199513888888889,
+        1.2821527777777777
+      ],
+      "maximumAllowedMeanChannelDelta": 1.5
+    }
   },
-  "newIPA": null,
-  "baselineIPA": {
-    "build": 31,
-    "run": "43355596782",
-    "sha256": "5e6358f23ea8715eb5d2010c0797a4f9ad2ea4db6cb6cd55661ed5c5452289b6"
+  "regressionRun": {
+    "id": 43411473924,
+    "headSha": "e3710be50e07e381ad9ace38c3c800027c7b9784",
+    "overallConclusion": "cancelled",
+    "reason": "90-minute overall timeout in large-device phase after all main and iPhone15 tests passed",
+    "main": {
+      "passedTests": 62,
+      "failedTests": 0,
+      "skippedTests": 3,
+      "totalTestCount": 65
+    },
+    "iPhone15": {
+      "passedTests": 10,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 10
+    }
   },
-  "checks": {
-    "swiftSyntaxRelease": {
-      "files": 47,
-      "status": "PASS",
-      "compiler": "Swift 6.2.3 Linux, parse only"
-    },
-    "swiftSyntaxDebug": {
-      "files": 47,
-      "status": "PASS",
-      "compiler": "Swift 6.2.3 Linux, parse only"
-    },
-    "xcodeProjectReferences": {
-      "appFiles": 32,
-      "unitTestFiles": 8,
-      "uiTestFiles": 7,
-      "status": "PASS"
-    },
-    "repositoryResourcesAndScripts": "PASS",
-    "xcodeCompilation": "BUILD40_PASS_RELEASE_AND_DEBUG",
-    "xctest": "BUILD40_PASS_62_PASS_0_FAILURE_3_SKIP",
-    "workflowYAMLAndShell": "PASS",
-    "criticalImportAndStorageFilesUnchanged": 7,
-    "targetedReaderRegressions": {
-      "status": "PASS",
-      "passed": 9,
-      "failed": 0,
-      "skipped": 0,
-      "run": 43398806434
+  "completionRun": {
+    "id": 43425216709,
+    "headSha": "ee08a791ca570b09481c92d9a07314a6614f657c",
+    "conclusion": "success",
+    "largeDevice": "iPhone 17 Pro Max",
+    "large": {
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 2
     }
   },
   "performanceComparison": {
-    "status": "CALIBRATING_VERIFIED_FIXTURES",
-    "sameDeviceWorkloads": [
-      "short",
-      "long",
-      "monolith"
-    ],
-    "before": null,
-    "after": null,
-    "recordedVideos": [],
-    "sourceValidation": {
-      "expectedEngineChapters": {
-        "short": 5,
-        "long": 80,
-        "monolith": 1
-      },
-      "requireIdenticalContentSHA256": true,
-      "monolithMinimumUTF16": 300000,
-      "singleChapterFixture": "DEBUG-only coalesced stress chapter; production TXT partitioning is unchanged"
+    "status": "MEASURED_SAME_DEVICE_VERIFIED_CONTENT",
+    "run": 43418894170,
+    "optimizedCommit": "ef03a5535e4daeb4e7f791edfff0e28ba69b8d75",
+    "baselineCommit": "d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9",
+    "optimizedTests": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
     },
-    "previousFixtureMeasurementsAccepted": false
+    "baselineTests": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "data": "comparison.json",
+    "oldFixtureMeasurementsAccepted": false,
+    "metric": "CADisplayLink interval, not exact GPU dropped-frame rate"
   },
+  "checks": {
+    "criticalImportAndStorageFilesUnchanged": 7,
+    "realArm64Release": "PASS",
+    "mainAndThreeDeviceRegressions": "PASS_WITH_3_EXISTING_FILES_SKIPS",
+    "sourceEquivalence": "PASS",
+    "glyphRasterAndUTF16": "PASS"
+  },
+  "automatedPending": [],
   "humanPending": [
-    "real iPhone scroll/frame/thermal/touch profiling",
-    "same-signature upgrade data preservation"
-  ],
-  "implementationCommit": "a5618f1e0bb09e837d52b31a1871fc2f99f0c605",
-  "observedFailures": [],
-  "targetedRuns": [
-    {
-      "id": 43392508035,
-      "number": 35,
-      "headSha": "79ece0f15314faaf5f4ed8d26c452ef0630a13fc",
-      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43392508035",
-      "conclusion": "failure",
-      "passed": 6,
-      "failed": 2,
-      "skipped": 0,
-      "total": 8
-    },
-    {
-      "id": 43394574823,
-      "number": 36,
-      "headSha": "0d59603d55037421b2bce240cce7918942b1daa8",
-      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43394574823",
-      "conclusion": "failure",
-      "passed": 5,
-      "failed": 3,
-      "skipped": 0,
-      "total": 8
-    },
-    {
-      "id": 43398281801,
-      "number": 37,
-      "headSha": "489e4203b1166f59e4847371514c6d2de88e1cdf",
-      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43398281801",
-      "conclusion": "compilation_failure",
-      "reason": "NSLayoutManager.addTemporaryAttribute is unavailable on iOS; replaced with NSTextStorage foreground color attribute update.",
-      "testsExecuted": false
-    },
-    {
-      "id": 43398806434,
-      "number": 38,
-      "headSha": "a5618f1e0bb09e837d52b31a1871fc2f99f0c605",
-      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43398806434",
-      "conclusion": "success",
-      "passed": 9,
-      "failed": 0,
-      "skipped": 0,
-      "total": 9
-    }
-  ],
-  "confirmedTargetedFixes": [
-    "JSON report serializes and scrolling reader exits/reopens without crashing",
-    "EPUB continuous scrolling and preference/restart UI regression",
-    "Paged font reflow retains the original character anchor"
-  ],
-  "automatedPending": [
-    "Targeted regressions, then the complete Release/Simulator and same-device baseline comparison"
-  ],
-  "candidateCorrections": [
-    "Draw worker-prepared TextKit glyphs directly in a UIKit cell, with complete text accessibility and no second UITextView layout",
-    "Select the row at contentOffset + top paper inset for the actual reading origin",
-    "Hide reader tools on user navigation/drag, not every async position report"
-  ],
-  "completeRuns": [
-    {
-      "id": 43401100910,
-      "number": 39,
-      "headSha": "0266479d98ac41b4831e731774b874ec70087e33",
-      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43401100910",
-      "conclusion": "failure",
-      "releaseCompilation": "PASS",
-      "passed": 61,
-      "failed": 1,
-      "skipped": 3,
-      "total": 65,
-      "failure": "Native Files Cancel button cold-start exceeded the 15-second wait, then appeared and cancelled correctly; all 42 units and all reader UI tests passed."
-    },
-    {
-      "id": 43404759462,
-      "number": 40,
-      "headSha": "92acc4a0d4fcade9b88f2ee132bf0e145408e75b",
-      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43404759462",
-      "conclusion": "performance_export_failure_after_test_success",
-      "releaseCompilation": "PASS",
-      "passed": 62,
-      "failed": 0,
-      "skipped": 3,
-      "total": 65,
-      "failure": "Xcode shut down the Simulator after testing; simctl get_app_container requires it booted."
-    },
-    {
-      "id": 43408768485,
-      "number": 41,
-      "headSha": "5bdeeb4c6aeb769794c9bcdf4d68d86940e5c8aa",
-      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43408768485",
-      "conclusion": "XCTest_launch_infrastructure_failure",
-      "releaseCompilation": "PASS",
-      "passed": 59,
-      "failed": 3,
-      "skipped": 3,
-      "total": 65,
-      "failure": "The first 3 UI launches failed to acquire the system background assertion; later UI tests and all 42 units passed."
-    }
-  ],
-  "testRetryPolicy": {
-    "maximumAttempts": 2,
-    "retryFailuresOnly": true,
-    "rawFailuresRetainedInLogsAndXCResult": true
-  }
+    "real iPhone Instruments/frame/touch/thermal profiling",
+    "same-signature upgrade with original books, progress and bookmarks"
+  ]
 }

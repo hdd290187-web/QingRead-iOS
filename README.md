@@ -2,7 +2,9 @@
 
 予盈是个人使用的原生中文 iPhone 小说阅读器。赠予盈盈的阅读时光。App 的三个入口为 **书架、发现、我的**；书籍、进度、书签、排版设置和已缓存正文保存在本机。
 
-阅读留白、默认沉浸和 TXT 连续滚动优化已实现。真实 macOS 的针对性回归为 **9 通过 / 0 失败 / 0 跳过**，包含实际文字位图、UTF-16 完整性、后台读取/排版、精确恢复及 EPUB 连续滚动。完整 arm64 Release、全部回归、三种尺寸和同模拟器性能对照正在准备执行，**本次新 IPA 尚未生成，不能宣称真机卡顿已经验收**。仓库已通过公开前审计并实际改为 Public。详见 [阅读验证状态](docs/reader-performance/REPORT.md) 与 [公开审计](docs/security/PUBLICATION_AUDIT.md)。已验证的旧包仍为 Build 31，不包含本次优化或后续矢量图标。
+阅读沉浸布局与 TXT 连续滚动优化已交付为 **1.0.0 Build 43 unsigned arm64 IPA**。同一 iPhone 15 的正文高度 609.67→731pt（+121.33pt）；同设备短篇、长篇、超长单章的性能数据与内存取舍均已记录。主回归 **62 通过 / 0 失败 / 3 项既有 Files 跳过**，iPhone 15 10/0/0，大屏 2/0/0，校准性能前后各 3/0/0。完整运行的大屏阶段曾超时，已在独立成功运行中补齐；证据来源及发布源码等价校验见 [阅读报告](docs/reader-performance/REPORT.md)。
+
+仓库已通过 [公开审计](docs/security/PUBLICATION_AUDIT.md)并实际 Public。[下载 Build 43](https://github.com/hdd290187-web/QingRead-iOS/releases/tag/v1.0.0-build43) · [实际构建](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43425216709) · [交付与校验](docs/yuying/DELIVERY.md)。真实 iPhone 滚动性能与同签名覆盖升级仍为 **HUMAN_PENDING**；未签名 IPA 需要有效签名及设备授权。
 
 ## 界面与能力
 
@@ -18,7 +20,7 @@
 
 Bundle ID 固定为 `com.hdd290187.qingread`；内部工程名 QingRead、Application Support/QingRead、书籍和章节 ID、library.json 结构及原有设置键保持兼容。新主题不覆盖已有用户的字体、排版或翻页偏好。封面仅写 Caches，不修改书籍。
 
-**使用原有签名方式覆盖 Build 24，不要先卸载，不要更换 Bundle ID 或选择清除数据。** IPA 未签名，仍需有效签名及设备授权。详见 [安装说明](docs/INSTALL.md) 与 [本次真机复测](docs/yuying/DEVICE_RETEST.md)。
+**使用原有签名身份、Team 和 Bundle ID 覆盖现有版本，不要先卸载或清除数据。** IPA 未签名，仍需有效签名及设备授权。详见 [安装说明](docs/INSTALL.md) 与 [本次真机复测](docs/yuying/DEVICE_RETEST.md)。
 
 ## 构建与验证
 
