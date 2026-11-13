@@ -181,7 +181,7 @@ private struct ReaderFontPicker: View {
                 }.accessibilityIdentifier("settings.font.\(font.rawValue)").accessibilityAddTraits(library.settings.font == font ? .isSelected : [])
                     .listRowBackground(library.settings.theme.background.opacity(0.12))
             }
-            Section { Text("思源宋体与霞鹜文楷随 App 提供，遵循 SIL Open Font License；苹方、圆体及可用黑体由 iOS 提供。缺字自动使用系统字形回退。").font(.footnote).foregroundStyle(library.settings.theme.foreground.opacity(0.65)) }.listRowBackground(library.settings.theme.background.opacity(0.12))
+            Section { Text("思源宋体与霞鹜文楷随 App 提供，遵循 SIL Open Font License；苹方、系统圆体与苹方细体由 iOS 提供。缺字自动使用系统字形回退。").font(.footnote).foregroundStyle(library.settings.theme.foreground.opacity(0.65)) }.listRowBackground(library.settings.theme.background.opacity(0.12))
         }.accessibilityIdentifier("settings.font.list").navigationTitle("字体").navigationBarTitleDisplayMode(.inline).readerSettingsSurface()
     }
 }

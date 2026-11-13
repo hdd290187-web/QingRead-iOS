@@ -115,7 +115,7 @@ final class ReaderAcceptanceTests: XCTestCase {
         app.buttons["settings.font"].tap()
         let heiti=app.buttons["settings.font.heiti"];scrollTo(heiti,app:app);XCTAssertTrue(heiti.waitForExistence(timeout:5))
         heiti.tap();app.navigationBars.buttons.firstMatch.tap()
-        expectation(for:NSPredicate { _,_ in (state()["fontFamily"] as? String ?? "").localizedCaseInsensitiveContains("Heiti") },evaluatedWith:nil);waitForExpectations(timeout:20)
+        expectation(for:NSPredicate { _,_ in state()["fontName"] as? String == "PingFangSC-Light" && state()["fontFamily"] as? String == "PingFang SC" },evaluatedWith:nil);waitForExpectations(timeout:20)
         app.buttons["settings.font"].tap();let serif=app.buttons["settings.font.serif"];scrollTo(serif,app:app);serif.tap();app.navigationBars.buttons.firstMatch.tap()
         expectation(for:NSPredicate { _,_ in let name=state()["fontName"] as? String ?? "";return name.contains("Noto") },evaluatedWith:nil);waitForExpectations(timeout:20)
         let green=app.buttons["settings.theme.green"];scrollTo(green,app:app);green.tap()

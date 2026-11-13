@@ -94,15 +94,15 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String { switch self {
     case .system: "苹方"; case .rounded: "系统圆体"; case .serif: "思源宋体"
-    case .kaiti: "霞鹜文楷"; case .heiti: "华文黑体" } }
+    case .kaiti: "霞鹜文楷"; case .heiti: "苹方细体" } }
     var installedName: String? {
         let candidates: [String]
         switch self {
         case .kaiti: candidates = ["LXGWWenKaiLite-Regular"]
-        case .heiti: candidates = ["STHeitiSC-Light"]
+        case .heiti: candidates = ["PingFangSC-Light"]
         default: return nil
         }
-        return candidates.first { UIFont(name: $0, size: 20) != nil }
+        return candidates.first { name in UIFont(name:name,size:20)?.fontName == name }
     }
     static var available: [ReaderFont] { allCases.filter { [.system, .rounded, .serif].contains($0) || $0.installedName != nil } }
     var cssFamily: String {
@@ -160,6 +160,12 @@ struct ReaderSettings: Codable, Equatable {
     var systemColorScheme: ColorScheme? { theme == .dark ? .dark : theme == .system ? nil : .light }
     var uiFont: UIFont {
         if let name = font.installedName, let face = UIFont(name: name, size: fontSize) {
+            if font == .heiti {
+                if fontWeight == 0 { return face }
+                let weight=min(1,max(-1,UIFont.Weight.light.rawValue+CGFloat(fontWeight)))
+                let descriptor=UIFontDescriptor(fontAttributes:[.family:face.familyName,.traits:[UIFontDescriptor.TraitKey.weight:weight]])
+                return UIFont(descriptor:descriptor,size:fontSize)
+            }
             let descriptor = face.fontDescriptor.addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: fontWeight]])
             return UIFont(descriptor: descriptor, size: fontSize)
         }

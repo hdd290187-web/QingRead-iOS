@@ -64,7 +64,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
     static func preferences(settings: ReaderSettings, traits: UITraitCollection) -> EPUBPreferences {
         var prefs = EPUBPreferences()
         prefs.fontSize = settings.fontSize / 16
-        prefs.fontWeight = 1 + settings.fontWeight
+        prefs.fontWeight = (settings.font == .heiti ? 0.75 : 1) + settings.fontWeight
         prefs.lineHeight = (settings.fontSize + settings.lineSpacing) / settings.fontSize
         prefs.paragraphSpacing = settings.paragraphSpacing / settings.fontSize
         prefs.paragraphIndent = settings.firstLineIndent

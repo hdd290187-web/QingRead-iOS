@@ -68,6 +68,7 @@ import CoreText
         XCTAssertEqual(Array(ReaderFont.available.prefix(3)), [.system, .rounded, .serif])
         XCTAssertGreaterThanOrEqual(ReaderFont.available.count, 5)
         XCTAssertEqual(ReaderFont.kaiti.installedName, "LXGWWenKaiLite-Regular")
+        XCTAssertEqual(ReaderFont.heiti.installedName,"PingFangSC-Light")
         for font in ReaderFont.available.dropFirst(3) {
             let installed=font.installedName.flatMap { UIFont(name:$0,size:20) }
             XCTAssertNotNil(installed)
@@ -75,6 +76,15 @@ import CoreText
             XCTAssertEqual(settings.uiFont.familyName,installed?.familyName,"添加字重描述后也必须保留选定的真实中文字体")
             print("ReaderAppliedFont \(font.rawValue)=\(settings.uiFont.fontName) family=\(settings.uiFont.familyName)")
         }
+        var light=ReaderSettings();light.font = .heiti
+        let base=light.uiFont
+        XCTAssertEqual(base.fontName,"PingFangSC-Light")
+        let epub=EPUBReaderController.preferences(settings:light,traits:UITraitCollection(userInterfaceStyle:.light))
+        XCTAssertEqual(epub.fontFamily?.rawValue,base.familyName)
+        XCTAssertEqual(epub.fontWeight,0.75)
+        light.fontWeight=0.5
+        XCTAssertEqual(light.uiFont.familyName,base.familyName)
+        XCTAssertNotEqual(light.uiFont.fontName,base.fontName,"字重调整应使用真正不同的系统字形")
     }
     func testAvailableChineseFontsAndMissingGlyphFallback() {
         for font in ReaderFont.available {

@@ -30,7 +30,7 @@ Build 43 的 `bookmarkAdded` 是按钮本地的一次性状态，`ReaderSession.
 
 ## 字体、导入与信息结构
 
-实际 macOS/iOS 26.2 Simulator 检查显示 `STHeitiSC-Light` 可用，所试系统楷体/宋体名称不可加载，因此不将这些名称放入列表。保留原字体，补充真实可用的华文黑体及官方原版 LXGW WenKai Lite v1.530 Regular。文楷未修改，官方发布 SHA256 核验一致，完整 SIL OFL 1.1 和作者声明随 App 分发。字体以真实样式显示，测试检查中文、扩展汉字和 emoji 的字形回退。
+初期 macOS/iOS 26.2 Simulator 检查只确认 `UIFont(name:)` 对 `STHeitiSC-Light` 返回非空，后续实际正文诊断证明它解析为 `PingFangSC-Light`，不能称为华文黑体。最终明确使用真实名称“苹方细体”和 `PingFangSC-Light`，并要求 UIFont 的实际 PostScript 名与声明完全一致；所试不可加载的系统楷体/宋体名称不放入列表。保留原字体，补充该真实系统细体变体及官方原版 LXGW WenKai Lite v1.530 Regular。文楷未修改，官方发布 SHA256 核验一致，完整 SIL OFL 1.1 和作者声明随 App 分发。字体以真实样式显示，测试检查中文、扩展汉字和 emoji 的字形回退。
 
 纯成功导入使用一个约 1.8 秒、可替换且不拦截操作的中间轻提示；重复、部分失败和失败保留实际原因、复制诊断与历史结果入口。“我的”技术信息合并到“关于予盈”，许可证与素材说明仍完整保留。
 
@@ -60,3 +60,7 @@ Build 43 的 `bookmarkAdded` 是按钮本地的一次性状态，`ReaderSession.
 超长单章用例在约第 79 次手势时碰到 XCTest 的 600 秒用例时限，未算作通过；已记录的 80 个快照锚点违反计数均为 0，没有发现章节或位移断言失败。慢点来自测试每次枚举所有 cell 并逐个向自动化服务查询 frame。改用同一稳定 row ID 直接查询实际绘制 cell，再独立检查其 frame 覆盖正文起点、实际文字属于该章；保留全部字形/位移/顺序断言及 80 次甩动和恢复步骤。该用例允许 900 秒执行时间，符合现有工作流的最大上限；实际 App 的滚动行为没有因此改变。
 
 候选诊断 `43478818745` 未分配到 Runner，GitHub 注明 hosted macOS arm64 容量受限，0 编译、0 测试。工作流增加 `standard_runner` 选择，使用 GitHub 文档列为标准托管的 `macos-15-intel`，保留 Xcode 26.3 / SDK 26.2 和设备产物 `ARCHS=arm64`。该标签属于公开仓库标准环境；没有改用 larger、xlarge 或自托管机。后续的 Intel 模拟器样本应列为当轮测量，不直接与历史 arm64 主机的 Build 43 数值作增减比较。
+
+[Intel 候选诊断 43481966308](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43481966308) 实际 **26 通过、1 失败、0 跳过，共 27 项**。横屏四模式关闭底部区域不再被测试误滚动，所有书签、EPUB、导入、关于、真实排版和短书顺序/恢复检查首次通过。唯一失败是字体身份断言：实际日志为 `ReaderAppliedFont heiti=PingFangSC-Light family=PingFang SC`，真实 TextKit 正文也报告同一 face。没有把旧别名继续包装成另一款字体；改为准确命名“苹方细体”，直接使用其真实 PostScript 名，保留原有持久化 raw value，并验证默认 face 与字重变化。EPUB 对应 CSS weight 300（Readium 的 0.75 倍 normal 400），确保选择细体也作用于 EPUB。
+
+该轮标准 Intel 模拟器首次启动约需 4 分半，Swift/依赖编译与 UI 操作也比先前 arm64 主机慢。保留所有回归与高压次数，主任务上限为 120 分钟、独立尺寸任务为 90 分钟；模拟器启动另设 600 秒上限，避免启动异常占满整轮。没有改变硬件档位，也没有清除任何真实设备的数据。最终仍需一次包含全部修正的完整成功构建和实际 IPA 校验。
