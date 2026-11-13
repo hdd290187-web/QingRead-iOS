@@ -36,5 +36,11 @@
     "historical Git commits and private Release source archives containing these files"
   ],
   "rawEvidenceLocation": "VPS private audit directory, excluded from source and delivery archives",
-  "sourceScanScopeNote": "After candidate implementation is committed, the history scan is repeated before delivery. No repository visibility change is authorized until the outstanding safety condition is resolved."
+  "sourceScanScopeNote": "After candidate implementation is committed, the history scan is repeated before delivery. No repository visibility change is authorized until the outstanding safety condition is resolved.",
+  "candidateHistoryScan": {
+    "commit": "b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970",
+    "commits": 37,
+    "gitleaksFindings": 0,
+    "dateUTC": "2026-11-13"
+  }
 }

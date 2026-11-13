@@ -32,3 +32,5 @@ App 独立源码为 MIT；Readium、SwiftSoup 及锁定传递依赖保留各自�
 满足许可条件并复核最新提交后，现有管理员权限可执行用户授权的 Public 修改并查询 API 验证，再触发一次完整工作流。目前不执行该条件动作。公开标准 Runner 不保证解除账户锁定；最近 Build 32 的 GitHub 注释仍是付款/支出上限阻塞。
 
 脱敏机器可读结论见 audit-summary.json。后续新增代码提交还会再次进行全历史凭据扫描，但图片许可未确认前，结论仍为 NOT_APPROVED_FOR_PUBLICATION。
+
+候选实现提交 `b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970` 后再次扫描全部 Git 历史（37 个提交），Gitleaks 仍为 0 命中。许可条件仍未解决，保持 Private。

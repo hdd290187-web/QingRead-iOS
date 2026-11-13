@@ -29,7 +29,9 @@
     },
     "repositoryResourcesAndScripts": "PASS",
     "xcodeCompilation": "NOT_RUN",
-    "xctest": "NOT_RUN"
+    "xctest": "NOT_RUN",
+    "workflowYAMLAndShell": "PASS",
+    "criticalImportAndStorageFilesUnchanged": 7
   },
   "performanceComparison": {
     "status": "NOT_RUN",
@@ -47,5 +49,6 @@
     "macOS build and same-device Simulator profiling",
     "real iPhone scroll/frame/thermal/touch profiling",
     "same-signature upgrade data preservation"
-  ]
+  ],
+  "implementationCommit": "b470a5c9ed7abb0d7ad3d8d49dd7b91554cce970"
 }
