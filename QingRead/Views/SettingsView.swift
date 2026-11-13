@@ -210,8 +210,17 @@ private struct ReadingPreview: UIViewRepresentable {
         let text = UITextView(usingTextLayoutManager: false)
         text.isEditable = false; text.isSelectable = false; text.isScrollEnabled = false
         text.textContainer.lineFragmentPadding = 0
+        text.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        text.setContentHuggingPriority(.defaultLow, for: .horizontal)
         text.accessibilityIdentifier = "settings.preview"
         return text
+    }
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        // UITextView's intrinsic width grows with its text/font. The preview must
+        // accept SwiftUI's offered width, or it pushes every settings row offscreen.
+        let width = proposal.width ?? 0
+        let height = proposal.height ?? 180
+        return CGSize(width: width.isFinite ? max(0, width) : 0, height: height.isFinite ? max(0, height) : 180)
     }
     func updateUIView(_ view: UITextView, context: Context) {
         view.backgroundColor = settings.theme.uiBackground

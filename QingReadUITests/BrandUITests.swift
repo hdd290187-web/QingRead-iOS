@@ -41,6 +41,10 @@ final class BrandUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(app.buttons["settings.font"].frame.minX, 0)
         XCTAssertLessThanOrEqual(app.buttons["settings.font"].frame.maxX, app.frame.width)
         capture(app, "予盈-阅读设置")
+        let dark = app.buttons["settings.theme.dark"]; scrollTo(dark, app: app); dark.tap()
+        capture(app, "予盈-深色阅读设置")
+        app.navigationBars.buttons.firstMatch.tap()
+        capture(app, "予盈-深色我的")
     }
     @MainActor func testTwoColumnCoversSearchAndListSwitch() {
         let app = launch(["--uitest-brand-library"])
@@ -107,6 +111,9 @@ final class BrandUITests: XCTestCase {
         XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20))
         let text = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "这是专为自动测试原创的短文")).firstMatch
         XCTAssertTrue(text.waitForExistence(timeout: 15))
+        let heading = app.webViews.staticTexts.matching(NSPredicate(format: "label == %@", "第一章 出发")).firstMatch
+        XCTAssertTrue(heading.exists)
+        XCTAssertLessThan(heading.frame.minY, app.frame.height * 0.3)
         let originalTextHeight = text.frame.height
         capture(app, "予盈-EPUB阅读")
         revealTools(app); app.buttons["reader.settings"].tap()

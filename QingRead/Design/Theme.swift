@@ -72,8 +72,13 @@ extension View { func yyPage() -> some View { modifier(YYPageStyle()) } }
 
 struct BrandMark: View {
     var width: CGFloat = 100
+    @Environment(\.colorScheme) private var colorScheme
     var body: some View {
         Image("BrandMark").resizable().scaledToFit().frame(width: width)
+            .background {
+                RoundedRectangle(cornerRadius: 10).fill(Color(uiColor: YYTheme.warmWhite))
+                    .padding(-10).opacity(colorScheme == .dark ? 1 : 0)
+            }
             .accessibilityLabel("予盈书本标志")
     }
 }

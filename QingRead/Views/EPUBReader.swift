@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import ReadiumShared
 import ReadiumNavigator
+import WebKit
 
 struct EPUBReader: UIViewControllerRepresentable {
     @ObservedObject var session: ReaderSession
@@ -82,6 +83,22 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
             if let json = position.locatorJSON, let locator = try? Locator(json: JSONValue(jsonString: json), warnings: nil) { _ = await navigator.go(to: locator); return }
             if toc.indices.contains(position.chapter) { _ = await navigator.go(to: toc[position.chapter]) }
         }
+    }
+    func navigatorContentInset(_ navigator: VisualNavigator) -> UIEdgeInsets? {
+        // ReaderHost already places this child inside safe areas and reserves both
+        // toolbars. Readium's window-based defaults would apply those insets twice.
+        UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
+    }
+    func navigator(_ navigator: EPUBNavigatorViewController, setupUserScripts controller: WKUserContentController) {
+        guard publication?.metadata.epubLayout != .fixed else { return }
+        let script = """
+        (() => {
+          const style = document.createElement('style');
+          style.textContent = 'h1,h2 { font-size:1.15em !important; font-family:inherit !important; font-weight:600 !important; line-height:1.5 !important; text-align:left !important; margin-block-start:12px !important; margin-block-end:24px !important; }';
+          (document.head || document.documentElement).appendChild(style);
+        })();
+        """
+        controller.addUserScript(WKUserScript(source: script, injectionTime: .atDocumentEnd, forMainFrameOnly: false))
     }
     func navigator(_ navigator: Navigator, locationDidChange locator: Locator) {
         let href = locator.href.string.components(separatedBy: "#")[0]
