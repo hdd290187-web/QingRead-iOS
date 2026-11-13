@@ -8,7 +8,13 @@ final class ReaderAcceptanceTests: XCTestCase {
         if !app.buttons["返回书架"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).tap() }
     }
     @MainActor private func scrollTo(_ target: XCUIElement, app: XCUIApplication) {
-        for _ in 0..<8 { if target.isHittable { break }; app.swipeUp() }
+        for _ in 0..<8 {
+            let bars=app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }
+            let top=(bars.map { $0.frame.maxY }.max() ?? 0)+12
+            if target.isHittable && target.frame.midY>top && target.frame.maxY<app.frame.maxY-16 { return }
+            if target.exists && target.frame.midY<=top { app.swipeDown(velocity:.slow) }
+            else { app.swipeUp(velocity:.slow) }
+        }
         XCTAssertTrue(target.isHittable)
     }
     @MainActor private func open(_ mode: String) -> XCUIApplication {
