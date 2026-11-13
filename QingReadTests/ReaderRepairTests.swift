@@ -1,5 +1,6 @@
 import XCTest
 import UIKit
+import CoreText
 @testable import QingRead
 
 @MainActor final class ReaderRepairTests: XCTestCase {
@@ -19,6 +20,7 @@ import UIKit
         let library = LibraryStore(rootURL: root)
         XCTAssertTrue(library.settings.showBottomProgress); XCTAssertEqual(library.settings.font, .rounded)
         XCTAssertEqual(library.bookmarks(for: book).map(\.position.characterOffset).sorted(), [123, 456])
+        XCTAssertEqual(Set(library.bookmarks.map(\.id)), Set([first.id, other.id]))
         XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent("library.json")), bytes)
         library.settings.showBottomProgress = false; library.flushSettingsIfNeeded()
         XCTAssertEqual(try Data(contentsOf: root.appendingPathComponent("library-before-build44.json")), bytes)
@@ -64,6 +66,26 @@ import UIKit
         }
         print("ReaderFontFamilies " + UIFont.familyNames.filter { $0.localizedCaseInsensitiveContains("Song") || $0.localizedCaseInsensitiveContains("Kai") || $0.localizedCaseInsensitiveContains("Hei") || $0.localizedCaseInsensitiveContains("Yuan") }.joined(separator: ","))
         XCTAssertEqual(Array(ReaderFont.available.prefix(3)), [.system, .rounded, .serif])
+        XCTAssertGreaterThanOrEqual(ReaderFont.available.count, 5)
+        XCTAssertEqual(ReaderFont.kaiti.installedName, "LXGWWenKaiLite-Regular")
         for font in ReaderFont.available.dropFirst(3) { XCTAssertNotNil(font.installedName.flatMap { UIFont(name: $0, size: 20) }) }
+    }
+    func testAvailableChineseFontsAndMissingGlyphFallback() {
+        for font in ReaderFont.available {
+            var settings=ReaderSettings();settings.font=font
+            let line=CTLineCreateWithAttributedString(NSAttributedString(string:"予盈中文，𠮷😊。",attributes:[.font:settings.uiFont]))
+            let runs=CTLineGetGlyphRuns(line) as! [CTRun]
+            XCTAssertFalse(runs.isEmpty)
+            for run in runs {
+                let count=CTRunGetGlyphCount(run)
+                var glyphs=[CGGlyph](repeating:0,count:count)
+                CTRunGetGlyphs(run,CFRange(location:0,length:count),&glyphs)
+                XCTAssertTrue(glyphs.allSatisfy { $0 != 0 },font.rawValue)
+                let attributes=CTRunGetAttributes(run) as NSDictionary
+                if let face=attributes[kCTFontAttributeName] {
+                    XCTAssertFalse((CTFontCopyPostScriptName(face as! CTFont) as String).contains("LastResort"))
+                }
+            }
+        }
     }
 }

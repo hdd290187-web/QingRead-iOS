@@ -25,6 +25,7 @@ final class ReaderSession: ObservableObject {
     @Published var isLoading = false
     @Published var error: String?
     @Published var pageInfo = ""
+    var settingsPreviewActive = false
     let book: Book
     let library: LibraryStore
     weak var engine: (any ReadingEngine)?

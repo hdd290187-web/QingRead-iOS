@@ -6,7 +6,11 @@ root=Path(__file__).resolve().parents[1]
 plist=plistlib.loads((root/'QingRead/Info.plist').read_bytes())
 assert plist['CFBundleExecutable']=='$(EXECUTABLE_NAME)'
 assert len(plist['CFBundleDocumentTypes'])==2
-assert plist['UIAppFonts']==['NotoSerifSC.ttf']
+assert plist['UIAppFonts']==['NotoSerifSC.ttf', 'LXGWWenKaiLite-Regular.ttf']
+extra_font=json.loads((root/'docs/reader-fonts-build44.json').read_text())
+assert hashlib.sha256((root/extra_font['path']).read_bytes()).hexdigest()==extra_font['sha256']
+assert extra_font['modified'] is False and extra_font['officialReleaseAssetDigestVerified']
+assert 'SIL OPEN FONT LICENSE Version 1.1' in (root/extra_font['licensePath']).read_text()
 assert plist['CFBundleDisplayName']=='予盈'
 assert plist['UILaunchStoryboardName']=='LaunchScreen'
 ET.parse(root/'QingRead/Resources/LaunchScreen.storyboard')

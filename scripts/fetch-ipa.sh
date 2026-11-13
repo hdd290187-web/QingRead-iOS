@@ -13,6 +13,13 @@ gh run watch "$run_id" --repo hdd290187-web/QingRead-iOS --exit-status
 staging="$(mktemp -d "$release_dir/.download.XXXXXXXX")"
 trap 'rm -rf -- "$staging"' EXIT
 gh run download "$run_id" --repo hdd290187-web/QingRead-iOS --name QingRead-ios-unsigned --dir "$staging"
+artifact_names="$(gh api "repos/hdd290187-web/QingRead-iOS/actions/runs/$run_id/artifacts" --jq '.artifacts[].name')"
+for label in iphone15 large; do
+  artifact="QingRead-layout-$label"
+  if [[ "$artifact_names" == *"$artifact"* ]]; then
+    gh run download "$run_id" --repo hdd290187-web/QingRead-iOS --name "$artifact" --dir "$staging"
+  fi
+done
 test -f "$staging/QingRead.ipa"
 test -f "$staging/build-info.txt"
 (cd "$staging" && sha256sum -c SHA256SUMS)

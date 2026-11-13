@@ -1,0 +1,34 @@
+{
+  "configurations": [
+    {
+      "id": "F0D366A5-0583-4214-8CB0-2802E7D3D4F5",
+      "name": "Test Scheme Action",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "preferredScreenCaptureFormat": "screenshot",
+    "targetForVariableExpansion": {
+      "containerPath": "container:QingRead.xcodeproj",
+      "identifier": "BAE3D0DF0CC11607F980B4EC",
+      "name": "QingRead"
+    }
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:QingRead.xcodeproj",
+        "identifier": "64E1B436FA43D00CFE392EC2",
+        "name": "QingReadTests"
+      }
+    },
+    {
+      "target": {
+        "containerPath": "container:QingRead.xcodeproj",
+        "identifier": "CE56DD71B3BA8BF766FC099A",
+        "name": "QingReadUITests"
+      }
+    }
+  ],
+  "version": 1
+}

@@ -42,6 +42,7 @@ import UIKit
         defer { window.isHidden = true; window.rootViewController = nil }
         controller.view.layoutIfNeeded()
         let before = try XCTUnwrap(controller.integritySnapshot())
+        XCTAssertTrue(JSONSerialization.isValidJSONObject(before))
         XCTAssertEqual(before["drawnFixtureChapter"] as? Int, 5)
         let generation = controller.integrityGeneration
         for chapter in [3, 7, 4, 2, 8] {
@@ -51,8 +52,14 @@ import UIKit
             XCTAssertEqual(after["drawnOffset"] as? Int, before["drawnOffset"] as? Int)
             XCTAssertEqual(after["anchorFailures"] as? Int, 0)
         }
+        XCTAssertGreaterThanOrEqual(controller.integritySnapshot()?["mutations"] as? Int ?? 0, 2)
         controller.completeIntegrityPreload(try XCTUnwrap(layouts[0]), chapter: 0, generation: generation - 1)
         XCTAssertEqual(controller.integritySnapshot()?["staleResultsDiscarded"] as? Int, 1)
+        controller.viewWillDisappear(false)
+        controller.completeIntegrityPreload(try XCTUnwrap(layouts[0]), chapter: 0, generation: generation)
+        XCTAssertEqual(controller.integritySnapshot()?["staleResultsDiscarded"] as? Int, 2)
+        XCTAssertEqual(controller.integritySnapshot()?["rowID"] as? String, before["rowID"] as? String)
+        controller.viewDidAppear(false)
         // Repeated real UITableView transactions, independently checking TextKit
         // hit testing against cached line anchors after direction reversals.
         for step in 0..<100 {

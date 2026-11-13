@@ -4,8 +4,9 @@ import CryptoKit
 
 extension LibraryStore {
     func seedReaderPerformanceIfRequested() async {
-        guard let argument = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--uitest-performance=") }) else { return }
-        let fixture = String(argument.dropFirst("--uitest-performance=".count))
+        guard let argument = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--uitest-performance=") || $0.hasPrefix("--uitest-integrity=") }) else { return }
+        let integrity = argument.hasPrefix("--uitest-integrity=")
+        let fixture = String(argument.split(separator: "=", maxSplits: 1).last ?? "")
         guard ["short", "long", "monolith"].contains(fixture) else { return }
         settings.mode = .scroll
         settings.fontSize = 20; settings.font = .serif; settings.theme = .white
@@ -14,11 +15,11 @@ extension LibraryStore {
         // Each fresh synthetic test attempt owns its report. Reopening the reader
         // within that attempt still keeps the active-gesture sample in the probe.
         let variant = ProcessInfo.processInfo.arguments.contains("--reader-baseline") ? "baseline" : "optimized"
-        let reports = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("ReaderPerformance", isDirectory: true)
+        let reports = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(integrity ? "ReaderIntegrity" : "ReaderPerformance", isDirectory: true)
         try? FileManager.default.removeItem(at: reports.appendingPathComponent("\(fixture)-\(variant).json"))
-        let chapterCount = fixture == "short" ? 5 : fixture == "monolith" ? 1 : 80
-        let paragraphs = fixture == "short" ? 12 : fixture == "monolith" ? 5000 : 100
-        let file = FileManager.default.temporaryDirectory.appendingPathComponent("滚动性能原创样本.txt")
+        let chapterCount = fixture == "short" ? 5 : fixture == "monolith" ? 1 : integrity ? 96 : 80
+        let paragraphs = fixture == "short" ? 12 : fixture == "monolith" ? 5000 : integrity ? 8 : 100
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(integrity ? "滚动顺序回归样本.txt" : "滚动性能原创样本.txt")
         var text = ""
         for chapter in 1...chapterCount {
             text += "第\(chapter)章 原创性能样本\n"

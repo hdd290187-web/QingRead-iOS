@@ -11,10 +11,16 @@ final class ImportFeedbackTests: XCTestCase {
         return app
     }
     @MainActor func testSelectedURLCopiesPublishesAndSurvivesRestart() {
-        let app = launch("selected")
-        XCTAssertTrue(app.buttons["import.result.done"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts["import.result.message"].label.contains("已加入"))
-        app.buttons["import.result.done"].tap()
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitest-reset", "--uitest-import-files", "--uitest-import-after-launch"]
+        app.launch()
+        let trigger = app.buttons["uitest.import.trigger"]
+        XCTAssertTrue(trigger.waitForExistence(timeout: 15)); trigger.tap()
+        let toast = app.descendants(matching: .any).matching(identifier: "import.successToast").firstMatch
+        XCTAssertTrue(toast.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["import.result.done"].exists)
+        expectation(for: NSPredicate { _, _ in !toast.exists }, evaluatedWith: nil); waitForExpectations(timeout: 5)
+        XCTAssertTrue(app.buttons["import.showResult"].exists)
         let book = app.staticTexts["系统文件测试"].firstMatch
         XCTAssertTrue(book.waitForExistence(timeout: 5)); book.tap()
         let content = app.descendants(matching: .any).matching(identifier: "reader.content").firstMatch

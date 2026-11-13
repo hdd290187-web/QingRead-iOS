@@ -29,6 +29,7 @@ jobs:
           chmod +x "$generator"
           printf 'XCODEGEN_BIN=%s\n' "$generator" >> "$GITHUB_ENV"
           "$generator" generate
+          python3 scripts/configure-test-plan.py
           mkdir -p QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
           cp Package.resolved QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
           xcodebuild -resolvePackageDependencies -onlyUsePackageVersionsFromResolvedFile -project QingRead.xcodeproj -scheme QingRead -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" 2>&1 | tee delivery/dependencies.log
@@ -39,7 +40,7 @@ jobs:
           printf 'BENCHMARK_SIMULATOR_DEVICE_ID=%s\n' "$simulator_id" >> "$GITHUB_ENV"
           printf 'iPhone 15 simulator=%s\n' "$simulator_id" > delivery/benchmark-simulator.txt
           python3 scripts/boot-test-simulator.py "$simulator_id"
-          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/optimized-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Benchmark-iPhone15.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/benchmark-iphone15.log
+          xcodebuild -project QingRead.xcodeproj -scheme QingRead -testPlan QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/optimized-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Benchmark-iPhone15.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/benchmark-iphone15.log
           python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-iphone15 optimized
       - name: Baseline scrolling on the same iPhone 15
         run: |
@@ -48,10 +49,11 @@ jobs:
           git worktree add --detach "$baseline_dir" d75d7b6b68f3dbf6a7e9b0dd8d012880732e0bf9
           python3 scripts/prepare-reader-baseline.py "$baseline_dir"
           (cd "$baseline_dir" && "$XCODEGEN_BIN" generate)
+          (cd "$baseline_dir" && python3 "$GITHUB_WORKSPACE/scripts/configure-test-plan.py")
           mkdir -p "$baseline_dir/QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm"
           cp Package.resolved "$baseline_dir/QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
           python3 scripts/boot-test-simulator.py "$BENCHMARK_SIMULATOR_DEVICE_ID"
-          xcodebuild -project "$baseline_dir/QingRead.xcodeproj" -scheme QingRead -configuration Debug -destination "id=$BENCHMARK_SIMULATOR_DEVICE_ID" -derivedDataPath "$RUNNER_TEMP/baseline-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Baseline.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/baseline-tests.log
+          xcodebuild -project "$baseline_dir/QingRead.xcodeproj" -scheme QingRead -testPlan QingRead -configuration Debug -destination "id=$BENCHMARK_SIMULATOR_DEVICE_ID" -derivedDataPath "$RUNNER_TEMP/baseline-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Baseline.xcresult" -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderScrollPerformanceTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/baseline-tests.log
           python3 scripts/export-reader-performance.py "$BENCHMARK_SIMULATOR_DEVICE_ID" delivery/performance-baseline baseline
           python3 scripts/compare-reader-performance.py delivery/performance-baseline delivery/performance-iphone15 delivery/performance-comparison
       - name: Export benchmark reports and screenshots

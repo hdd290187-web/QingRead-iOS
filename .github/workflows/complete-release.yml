@@ -52,6 +52,7 @@ jobs:
           generator="$(find "$RUNNER_TEMP/generator" -type f -name xcodegen | head -1)"
           chmod +x "$generator"
           "$generator" generate
+          python3 scripts/configure-test-plan.py
           mkdir -p QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
           cp Package.resolved QingRead.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
           xcodebuild -resolvePackageDependencies -onlyUsePackageVersionsFromResolvedFile -project QingRead.xcodeproj -scheme QingRead -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" 2>&1 | tee delivery/dependencies.log
@@ -76,7 +77,7 @@ jobs:
           simulator_id="$(python3 scripts/select-large-simulator.py delivery/available-simulators.json)"
           printf 'large simulator=%s\n' "$simulator_id" > delivery/large-simulator.txt
           python3 scripts/boot-test-simulator.py "$simulator_id" --shutdown-others
-          xcodebuild -project QingRead.xcodeproj -scheme QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/layout-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Reader-Large.xcresult" -parallel-testing-enabled NO -enableCodeCoverage NO -test-timeouts-enabled YES -default-test-execution-time-allowance 300 -maximum-test-execution-time-allowance 300 -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderLayoutTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/reader-large.log
+          xcodebuild -project QingRead.xcodeproj -scheme QingRead -testPlan QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/layout-tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Reader-Large.xcresult" -parallel-testing-enabled NO -enableCodeCoverage NO -test-timeouts-enabled YES -default-test-execution-time-allowance 300 -maximum-test-execution-time-allowance 300 -retry-tests-on-failure -test-iterations 2 -only-testing:QingReadUITests/ReaderLayoutTests CODE_SIGNING_ALLOWED=NO test 2>&1 | tee delivery/reader-large.log
       - name: Export large layout evidence
         if: always()
         run: |

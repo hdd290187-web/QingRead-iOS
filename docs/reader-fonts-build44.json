@@ -1,0 +1,12 @@
+{
+  "family": "LXGW WenKai Lite",
+  "face": "LXGWWenKaiLite-Regular",
+  "version": "v1.530",
+  "path": "QingRead/Resources/Fonts/LXGWWenKaiLite-Regular.ttf",
+  "source": "https://github.com/lxgw/LxgwWenKai-Lite/releases/download/v1.530/LXGWWenKaiLite-Regular.ttf",
+  "sha256": "f799a538a3355877e597a0ae04050e897932c9ae7689eb9227c2953c5dd549ea",
+  "officialReleaseAssetDigestVerified": true,
+  "license": "SIL Open Font License 1.1",
+  "licensePath": "QingRead/Resources/Notices/LXGWWenKaiLite-OFL.txt",
+  "modified": false
+}

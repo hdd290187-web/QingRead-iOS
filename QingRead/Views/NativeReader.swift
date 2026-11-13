@@ -11,6 +11,7 @@ struct NativeReader: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: NativeReaderController, context: Context) {
         controller.apply(settings: settings)
     }
+    static func dismantleUIViewController(_ controller: NativeReaderController, coordinator: ()) { controller.endReading() }
 }
 
 private struct PageAddress: Equatable { var chapter: Int; var page: Int }
@@ -71,6 +72,8 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private var scrollLayouts: [Int: ScrollChapterLayout] = [:]
     private var rebuilding = false
     private var preparing = Set<Int>()
+    private var preloadTasks: [Int: Task<Void, Never>] = [:]
+    private var scrollWorldBase: CGFloat = 0
     private var lastDisplay = Date.distantPast
     private var pendingScrollPosition: ReadingPosition?
     private var lastSize = CGSize.zero
@@ -78,6 +81,8 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private var appliedPosition: ReadingPosition
     private var reflowAnchor: ReadingPosition?
     private var acceptsScrollPosition = true
+    private var needsResumeBuild = false
+    private var resumePosition: ReadingPosition?
     private var programmaticScrolling = false
     private var transitioning = false
     private var coverCurrent: PrintedPage?
@@ -91,6 +96,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     private var stalePreloads = 0
     private var deferredRebaseForTesting = false
     private var integrityFixtureMode = false
+    private var lastIntegritySample = Date.distantPast
     #endif
     #if DEBUG
     private let frameProbe = ReaderFrameProbe()
@@ -115,7 +121,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         #if DEBUG
         if integrityFixtureMode { return }
         #endif
-        guard UIApplication.shared.applicationState == .active,
+        guard acceptsScrollPosition, UIApplication.shared.applicationState == .active,
               view.bounds.width > 80, view.bounds.height > 100 else { return }
         if view.bounds.size != lastSize { lastSize = view.bounds.size; reflow() }
     }
@@ -123,6 +129,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         guard newSettings != settings else { return }
         let previous = settings
         settings = newSettings
+        guard acceptsScrollPosition else { needsResumeBuild = true; return }
         if previous.mode == newSettings.mode, previous.hasSameTextLayout(as: newSettings),
            previous.theme == newSettings.theme || newSettings.mode == .scroll {
             view.backgroundColor = settings.theme.uiBackground
@@ -155,12 +162,32 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     }
     override func viewWillDisappear(_ animated: Bool) {
         if settings.mode == .scroll { saveScrollPosition() }
-        acceptsScrollPosition = false
+        var ancestor: UIViewController? = self
+        var exiting = false
+        while let value = ancestor {
+            exiting = exiting || value.isBeingDismissed || value.isMovingFromParent
+            ancestor = value.parent
+        }
+        if session.settingsPreviewActive && !exiting { super.viewWillDisappear(animated); return }
+        endReading()
         super.viewWillDisappear(animated)
+    }
+    func endReading() {
+        if settings.mode == .scroll { saveScrollPosition() }
+        acceptsScrollPosition = false
+        if session.isLoading { needsResumeBuild = true; session.isLoading = false }
+        buildTask?.cancel(); buildTask = nil
+        preloadTasks.values.forEach { $0.cancel() }; preloadTasks.removeAll(); preparing.removeAll()
+        loadGeneration += 1
     }
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         acceptsScrollPosition = true
+        if let target = resumePosition {
+            resumePosition = nil; needsResumeBuild = false; reflowAnchor = nil; rebuild(at: target)
+        } else if needsResumeBuild {
+            needsResumeBuild = false; reflow()
+        } else { prepareNeighbors() }
         view.setNeedsLayout()
         #if DEBUG
         if let table { frameProbe.attach(to: table) }
@@ -179,11 +206,13 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             session.error = "阅读位置对应的章节暂不可用，原位置已保留。"; return
         }
         buildTask?.cancel()
+        preloadTasks.values.forEach { $0.cancel() }; preloadTasks.removeAll()
         loadGeneration += 1; preparing.removeAll(); let generation = loadGeneration
         let targetChapter = min(max(0, position.chapter), max(0, session.chapters.count - 1))
         session.isLoading = true
         buildTask = Task { [weak self] in
             guard let self else { return }
+            defer { if generation == loadGeneration { buildTask = nil } }
             do {
                 if debounce { try await Task.sleep(nanoseconds: 140_000_000) }
                 let chapter = try await prepared(targetChapter)
@@ -228,9 +257,9 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         let neighbors = settings.mode == .scroll ? [chapter - 1, chapter + 1, chapter - 2, chapter + 2] : [chapter - 1, chapter + 1]
         for index in neighbors where session.chapters.indices.contains(index) && !preparing.contains(index) && (settings.mode == .scroll ? scrollLayouts[index] == nil : layouts[index] == nil) {
             preparing.insert(index)
-            Task { [weak self] in
+            preloadTasks[index] = Task { [weak self] in
                 guard let self else { return }
-                defer { if generation == loadGeneration { preparing.remove(index) } }
+                defer { if generation == loadGeneration { preparing.remove(index); preloadTasks[index] = nil } }
                 do {
                     let chapter = try await prepared(index)
                     guard generation == loadGeneration else {
@@ -314,7 +343,11 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             }
         } else { startCover(target: page, forward: forward); finishCover(commit: true, duration: 0.24) }
     }
-    func navigate(to position: ReadingPosition) { reflowAnchor = nil; session.menuVisible = false; rebuild(at: position) }
+    func navigate(to position: ReadingPosition) {
+        reflowAnchor = nil; session.menuVisible = false
+        if acceptsScrollPosition { rebuild(at: position) }
+        else { resumePosition = position }
+    }
     private func reportCurrent() {
         guard let layout = layouts[current.chapter], layout.ranges.indices.contains(current.page) else { return }
         let range = layout.ranges[current.page]
@@ -378,8 +411,9 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         }
     }
 
-    // Native inertia and bounce are unchanged. Rows have exact worker-measured
-    // heights; adjacent chapters arrive as insert/delete diffs, never reloadData.
+    // Native inertia and bounce are unchanged. Moving windows append only;
+    // idle rebases reuse worker-prepared heights and drawings, then restore the
+    // same visible character before UIKit commits the next display frame.
     private func buildScroll() throws {
         let table = UITableView(frame: view.bounds, style: .plain)
         table.accessibilityIdentifier = "reader.scrollViewport"
@@ -391,6 +425,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         table.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
         table.register(ScrollTextCell.self, forCellReuseIdentifier: "paragraph")
         self.table = table
+        scrollWorldBase = 0
         let window = ScrollWindow.chapters(available: Set(scrollLayouts.keys), mounted: [], anchor: appliedPosition.chapter, visible: [], deferRebase: false)
         scrollRows = rows(for: window)
         view.addSubview(table)
@@ -418,17 +453,17 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         }
     }
     private func readingRow(in table: UITableView) -> IndexPath? {
-        let y = max(0, table.contentOffset.y + table.contentInset.top)
+        let y = min(max(0, table.contentOffset.y + table.contentInset.top), max(0, table.contentSize.height - 0.5))
         return table.indexPathForRow(at: CGPoint(x: table.bounds.midX, y: y + 0.25)) ?? table.indexPathsForVisibleRows?.min()
     }
     private func synchronizeScrollRows() {
-        guard let table, settings.mode == .scroll, !rebuilding,
+        guard UIApplication.shared.applicationState == .active, let table, settings.mode == .scroll, !rebuilding,
               let anchorPath = readingRow(in: table), scrollRows.indices.contains(anchorPath.row) else { return }
         ReaderPerformance.measure(.chapterUpdate) {
             let anchor = scrollRows[anchorPath.row]
             let visible = Set((table.indexPathsForVisibleRows ?? []).compactMap { scrollRows.indices.contains($0.row) ? scrollRows[$0.row].chapter : nil })
             let mounted = Array(Set(scrollRows.map(\.chapter))).sorted()
-            var deferRebase = table.isDecelerating || programmaticScrolling
+            var deferRebase = table.isTracking || table.isDragging || table.isDecelerating || programmaticScrolling
             #if DEBUG
             deferRebase = deferRebase || deferredRebaseForTesting
             #endif
@@ -443,35 +478,65 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             let oldOffset = table.contentOffset.y
             let oldAnchorY = table.rectForRow(at: anchorPath).minY
             rebuilding = true
-            // begin/endUpdates plus layoutIfNeeded make this one synchronous
-            // geometry transaction; another async completion cannot overlap it.
+            if deferRebase {
+                // One transaction at a time. Preloads arriving during it are
+                // coalesced from scrollLayouts after UIKit finishes this append.
+                assert(deleted.isEmpty && next.prefix(scrollRows.count).map(\.id) == scrollRows.map(\.id))
+                let generation = loadGeneration
+                UIView.performWithoutAnimation {
+                    table.performBatchUpdates {
+                        scrollRows = next
+                        table.insertRows(at: inserted, with: .none)
+                    } completion: { [weak self, weak table] _ in
+                        guard let self, let table, self.table === table, generation == self.loadGeneration else { return }
+                        ReaderPerformance.measure(.chapterUpdate) {
+                            rebuilding = false
+                            #if DEBUG
+                            integrityMutations += 1
+                            if let row = scrollRows.firstIndex(where: { $0.id == anchor.id }),
+                               abs(table.rectForRow(at: IndexPath(row: row, section: 0)).minY - oldAnchorY) > 0.5 { integrityFailures += 1 }
+                            recordScrollDiagnostic(event: "append", inserted: inserted.map(\.row))
+                            #endif
+                            // The finger/inertia may have advanced while UIKit
+                            // completed. Never restore an old moving offset here.
+                            updateScrollPosition(); synchronizeScrollRows()
+                            if !table.isTracking && !table.isDragging && !table.isDecelerating && !programmaticScrolling { saveScrollPosition() }
+                        }
+                    }
+                }
+                return
+            }
+            // Rebase only at rest. Reuse cached glyphs rather than rebuilding
+            // text or relying on UIKit's animated deletion offset bookkeeping.
             UIView.performWithoutAnimation {
-                table.beginUpdates()
                 scrollRows = next
-                table.deleteRows(at: deleted, with: .none)
-                table.insertRows(at: inserted, with: .none)
-                table.endUpdates()
-                table.layoutIfNeeded()
+                table.reloadData(); table.layoutIfNeeded()
                 if let row = scrollRows.firstIndex(where: { $0.id == anchor.id }) {
                     let newAnchorY = table.rectForRow(at: IndexPath(row: row, section: 0)).minY
-                    let target = oldOffset + newAnchorY - oldAnchorY
-                    if abs(table.contentOffset.y - target) > 0.25 { table.contentOffset.y = target }
+                    let shift = newAnchorY - oldAnchorY
+                    scrollWorldBase -= shift
+                    table.setContentOffset(CGPoint(x: 0, y: oldOffset + shift), animated: false)
                     table.layoutIfNeeded()
                 }
             }
             rebuilding = false
             // Retain mounted drawings during inertia, and a small preload halo.
-            // Idle/dragging transactions reclaim rows outside visible +/-2 chapters.
+            // Idle transactions reclaim rows outside visible +/-2 chapters.
             let mountedSet = Set(window)
             scrollLayouts = scrollLayouts.filter { mountedSet.contains($0.key) || abs($0.key - anchor.chapter) <= 2 }
             #if DEBUG
             integrityMutations += 1
-            let after = readingRow(in: table).flatMap { scrollRows.indices.contains($0.row) ? scrollRows[$0.row] : nil }
-            let lineBefore = anchor.chunk.character(atY: max(0, oldOffset + table.contentInset.top - oldAnchorY))
-            if after?.id != anchor.id { integrityFailures += 1 }
-            if let after, let path = readingRow(in: table) {
-                let lineAfter = after.chunk.character(atY: max(0, table.contentOffset.y + table.contentInset.top - table.rectForRow(at: path).minY))
-                if abs(lineBefore - lineAfter) > 3 { integrityFailures += 1 }
+            if deferRebase {
+                if let row = scrollRows.firstIndex(where: { $0.id == anchor.id }),
+                   abs(table.rectForRow(at: IndexPath(row: row, section: 0)).minY - oldAnchorY) > 0.5 { integrityFailures += 1 }
+            } else {
+                let after = readingRow(in: table).flatMap { scrollRows.indices.contains($0.row) ? scrollRows[$0.row] : nil }
+                let lineBefore = anchor.chunk.character(atY: max(0, oldOffset + table.contentInset.top - oldAnchorY))
+                if after?.id != anchor.id { integrityFailures += 1 }
+                if let after, let path = readingRow(in: table) {
+                    let lineAfter = after.chunk.character(atY: max(0, table.contentOffset.y + table.contentInset.top - table.rectForRow(at: path).minY))
+                    if abs(lineBefore - lineAfter) > 3 { integrityFailures += 1 }
+                }
             }
             recordScrollDiagnostic(event: "rows", deleted: deleted.map(\.row), inserted: inserted.map(\.row))
             #endif
@@ -491,11 +556,11 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     }
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         reflowAnchor = nil; session.menuVisible = false
-        // A new drag ends the previous inertia; reclaim its deferred window now.
+        // Synchronize prepared trailing rows without rebasing the active gesture.
         synchronizeScrollRows()
     }
     private func updateScrollPosition() {
-        guard !rebuilding, let table else { return }
+        guard acceptsScrollPosition, !rebuilding, let table else { return }
         // The previous row may overlap only the 8pt paper inset. Anchor the
         // actual reading origin so a chapter start cannot become its predecessor.
         guard let path = readingRow(in: table),
@@ -512,6 +577,9 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             session.stage(pendingScrollPosition); lastDisplay = Date()
         }
         if previousChapter != current.chapter || path.row >= scrollRows.count - 3 || path.row < 3 { prepareNeighbors() }
+        #if DEBUG
+        recordScrollDiagnostic(event: "scroll")
+        #endif
     }
     private func saveScrollPosition() {
         guard let pendingScrollPosition else { return }
@@ -547,10 +615,11 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         if settings.mode == .scroll { saveScrollPosition() }
     }
     private func finishScrolling() {
+        programmaticScrolling = false
         if acceptsScrollPosition, UIApplication.shared.applicationState == .active {
             synchronizeScrollRows(); updateScrollPosition()
         }
-        saveScrollPosition(); programmaticScrolling = false
+        saveScrollPosition()
     }
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) { finishScrolling() }
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
@@ -559,7 +628,10 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) { finishScrolling() }
     #if DEBUG
     private func recordScrollDiagnostic(event: String, deleted: [Int] = [], inserted: [Int] = []) {
-        guard ProcessInfo.processInfo.arguments.contains("--reader-integrity"), let snapshot = integritySnapshot() else { return }
+        guard ProcessInfo.processInfo.arguments.contains("--reader-integrity") else { return }
+        if event == "scroll" && Date().timeIntervalSince(lastIntegritySample) < 0.1 { return }
+        lastIntegritySample = Date()
+        guard let snapshot = integritySnapshot() else { return }
         var record = snapshot
         record["event"] = event; record["deleted"] = deleted; record["inserted"] = inserted
         if let data = try? JSONSerialization.data(withJSONObject: record, options: .sortedKeys), let text = String(data: data, encoding: .utf8) {
@@ -580,9 +652,9 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         return ["chapter": row.chapter, "offset": logical, "drawnOffset": drawn,
                 "drawnFixtureChapter": marker.map { $0 - 1 } ?? -1,
                 "globalOffset": prefix + logical, "rowID": row.id,
-                "y": table.contentOffset.y, "size": table.contentSize.height,
-                "viewport": table.bounds.height, "generation": loadGeneration,
-                "fontSize": (row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)?.pointSize ?? 0,
+                "y": Double(table.contentOffset.y), "worldY": Double(table.contentOffset.y + scrollWorldBase), "size": Double(table.contentSize.height),
+                "viewport": Double(table.bounds.height), "generation": loadGeneration,
+                "fontSize": Double((row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)?.pointSize ?? 0),
                 "fontName": (row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)?.fontName ?? "",
                 "theme": settings.theme.rawValue,
                 "mutations": integrityMutations, "anchorFailures": integrityFailures,

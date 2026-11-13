@@ -52,7 +52,11 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
     }
     private func fontDeclarations() -> [AnyHTMLFontFamilyDeclaration] {
         guard let url = Bundle.main.url(forResource: "NotoSerifSC", withExtension: "ttf"), let file = FileURL(url: url) else { return [] }
-        return [CSSFontFamilyDeclaration(fontFamily: "Noto Serif SC", fontFaces: [CSSFontFace(file: file, style: .normal, weight: .variable(200...900))]).eraseToAnyHTMLFontFamilyDeclaration()]
+        var declarations = [CSSFontFamilyDeclaration(fontFamily: "Noto Serif SC", fontFaces: [CSSFontFace(file: file, style: .normal, weight: .variable(200...900))]).eraseToAnyHTMLFontFamilyDeclaration()]
+        if let url = Bundle.main.url(forResource: "LXGWWenKaiLite-Regular", withExtension: "ttf"), let file = FileURL(url: url) {
+            declarations.append(CSSFontFamilyDeclaration(fontFamily: "LXGW WenKai Lite", fontFaces: [CSSFontFace(file: file, style: .normal, weight: .standard(.normal))]).eraseToAnyHTMLFontFamilyDeclaration())
+        }
+        return declarations
     }
     private func preferences() -> EPUBPreferences {
         Self.preferences(settings: settings, traits: traitCollection)
@@ -91,8 +95,7 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         }
     }
     func navigatorContentInset(_ navigator: VisualNavigator) -> UIEdgeInsets? {
-        // ReaderHost already places this child inside safe areas and reserves both
-        // toolbars. Readium's window-based defaults would apply those insets twice.
+        // ReaderHost places this child inside safe areas and the optional footer. Readium's window-based defaults would apply those insets twice.
         UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
     }
     private func updateHeadingStyle() {

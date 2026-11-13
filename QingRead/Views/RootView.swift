@@ -60,6 +60,15 @@ struct RootView: View {
         }.animation(.easeInOut(duration: 0.18), value: imports.toast?.id)
         .onChange(of: scenePhase) { _, phase in if phase != .active { library.flushSettingsIfNeeded() } }
         .sheet(item: $imports.feedback) { ImportFeedbackView(feedback: $0) }
+        #if DEBUG
+        .overlay(alignment: .topTrailing) {
+            if ProcessInfo.processInfo.arguments.contains("--uitest-import-after-launch") {
+                Button("测试文件选择返回") {
+                    imports.consume(.success([library.importTestFixtureDirectory.appendingPathComponent("系统文件测试.txt")]), library: library)
+                }.accessibilityIdentifier("uitest.import.trigger").padding(.top, 60)
+            }
+        }
+        #endif
         .alert("操作提示", isPresented: Binding(get: { library.lastError != nil }, set: { if !$0 { library.lastError = nil } })) {
             Button("知道了", role: .cancel) { library.lastError = nil }
         } message: { Text(library.lastError ?? "") }

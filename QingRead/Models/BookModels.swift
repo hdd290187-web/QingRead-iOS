@@ -75,17 +75,16 @@ enum ReaderMode: String, Codable, CaseIterable, Identifiable {
     var title: String { switch self { case .slide: "滑动"; case .cover: "覆盖"; case .curl: "仿真卷曲"; case .scroll: "连续滚动" } }
 }
 enum ReaderFont: String, Codable, CaseIterable, Identifiable {
-    case system, rounded, serif, kaiti, songti, heiti
+    case system, rounded, serif, kaiti, heiti
     var id: String { rawValue }
     var title: String { switch self {
     case .system: "苹方"; case .rounded: "系统圆体"; case .serif: "思源宋体"
-    case .kaiti: "楷体"; case .songti: "系统宋体"; case .heiti: "华文黑体" } }
+    case .kaiti: "霞鹜文楷"; case .heiti: "华文黑体" } }
     var installedName: String? {
         let candidates: [String]
         switch self {
-        case .kaiti: candidates = ["KaitiSC-Regular", "STKaitiSC-Regular", "STKaiti"]
-        case .songti: candidates = ["SongtiSC-Regular", "STSongti-SC-Regular", "STSong"]
-        case .heiti: candidates = ["STHeitiSC-Light", "STHeitiSC-Medium"]
+        case .kaiti: candidates = ["LXGWWenKaiLite-Regular"]
+        case .heiti: candidates = ["STHeitiSC-Light"]
         default: return nil
         }
         return candidates.first { UIFont(name: $0, size: 20) != nil }

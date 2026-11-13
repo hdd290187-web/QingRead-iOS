@@ -74,6 +74,7 @@
 	<key>UIAppFonts</key>
 	<array>
 		<string>NotoSerifSC.ttf</string>
+		<string>LXGWWenKaiLite-Regular.ttf</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>

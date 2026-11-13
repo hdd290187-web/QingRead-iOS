@@ -25,34 +25,52 @@ assert summary['failedTests'] == 0 and summary['skippedTests'] == 3
 assert summary['passedTests'] >= 62 and summary['totalTestCount'] >= 65
 assert brand['failedTests'] == 0 and brand['skippedTests'] == 0 and brand['passedTests'] >= 10
 large = json.loads((folder / 'Reader-Large-summary.json').read_text())
-baseline = json.loads((performance_folder / 'Baseline-summary.json').read_text())
-assert large['passedTests'] == 2 and large['failedTests'] == 0 and large['skippedTests'] == 0
-assert baseline['passedTests'] == 3 and baseline['failedTests'] == 0 and baseline['skippedTests'] == 0
-comparison = json.loads((performance_folder / 'performance-comparison/comparison.json').read_text())
-if args.benchmark_run:
-    benchmark = json.loads((performance_folder / 'Benchmark-iPhone15-summary.json').read_text())
-    assert benchmark['passedTests'] == 3 and benchmark['failedTests'] == 0 and benchmark['skippedTests'] == 0
-    changes = subprocess.check_output(['git', 'diff', '--name-only', metadata['commit'], 'HEAD', '--', 'QingRead'], cwd=repo, text=True).splitlines()
-    assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
-    seed = (repo / 'QingRead/Services/ReaderPerformanceSeed.swift').read_text().strip()
-    assert seed.startswith('#if DEBUG\n') and seed.endswith('#endif') and '#else' not in seed
-    for source in [comparison['optimizedCommit'], metadata['commit']]:
-        changes = subprocess.check_output(['git', 'diff', '--name-only', source, metadata['commit'], '--', 'QingRead'], cwd=repo, text=True).splitlines()
+if int(metadata['build']) >= 44:
+    import re
+    assert large['passedTests'] >= 8 and large['failedTests'] == 0 and large['skippedTests'] == 0
+    assert brand['passedTests'] >= 16
+    assert summary['passedTests'] >= 78 and summary['totalTestCount'] >= 81
+    log = (folder / 'tests.log').read_text()
+    for test_file in ['QingReadTests/ReaderRepairTests.swift', 'QingReadTests/ScrollWindowTests.swift', 'QingReadUITests/ReaderAcceptanceTests.swift', 'QingReadUITests/ReaderIntegrityTests.swift']:
+        test = repo / test_file
+        suite = test.stem
+        for method in re.findall(r'func (test\w+)\(', test.read_text()):
+            assert re.search(re.escape(suite + ' ' + method) + r"\]' passed", log), (suite, method)
+    assert not re.search(r"ReaderIntegrityTests test[^\n]*\]' failed", log), 'A scroll integrity assertion failed before retry; do not deliver it as fixed.'
+    for fixture in ['short', 'long', 'monolith']:
+        report = json.loads((folder / 'performance-iphone15' / (fixture + '-optimized.json')).read_text())
+        assert report['fixtureMetadata']['engineChapterCount'] == {'short': 5, 'long': 80, 'monolith': 1}[fixture]
+        main_ops = report['mainThreadOperations']
+        assert not main_ops.get('fileRead') and not main_ops.get('pagination') and not main_ops.get('scrollLayout')
+else:
+    baseline = json.loads((performance_folder / 'Baseline-summary.json').read_text())
+    assert large['passedTests'] == 2 and large['failedTests'] == 0 and large['skippedTests'] == 0
+    assert baseline['passedTests'] == 3 and baseline['failedTests'] == 0 and baseline['skippedTests'] == 0
+    comparison = json.loads((performance_folder / 'performance-comparison/comparison.json').read_text())
+    if args.benchmark_run:
+        benchmark = json.loads((performance_folder / 'Benchmark-iPhone15-summary.json').read_text())
+        assert benchmark['passedTests'] == 3 and benchmark['failedTests'] == 0 and benchmark['skippedTests'] == 0
+        changes = subprocess.check_output(['git', 'diff', '--name-only', metadata['commit'], 'HEAD', '--', 'QingRead'], cwd=repo, text=True).splitlines()
         assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
-    proof_path = folder / 'validation-proof.json'
-    if proof_path.exists():
-        proof = json.loads(proof_path.read_text())
-        assert proof['completionSourceCommit'] == metadata['commit']
-        assert proof['calibratedBenchmarkRun'] == int(args.benchmark_run)
-        assert proof['calibratedBenchmarkSourceCommit'] == comparison['optimizedCommit']
-        assert proof['releaseCodeMatchesRegressions'] and proof['releaseCodeMatchesCalibratedBenchmark']
-        changes = subprocess.check_output(['git', 'diff', '--name-only', proof['regressionSourceCommit'], metadata['commit'], '--', 'QingRead'], cwd=repo, text=True).splitlines()
-        assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
-for row in comparison['workloads']:
-    before, after = row['baseline'], row['optimized']
-    assert before['fixtureMetadata'] == after['fixtureMetadata']
-    assert before['simulatorTargetID'] == after['simulatorTargetID']
-    assert after['fixtureMetadata']['engineChapterCount'] == {'short': 5, 'long': 80, 'monolith': 1}[row['fixture']]
+        seed = (repo / 'QingRead/Services/ReaderPerformanceSeed.swift').read_text().strip()
+        assert seed.startswith('#if DEBUG\n') and seed.endswith('#endif') and '#else' not in seed
+        for source in [comparison['optimizedCommit'], metadata['commit']]:
+            changes = subprocess.check_output(['git', 'diff', '--name-only', source, metadata['commit'], '--', 'QingRead'], cwd=repo, text=True).splitlines()
+            assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
+        proof_path = folder / 'validation-proof.json'
+        if proof_path.exists():
+            proof = json.loads(proof_path.read_text())
+            assert proof['completionSourceCommit'] == metadata['commit']
+            assert proof['calibratedBenchmarkRun'] == int(args.benchmark_run)
+            assert proof['calibratedBenchmarkSourceCommit'] == comparison['optimizedCommit']
+            assert proof['releaseCodeMatchesRegressions'] and proof['releaseCodeMatchesCalibratedBenchmark']
+            changes = subprocess.check_output(['git', 'diff', '--name-only', proof['regressionSourceCommit'], metadata['commit'], '--', 'QingRead'], cwd=repo, text=True).splitlines()
+            assert set(changes) <= {'QingRead/Services/ReaderPerformanceSeed.swift'}, changes
+    for row in comparison['workloads']:
+        before, after = row['baseline'], row['optimized']
+        assert before['fixtureMetadata'] == after['fixtureMetadata']
+        assert before['simulatorTargetID'] == after['simulatorTargetID']
+        assert after['fixtureMetadata']['engineChapterCount'] == {'short': 5, 'long': 80, 'monolith': 1}[row['fixture']]
 assert 'BUILD SUCCEEDED' in (folder / 'device-release.log').read_text()
 assert 'TEST SUCCEEDED' in (folder / 'tests.log').read_text()
 assert 'TEST SUCCEEDED' in (folder / 'brand-iphone15.log').read_text()
@@ -76,10 +94,14 @@ with ZipFile(ipa) as archive:
         command, size = struct.unpack_from('<II', binary, offset)
         assert command != 0x1d  # LC_CODE_SIGNATURE
         offset += size
-    for hook in [b'picker-selected', b'--uitest-import-files', b'--uitest-import-result=', b'--uitest-brand-library', b'--uitest-launch-preview', b'--uitest-epub', b'--reader-performance', b'--reader-baseline', b'--uitest-performance=']:
+    for hook in [b'picker-selected', b'--uitest-import-files', b'--uitest-import-result=', b'--uitest-brand-library', b'--uitest-launch-preview', b'--uitest-epub', b'--reader-performance', b'--reader-baseline', b'--uitest-performance=', b'--uitest-integrity=', b'--reader-integrity', b'--uitest-import-after-launch']:
         assert hook not in binary, hook
     font = json.loads((repo / 'docs/font-lock.json').read_text())
     assert hashlib.sha256(archive.read('Payload/QingRead.app/NotoSerifSC.ttf')).hexdigest() == font['sha256']
+    if int(metadata['build']) >= 44:
+        extra_font = json.loads((repo / 'docs/reader-fonts-build44.json').read_text())
+        assert hashlib.sha256(archive.read('Payload/QingRead.app/LXGWWenKaiLite-Regular.ttf')).hexdigest() == extra_font['sha256']
+        assert archive.read('Payload/QingRead.app/LXGWWenKaiLite-OFL.txt') == (repo / extra_font['licensePath']).read_bytes()
 source_icon = repo / 'QingRead/Assets.xcassets/AppIcon.appiconset/AppIcon.png'
 icon_lock = json.loads((repo / 'design/yuying-vector/asset-lock.json').read_text())
 assert hashlib.sha256(source_icon.read_bytes()).hexdigest() == icon_lock['pngSHA256']

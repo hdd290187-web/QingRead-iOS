@@ -31,7 +31,7 @@ private struct ReaderHost: View {
                 if library.settings.showBottomProgress {
                     compactProgress.frame(height: 28).contentShape(Rectangle())
                         .onTapGesture { session.menuVisible.toggle() }
-                        .accessibilityIdentifier("reader.compactProgress")
+                        .accessibilityElement(children: .contain).accessibilityIdentifier("reader.compactProgress")
                 }
             }
             if session.menuVisible {
@@ -47,7 +47,7 @@ private struct ReaderHost: View {
         .preferredColorScheme(library.settings.systemColorScheme)
         .interactiveDismissDisabled()
         .sheet(isPresented: $showContents) { ContentsSheet(session: session).presentationBackground(YYTheme.background) }
-        .sheet(isPresented: $showSettings, onDismiss: { library.flushSettingsIfNeeded() }) {
+        .sheet(isPresented: $showSettings, onDismiss: { session.settingsPreviewActive = false; library.flushSettingsIfNeeded() }) {
             NavigationStack {
                 ReaderSettingsForm().toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { showSettings = false }.accessibilityIdentifier("reader.settings.done") } }
             }.environment(\.readerSettingsOverlay, true)
@@ -74,7 +74,7 @@ private struct ReaderHost: View {
                 tool("返回书架", icon: "chevron.left") { dismiss() }
                 Text(session.book.title).font(.system(size: 12)).foregroundStyle(foreground.opacity(0.5)).lineLimit(1).padding(.horizontal, 8)
                 Spacer(minLength: 4)
-                Button { showSettings = true } label: { Text("Aa").font(.system(size: 20, weight: .regular)).frame(width: 44, height: 44) }
+                Button { session.settingsPreviewActive = true; showSettings = true } label: { Text("Aa").font(.system(size: 20, weight: .regular)).frame(width: 44, height: 44) }
                     .accessibilityLabel("阅读设置").accessibilityIdentifier("reader.settings")
                 tool(session.hasBookmark ? "取消书签" : "添加书签", icon: session.hasBookmark ? "bookmark.fill" : "bookmark") { session.bookmark() }
                     .accessibilityIdentifier("reader.bookmark").accessibilityValue(session.hasBookmark ? "已收藏" : "未收藏")
@@ -120,7 +120,7 @@ private struct ReaderHost: View {
             HStack {
                 Button { showContents = true } label: { Label("目录", systemImage: "list.bullet") }
                 Spacer()
-                Button { showSettings = true } label: { Label("排版", systemImage: "textformat.size") }
+                Button { session.settingsPreviewActive = true; showSettings = true } label: { Label("排版", systemImage: "textformat.size") }
                 Spacer()
                 Button { showBookmarks = true } label: { Label("书签", systemImage: "bookmark") }
             }.font(.system(size: 13)).frame(height: 44)
