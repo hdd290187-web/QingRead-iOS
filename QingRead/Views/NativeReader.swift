@@ -654,8 +654,8 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
               let cell = table.cellForRow(at: path) as? ScrollTextCell else { return nil }
         let row = scrollRows[path.row]
         let localY = max(0, table.contentOffset.y + table.contentInset.top - table.rectForRow(at: path).minY)
-        let bodyFont = row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont
-        let probeX = settings.sidePadding + (bodyFont?.pointSize ?? settings.fontSize) * 2.2
+        let probeFont = row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont
+        let probeX = settings.sidePadding + (probeFont?.pointSize ?? CGFloat(settings.fontSize)) * 2.2
         let drawn = row.chunk.range.start + cell.character(at: CGPoint(x: probeX, y: localY + 10))
         let relativeLineStart = row.chunk.character(atY: localY)
         let relativeLineEnd = row.chunk.lines.first(where: { $0.start > relativeLineStart })?.start ?? row.chunk.range.length
