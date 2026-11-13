@@ -10,6 +10,9 @@ final class ReaderIntegrityTests: XCTestCase {
             return table.value as? String == "\(chapter):\(offset)"
         }
         expectation(for: ready, evaluatedWith: nil); waitForExpectations(timeout: 15)
+        if let data=try? JSONSerialization.data(withJSONObject:result,options:.sortedKeys),let text=String(data:data,encoding:.utf8) {
+            print("ReaderIntegrityEvidence " + text)
+        }
         return result
     }
     @MainActor private func verify(_ state: [String: Any], table: XCUIElement) {

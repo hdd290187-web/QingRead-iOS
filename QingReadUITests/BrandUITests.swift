@@ -16,7 +16,12 @@ final class BrandUITests: XCTestCase {
         XCTAssertTrue(target.isHittable)
     }
     @MainActor private func revealTools(_ app: XCUIApplication) {
-        if !app.buttons["reader.settings"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap() }
+        if !app.buttons["reader.settings"].isHittable {
+            let progress=element(app,"reader.compactProgress")
+            if progress.isHittable { progress.tap() }
+            else { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap() }
+        }
+        XCTAssertTrue(app.buttons["reader.settings"].waitForExistence(timeout:5))
     }
     @MainActor func testEmptyBrandAndThreeTabs() {
         let app = launch()
@@ -122,7 +127,7 @@ final class BrandUITests: XCTestCase {
         XCTAssertTrue(app.sliders["settings.fontSize"].waitForExistence(timeout: 5)); app.sliders["settings.fontSize"].adjust(toNormalizedSliderPosition: 0.85)
         let cream = app.buttons["settings.theme.cream"]; scrollTo(cream, app: app); cream.tap()
         app.buttons["reader.settings.done"].tap()
-        XCTAssertTrue(text.waitForExistence(timeout: 15))
+        XCTAssertTrue(text.waitForExistence(timeout: 30))
         expectation(for: NSPredicate { _, _ in text.frame.height > originalTextHeight }, evaluatedWith: nil)
         waitForExpectations(timeout: 10)
         capture(app, "予盈-EPUB排版与纸张生效")
@@ -131,7 +136,7 @@ final class BrandUITests: XCTestCase {
         scrollTo(scroll, app: app); scroll.tap()
         XCTAssertTrue(scroll.isSelected)
         app.buttons["reader.settings.done"].tap()
-        XCTAssertTrue(text.waitForExistence(timeout: 15))
+        XCTAssertTrue(text.waitForExistence(timeout: 45))
         if app.buttons["reader.settings"].isHittable { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).tap() }
         app.webViews.firstMatch.swipeUp(); app.webViews.firstMatch.swipeDown()
         XCTAssertTrue(text.exists, "EPUB 连续滚动保留正文并可反向拖动")

@@ -449,7 +449,10 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
             let chunk = scrollRows[row].chunk
             let localOffset = max(0, targetOffset - chunk.range.start)
             let lineY = chunk.lines.last(where: { $0.start <= localOffset })?.y ?? 0
-            let y = table.rectForRow(at: path).minY + lineY - table.contentInset.top
+            // UIKit rounds scroll geometry to display pixels. Place the target
+            // just inside its line so rounding cannot restore the previous line.
+            let pixel = 1 / max(1, table.traitCollection.displayScale)
+            let y = table.rectForRow(at: path).minY + lineY + pixel - table.contentInset.top
             table.setContentOffset(CGPoint(x: 0, y: min(max(-table.contentInset.top, y), max(-table.contentInset.top, table.contentSize.height - table.bounds.height + table.contentInset.bottom))), animated: false)
         }
         #if DEBUG
@@ -654,11 +657,14 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
               let cell = table.cellForRow(at: path) as? ScrollTextCell else { return nil }
         let row = scrollRows[path.row]
         let localY = max(0, table.contentOffset.y + table.contentInset.top - table.rectForRow(at: path).minY)
-        let probeFont = row.chunk.attributed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont
-        let probeX = settings.sidePadding + (probeFont?.pointSize ?? CGFloat(settings.fontSize)) * 2.2
-        let drawn = row.chunk.range.start + cell.character(at: CGPoint(x: probeX, y: localY + 10))
         let relativeLineStart = row.chunk.character(atY: localY)
         let relativeLineEnd = row.chunk.lines.first(where: { $0.start > relativeLineStart })?.start ?? row.chunk.range.length
+        // Hit-test the actual TextKit geometry for this line. A fixed offset
+        // below the viewport can already lie in the following line mid-scroll.
+        let glyphY = cell.y(for: relativeLineStart)
+        let probeFont = row.chunk.attributed.attribute(.font, at: min(relativeLineStart, row.chunk.attributed.length - 1), effectiveRange: nil) as? UIFont
+        let probeX = settings.sidePadding + (probeFont?.pointSize ?? CGFloat(settings.fontSize)) * 2.2
+        let drawn = row.chunk.range.start + cell.character(at: CGPoint(x: probeX, y: glyphY + 1))
         let logical = row.chunk.range.start + row.chunk.character(atY: localY)
         let prefix = session.chapters.prefix(row.chapter).reduce(0) { $0 + $1.length }
         let actualText = cell.renderedText
@@ -677,6 +683,7 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
         return ["chapter": row.chapter, "offset": logical, "drawnOffset": drawn,
                 "lineStart": row.chunk.range.start + relativeLineStart,
                 "lineEnd": row.chunk.range.start + relativeLineEnd,
+                "anchorLocalY": Double(localY), "anchorGlyphY": Double(glyphY),
                 "drawnFixtureChapter": marker.map { $0 - 1 } ?? -1,
                 "globalOffset": prefix + logical, "rowID": row.id,
                 "y": Double(table.contentOffset.y), "worldY": Double(table.contentOffset.y + scrollWorldBase), "size": Double(table.contentSize.height),

@@ -72,6 +72,19 @@ import UIKit
             XCTAssertLessThanOrEqual(abs(logical - drawn), 3)
             XCTAssertEqual(value["anchorFailures"] as? Int, 0)
         }
+        // A persisted line must survive real UITableView pixel rounding. The
+        // former exact-boundary restore could select its predecessor on reopen.
+        let restoreLayout = try XCTUnwrap(layouts[5])
+        let followingLayout = try XCTUnwrap(layouts[6])
+        for chunk in restoreLayout.chunks {
+            for line in chunk.lines.prefix(25) {
+                let offset = chunk.range.start + line.start
+                try controller.installIntegrityFixture([5:restoreLayout,6:followingLayout],at:ReadingPosition(chapter:5,characterOffset:offset))
+                let restored=try XCTUnwrap(controller.integritySnapshot())
+                XCTAssertEqual(restored["chapter"] as? Int,5)
+                XCTAssertEqual(restored["offset"] as? Int,offset,"恢复字符锚点不能被显示像素舍入推到前一行")
+            }
+        }
     }
     func testMissingPreparedAnchorNeverFallsBackToChapterZero() throws {
         let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
