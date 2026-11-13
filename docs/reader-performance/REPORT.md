@@ -53,3 +53,7 @@ Bundle ID、Application Support/QingRead、书籍/章节 ID、library.json、书
 [公开审计](../security/PUBLICATION_AUDIT.md)已通过；用户确认历史图为自行生成，来源声明已记录，认证与未登录 API 均验证仓库为 [Public](https://github.com/hdd290187-web/QingRead-iOS)。之后源码提交均再次全历史遮蔽扫描，没有真实凭据。
 
 完整构建与校验后才能生成本次 IPA。旧 Build 31 不含本次阅读优化或后续矢量图标，不能重新标为新包。同签名覆盖安装、旧书库/进度/书签和真机滚动仍需按 DEVICE_VALIDATION.md 验收；不要先卸载旧 App。
+
+## 完整第 39 轮实际结果
+
+[Build 39](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43401100910) 的 arm64 Release 编译通过；完整主计划为 61 通过 / 1 失败 / 3 跳过（65 项），42 个单元用例及所有阅读、EPUB、布局、三样本滚动压力用例均通过。唯一失败是首次启动原生 Files 时 Cancel 控件超过原来的 15 秒等待，随后在同一用例中实际出现并正常取消。保留原取消行为断言，将已证实的系统冷启动等待扩为 60 秒；没有把该用例跳过或当作成功。独立的 FileProvider 日志观察进程也增加对 simctl 冷启动超时的继续采集处理。后续 iPhone 15、基线和大屏阶段因主组失败尚未执行，需在修正后的完整 Build 40 中验证；没有新 IPA。

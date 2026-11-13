@@ -26,10 +26,16 @@ signal.signal(signal.SIGTERM, stop)
 signal.signal(signal.SIGINT, stop)
 try:
     while running:
-        listing = subprocess.run(
-            ['xcrun', 'simctl', 'list', 'devices', 'booted', '--json'],
-            capture_output=True, text=True, check=False, timeout=15,
-        )
+        try:
+            listing = subprocess.run(
+                ['xcrun', 'simctl', 'list', 'devices', 'booted', '--json'],
+                capture_output=True, text=True, check=False, timeout=15,
+            )
+        except subprocess.TimeoutExpired:
+            # CoreSimulator can pause while the test device first boots. Keep
+            # collecting later logs instead of abandoning the whole observer.
+            time.sleep(1)
+            continue
         if listing.returncode == 0:
             for devices in json.loads(listing.stdout)['devices'].values():
                 for device in devices:

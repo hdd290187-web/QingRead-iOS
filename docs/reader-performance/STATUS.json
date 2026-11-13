@@ -4,9 +4,9 @@
   "repoVisibility": "Public",
   "publicationAudit": "APPROVED_FOR_PUBLICATION",
   "newActionsRun": {
-    "build": 39,
     "id": null,
-    "status": "PREPARING_FULL_VALIDATION",
+    "build": 40,
+    "status": "PREPARING_FULL_VALIDATION_AFTER_FILES_WAIT_FIX",
     "runner": "macos-15",
     "import_only": false,
     "reader_diagnostics": false
@@ -36,7 +36,7 @@
     },
     "repositoryResourcesAndScripts": "PASS",
     "xcodeCompilation": "PASS_RELEASE_AND_DEBUG_BUILD34",
-    "xctest": "TARGETED_PASS_FULL_PLAN_PENDING",
+    "xctest": "BUILD39_61_PASS_1_FILES_WAIT_FAILURE_3_SKIP",
     "workflowYAMLAndShell": "PASS",
     "criticalImportAndStorageFilesUnchanged": 7,
     "targetedReaderRegressions": {
@@ -120,5 +120,20 @@
     "Draw worker-prepared TextKit glyphs directly in a UIKit cell, with complete text accessibility and no second UITextView layout",
     "Select the row at contentOffset + top paper inset for the actual reading origin",
     "Hide reader tools on user navigation/drag, not every async position report"
+  ],
+  "completeRuns": [
+    {
+      "id": 43401100910,
+      "number": 39,
+      "headSha": "0266479d98ac41b4831e731774b874ec70087e33",
+      "url": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43401100910",
+      "conclusion": "failure",
+      "releaseCompilation": "PASS",
+      "passed": 61,
+      "failed": 1,
+      "skipped": 3,
+      "total": 65,
+      "failure": "Native Files Cancel button cold-start exceeded the 15-second wait, then appeared and cancelled correctly; all 42 units and all reader UI tests passed."
+    }
   ]
 }

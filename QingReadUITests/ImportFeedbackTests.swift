@@ -61,7 +61,9 @@ final class ImportFeedbackTests: XCTestCase {
         XCTAssertFalse(app.buttons["import.copyError"].exists)
         app.buttons["library.import"].tap()
         let cancel = app.navigationBars.buttons.matching(NSPredicate(format: "label IN %@", ["Cancel", "取消"])).firstMatch
-        XCTAssertTrue(cancel.waitForExistence(timeout: 15)); cancel.tap()
+        // The hosted simulator cold-starts Files/FileProvider on its first use.
+        // Build 39 exposed a real Cancel control only after the old 15s window.
+        XCTAssertTrue(cancel.waitForExistence(timeout: 60)); cancel.tap()
         XCTAssertTrue(app.buttons["library.import"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["import.copyError"].exists)
     }
