@@ -114,6 +114,7 @@ final class BrandUITests: XCTestCase {
         let heading = app.webViews.staticTexts.matching(NSPredicate(format: "label == %@", "第一章 出发")).firstMatch
         XCTAssertTrue(heading.exists)
         XCTAssertLessThan(heading.frame.minY, app.frame.height * 0.3)
+        XCTAssertLessThan(heading.frame.height, 40, "XHTML 章标题应应用舒适的标题样式")
         let originalTextHeight = text.frame.height
         capture(app, "予盈-EPUB阅读")
         revealTools(app); app.buttons["reader.settings"].tap()

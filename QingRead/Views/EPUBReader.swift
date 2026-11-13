@@ -93,8 +93,9 @@ final class EPUBReaderController: UIViewController, ReadingEngine, EPUBNavigator
         guard publication?.metadata.layout != .fixed else { return }
         let script = """
         (() => {
-          const style = document.createElement('style');
-          style.textContent = 'h1,h2 { font-size:1.15em !important; font-family:inherit !important; font-weight:600 !important; line-height:1.5 !important; text-align:left !important; margin-block-start:12px !important; margin-block-end:24px !important; }';
+          const style = document.createElementNS('http://www.w3.org/1999/xhtml', 'style');
+          style.setAttribute('type', 'text/css');
+          style.textContent = 'html body h1,html body h2 { font-size:1.15em !important; font-family:inherit !important; font-weight:600 !important; line-height:1.5 !important; text-align:left !important; margin-block-start:12px !important; margin-block-end:24px !important; }';
           (document.head || document.documentElement).appendChild(style);
         })();
         """
