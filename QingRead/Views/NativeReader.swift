@@ -559,6 +559,9 @@ final class NativeReaderController: UIViewController, ReadingEngine, UIPageViewC
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "paragraph", for: indexPath) as? ScrollTextCell else { return UITableViewCell() }
         cell.configure(chunk: scrollRows[indexPath.row].chunk, settings: settings)
+        #if DEBUG
+        cell.accessibilityIdentifier = "reader.scrollRow." + scrollRows[indexPath.row].id
+        #endif
         return cell
     }
     func scrollViewDidScroll(_ scrollView: UIScrollView) {

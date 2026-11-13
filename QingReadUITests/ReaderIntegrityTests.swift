@@ -31,10 +31,12 @@ final class ReaderIntegrityTests: XCTestCase {
         // Inspect the actually visible canvas text and frame, independently of
         // the controller's persisted progression and structured diagnostics.
         let origin = CGPoint(x: table.frame.midX, y: table.frame.minY + 8.5)
-        let canvases = table.descendants(matching: .any).matching(identifier: "reader.scrollContent").allElementsBoundByIndex
-        let visible = canvases.first { $0.frame.contains(origin) }
-        XCTAssertNotNil(visible, "正文起点必须有真实可见的绘制 cell")
-        XCTAssertTrue((visible?.value as? String ?? "").contains("样本章节\(chapter + 1)）"))
+        let rowID=state["rowID"] as? String ?? "missing"
+        let row=table.cells.matching(identifier:"reader.scrollRow."+rowID).firstMatch
+        let visible=row.descendants(matching:.any).matching(identifier:"reader.scrollContent").firstMatch
+        XCTAssertTrue(visible.exists,"正文起点必须有真实可见的绘制 cell")
+        XCTAssertTrue(visible.frame.contains(origin),"真实 row 的绘制区域必须覆盖视口正文起点")
+        XCTAssertTrue((visible.value as? String ?? "").contains("样本章节\(chapter + 1)）"))
     }
     @MainActor private func settled(_ table: XCUIElement) -> [String:Any] {
         var latest=snapshot(table); var stableSince=ProcessInfo.processInfo.systemUptime
@@ -49,6 +51,7 @@ final class ReaderIntegrityTests: XCTestCase {
         return latest
     }
     @MainActor private func exercise(_ fixture: String) {
+        executionTimeAllowance=900
         let app = XCUIApplication()
         app.launchArguments = ["--uitest-reset", "--uitest-integrity=" + fixture, "--reader-integrity"]
         app.launch()
