@@ -1,66 +1,62 @@
-# 予盈 1.0.0 Build 31：交付与验证
+# 予盈：可编辑矢量图标与界面交付状态
 
-日期：2026-11-13 UTC。现有 QingRead App 完成“予盈”品牌与原生界面改造，保留 Build 24 的导入修复和阅读引擎。用户在本次上传说明中已确认 Build 24 TXT 导入在真实 iPhone 正常；本次新包的覆盖升级与真机手感仍需复测。
+最新文字说明要求独立重绘可编辑图标。该项源码和资产已完成；**新图标候选 Build 32 因 GitHub 账户计费/支出上限被拒绝启动，尚未进入编译，也没有生成 Build 32 IPA。** 当前实际通过 macOS/Xcode 构建与测试的可用包是 Build 31，包含已完成的品牌界面与先前提供的 PNG 图标。
 
-## 实际构建与安装包
+## 已完成的视觉修改
 
-- App / CI 构建提交：`8bb6d683702d35907f9826a0d3558d995fef101d`。
-- 成功 Actions：[run 43355596782](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43355596782)。
-- 版本：1.0.0；Build：31（大于 24）；桌面及 App 品牌：予盈。
-- Bundle ID：`com.hdd290187.qingread`，保持不变；最低 iOS 17.0。
-- macos-15 runner，实际 macOS 15.8.2，Xcode 26.3 / 17C529，iPhoneOS SDK 26.2。
-- `generic/platform=iOS`、Release、arm64、禁用签名，日志 `BUILD SUCCEEDED`。
-- IPA：`/opt/projects/QingRead-iOS/releases/QingRead-1.0.0-build31-run43355596782.ipa`。
-- 最新副本：`/opt/projects/QingRead-iOS/releases/latest/QingRead.ipa`。
-- 大小：23,981,086 bytes。
+- 桌面和 App 品牌统一为“予盈”，副标题“赠予盈盈的阅读时光”；暖白、香槟米、墨黑统一 Theme，宋体标题和原生导航。
+- 启动页、默认双列书架、封面与已读进度、空书架、书架搜索/排序/列表、阅读工具栏、分组阅读设置、深色外观、书架/发现/我的均已实现为真实 SwiftUI/UIKit 页面。
+- 阅读页收紧空白行留白，保持全部 UTF-16 字符；EPUB 使用 Readium 公开接口应用真实的章标题尺寸、边距和排版设置，并已通过渲染尺寸与重排检查。
+- 最新图标为独立 SVG 贝塞尔重绘，具有暖白纸张底、墨黑对称书页及两层米色纸页。1024×1024 RGB PNG 无 alpha、无文字、无截图残留、无预烘焙圆角；启动页标志使用同一组路径。
+
+可编辑源稿：`design/yuying-vector/AppIcon.svg`、`BrandSymbol.svg`；渲染脚本：`scripts/render-brand-assets.py`；颜色、尺寸、来源和 SHA256：`design/yuying-vector/asset-lock.json`。已按 CairoSVG 2.8.2 以 4 倍分辨率渲染并高质量缩小，重复渲染结果一致。该工具只用于开发，不增加 iOS 依赖。
+
+![最新矢量图标预览](../../design/yuying-vector/icon-preview-wallpapers.png)
+
+上图为资产及遮罩模拟预览，新图标尚未在 iOS 编译或实际安装。
+
+## 保留的功能与数据
+
+Build 24 的文件选择、协调复制、事务导入、去重及错误反馈逻辑保持；UTF-8/UTF-16/GB18030/GBK TXT、EPUB、在线书源、四种 TXT 阅读方式、书签、目录、亮度和进度恢复均保留。图标更新未改动这些 Swift 代码。EPUB 的覆盖/卷曲继续使用滑动替代。
+
+Bundle ID 仍为 `com.hdd290187.qingread`，Application Support/QingRead、书籍/章节 ID、library.json、进度/书签/设置键保持兼容。字体、LICENSE/NOTICE 和固定依赖保留。ScreenTranslator-iOS 未修改。
+
+## 已实际通过的构建与测试：Build 31
+
+- 成功 Actions：[43355596782](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43355596782)。构建提交 `8bb6d683702d35907f9826a0d3558d995fef101d`。
+- macOS 15.8.2、Xcode 26.3 / 17C529、iPhoneOS SDK 26.2，generic/platform=iOS、arm64 Release，BUILD SUCCEEDED。
+- iPhone SE 3 / iOS 26.2：37 项单元/集成 + 15 项 UI 通过，0 失败；3 项既有原生 Files 诊断明确跳过/HUMAN_PENDING。
+- iPhone 15 / iOS 26.2：品牌 UI 另 5/5 通过，包含实际 EPUB 标题尺寸和字体主题重排；这些是第二设备重复执行的用例。
+- 导入回调后的实际复制、解析、入库、错误反馈和重启读取参与必跑回归；不将其冒充系统 FileProvider 全链路验收。
+- Build 31 的旧版 JSON 快照、ID/书签/位置/设置保留、封面缓存、四种阅读方式、取消回弹与重启均通过验证。
+- IPA：`releases/QingRead-1.0.0-build31-run43355596782.ipa`，23,981,086 bytes。
 - SHA256：`5e6358f23ea8715eb5d2010c0797a4f9ad2ea4db6cb6cd55661ed5c5452289b6`。
-- 完整日志、xcresult、两组原始截图、环境和生成工程：`releases/run43355596782/`。
+- ZIP、arm64 Mach-O、名称/Bundle ID、静态 LaunchScreen、字体哈希、无签名和不含 DEBUG 入口均已校验。
 
-实际 IPA 已检查 ZIP 完整性、arm64 Mach-O、版本与名称、Bundle ID、编译后 LaunchScreen、字体哈希及无签名状态。无 LC_CODE_SIGNATURE、签名目录或描述文件；Release 二进制不含 DEBUG 导入、品牌预览或测试书籍启动参数。`build-verification.json` 是下载后校验的机器可读结果。Linux 未运行 Xcode，实际编译和 XCTest 均在 GitHub macOS 完成。
+Build 31 的完整历史报告见 [BUILD31_REPORT.md](history/BUILD31_REPORT.md)，原始汇总见 test-summary.json 与 brand-iphone15-summary.json，完整日志和 xcresult 在 releases/run43355596782/。**这些通过结果属于 Build 31，不能用来宣称新的矢量图标包已经编译或测试通过。**
 
-交付源码归档包含 CI 实际生成的 Xcode 工程、文档、报告和关键截图；App 源码对应以上构建提交，后续交付提交仅同步这些生成工程与证据，不混称为另一轮编译。
+## Build 32 的实际阻塞及恢复
 
-## 视觉与交互
+[run 43357914231](https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43357914231) 在 2026-11-13 启动时失败，steps 为空，未执行 checkout、Xcode、测试或打包。GitHub 检查注释原文：
 
-- **品牌与图标**：可见 UI 统一为“予盈”，副标题“赠予盈盈的阅读时光”。AppIcon 直接复制用户指定的 `app-icon-1024.png`，逐字节 SHA256 为 `47bb96e82f2988b1de39a11245aaa6bf6c7c0b867464e1942cebb6784842b7b0`；没有重新设计、裁剪或调色。桌面安装后的名称与图标另有模拟器截图。另已解码 IPA 内 Apple CgBI 120px/60pt 图标，与原图缩放结果比较，RGB 平均差异均小于 1/255（缩放算法差异），记录见 icon-verification.json。
-- **统一主题与启动**：墨黑 #242424、香槟米 #E7D6C2、暖白 #F7F6F2；中文标题使用已许可的 Noto Serif SC，原生导航及控件保持清晰。系统静态 LaunchScreen 采用居中书本标志、品牌字样和浅纸页曲线，没有人为等待或品牌动画阻塞。
-- **书架**：默认两列、轻微圆角、书名与已读进度；右上搜索和加号，简洁菜单保留排序及列表切换。EPUB 优先取包内封面，TXT/无封面书籍使用本地稳定生成的自然图案。缩略图为 400×588，内存上限 24 MB，磁盘缓存约束为 64 MB，不写书库或上传小说。
-- **阅读**：暖色纸张、宋体章标题、协调的首行缩进和段落留白；顶部返回/Aa/书签/更多操作，页底章节及进度。工具栏显隐保持正文容器大小；TXT 标题及空白行只改样式，不改变 UTF-16 字符；EPUB 使用现有 Readium 的设置及边距接口，流式 XHTML 章标题应用真实样式，固定版式不注入标题样式。
-- **设置与导航**：Tab 为书架/发现/我的；阅读设置分组展示字体、字号、行距、背景和互斥的四种模式，带真实文字预览。高级页边距、段距、缩进、字重、亮度、点击区和单手选项均保留。暖白/米黄/浅灰/护眼绿/深色与跟随系统可用，深色品牌标志有浅色底板以维持辨识度。
+> The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings.
 
-## 功能与数据保留
+这是 GitHub 账户运行额度/计费的外部阻塞，未通过降低测试、改公开仓库或修改签名来绕过。候选源码提交 `796522270a69acf614356c47ad484e5bf1d0f102`；最新源码额外包含交付文档与预览图，App 资源与该候选提交一致。详细机器可读状态见 vector-build-status.json。
 
-`BookDocumentPicker`、`DocumentImportController`、`DocumentStager`、`ImportFeedbackView`、`LibraryStore`、`LocalBookImporter` 保持 Build 24 实现；ImportDiagnostics 只替换两处建议中的旧品牌文字。原有 TXT UTF-8/UTF-16/GB18030/GBK、EPUB、在线书源、书签、目录、亮度、缓存和进度持久化继续保留。没有网站、后端、账号、广告、收费、社交或 AI 新功能。
+账户恢复后可直接重跑：
 
-保持 Application Support/QingRead、书籍与章节 ID、library.json 结构、书签/进度/设置键不变。既有用户偏好不被新安装默认值覆盖。封面只放可清理的 Caches。所有开源许可、NOTICE、固定依赖版本和字体许可随源码/App 保留；素材来源另见 `QingRead/Resources/Notices/yuying-assets.txt`。ScreenTranslator-iOS 未修改。
+```bash
+gh run rerun 43357914231 --repo hdd290187-web/QingRead-iOS
+```
 
-## 本次实际测试
+仍使用原有 macOS 工作流，完整执行 Release、主回归、iPhone 15 回归及打包；不能把本机 Linux 资源检查写成 Xcode 构建通过。
 
-| 验证组 | 设备与结果 | 覆盖 |
-| --- | --- | --- |
-| 单元/集成 | iPhone SE 3 / iOS 26.2，37/37 通过 | 编码/分章、CoreText、EPUB/locator、在线规则、事务导入和故障回滚、旧版快照保留 ID/进度/书签/设置、空行及标题字符完整、稳定封面/缓存、Readium 设置映射 |
-| 主 UI 回归 | 同设备，15/15 通过 | 四种 TXT 阅读方式、取消拖动、目录/书签/重启；5 项选择回调后的真实复制/解析/入库/错误反馈；品牌/三 Tab/空状态/双列与列表/搜索、字体主题实时修改、EPUB 封面与字号重排、章标题实际尺寸、设置边界、深色及桌面图标 |
-| 原生系统 Files 诊断 | 同设备，3 项跳过 | 保留既有 HUMAN_PENDING，不计入通过数量；历史 FileProvider 交接限制未被品牌改造掩盖 |
-| iPhone 15 品牌 UI | iOS 26.2，5/5 通过 | 同一组品牌布局、字体主题、EPUB 及桌面测试在更大屏再次执行 |
+## 文件与覆盖安装
 
-主汇总：55 项，52 通过、0 失败、3 跳过；iPhone 15 另 5 项通过、0 失败、0 跳过。第二设备重复执行的 5 项不作为新增独立用例夸大数量。原始汇总为 `test-summary.json`、`brand-iphone15-summary.json`。
+最新完整源码归档包含可编辑 SVG、RGB PNG、原生页面、生成工程、测试、报告、素材许可与渲染脚本。另附可用 Build 31 基线 unsigned ZIP，名称明确含 baseline，其 IPA 仍是先前 PNG 图标；不是尚未生成的 Build 32。
 
-回调边界导入测试不冒充完整系统 FileProvider 验收；三项原生 Files 诊断可通过工作流 `import_only=true` 单独运行，该模式不打包 IPA。用户已确认的 Build 24 真机导入反馈与这些 CI 边界分开记录。
+使用原有有效签名身份、Team 与 Bundle ID 覆盖 Build 24，不要先卸载、清除数据或改随机 Bundle ID。unsigned IPA 需要有效签名与设备授权。详细步骤见 [安装说明](../INSTALL.md)。
 
-![iPhone 15 模拟器界面总览](screenshots/overview.png)
+## HUMAN_PENDING
 
-上图与单张原图均为此成功构建对应源码的 Simulator Debug UI 截图，不是真机照片。启动屏图片明确为 DEBUG 布局预览；实际 Release 使用编译后的静态 LaunchScreen，不含该预览入口或人为延时。关键原图见 `screenshots/`，两种设备的完整附件在 run 目录。
-
-## 下载与覆盖安装
-
-交付 ZIP：`releases/delivery/Yuying-1.0.0-build31-unsigned.zip`，内含 QingRead.ipa、校验值、覆盖说明、报告与关键截图。源码归档随交付提交命名另附。私有仓库构建页及 Telegram 交付均可获取产物；IPA 自身 SHA256 如上，ZIP 与源码各自校验值另随包保存。
-
-**使用安装 Build 24 时的有效签名身份、Team 和 Bundle ID 覆盖安装，不要先卸载，不要清除数据或改随机 Bundle ID。** 本包未签名，不能未经有效签名直接安装。详细操作见 [覆盖说明](../INSTALL.md)。
-
-## HUMAN_PENDING：新包真机体验
-
-1. 同签名覆盖后核对旧书数量、旧位置、书签及自定义设置；桌面应为指定新图标和“予盈”。
-2. 从之前成功的文件位置再导入 TXT/EPUB，查看结果、书架、正文和去重；iCloud/第三方提供器按实际位置复测。
-3. 在常用 iPhone 依次检查滑动、覆盖、卷曲、连续滚动、短拖回弹、跨章、中央显隐工具栏，以及真实屏幕安全区、亮度恢复、壁纸图标效果与长时间阅读发热/跟手感。
-
-这些新包真机项目尚未实测，不能用模拟器通过替代；具体步骤见 [真机复测](DEVICE_RETEST.md)。
+GitHub 账户恢复后，新矢量图标仍需完成真实 macOS 构建、两设备回归、IPA 校验和桌面图标截图。新版本的同签名覆盖数据保留、原文件提供器导入、真实 iPhone 翻页跟手/短拖回弹、亮度、安全区、壁纸效果及长时间阅读发热仍需真机确认，见 [具体复测](DEVICE_RETEST.md)。

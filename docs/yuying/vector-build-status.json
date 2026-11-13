@@ -1,0 +1,54 @@
+{
+  "status": "BLOCKED_BEFORE_BUILD",
+  "candidateBuild": 32,
+  "candidateCommit": "796522270a69acf614356c47ad484e5bf1d0f102",
+  "run": "43357914231",
+  "actionsURL": "https://github.com/hdd290187-web/QingRead-iOS/actions/runs/43357914231",
+  "source": "GitHub check-run 131664255317 annotations",
+  "reason": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the Billing & plans section in your settings",
+  "latestVectorIcon": {
+    "origin": "Original editable vector reconstruction following the latest user instruction",
+    "request": "design/yuying-reference/latest-instructions.txt",
+    "source": "design/yuying-vector/AppIcon.svg",
+    "sourceSHA256": "d016f6bb7f8d26e1659a491c1f3238d7b06189fcd46e30330bb5e18180e21e07",
+    "png": "QingRead/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+    "pngSHA256": "cc8858c7cf96d4355859ac6d2d88343f94a1135efda57c3e3027c633ddc62e8e",
+    "pixels": [
+      1024,
+      1024
+    ],
+    "mode": "RGB",
+    "alpha": false,
+    "bakedSystemCorners": false,
+    "renderer": "CairoSVG 2.8.2, 4x supersampling, Pillow Lanczos",
+    "license": "Original paths/code under the repository MIT license; user supplied design reference"
+  },
+  "verifiedBaseline": {
+    "run": "43355596782",
+    "commit": "8bb6d683702d35907f9826a0d3558d995fef101d",
+    "brand": "予盈",
+    "bundleID": "com.hdd290187.qingread",
+    "version": "1.0.0",
+    "build": "31",
+    "sdk": "iphoneos26.2",
+    "unsigned": true,
+    "arch": "arm64",
+    "mainTests": {
+      "passedTests": 52,
+      "failedTests": 0,
+      "skippedTests": 3,
+      "totalTestCount": 55
+    },
+    "iPhone15BrandTests": {
+      "passedTests": 5,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 5
+    },
+    "sha256": "5e6358f23ea8715eb5d2010c0797a4f9ad2ea4db6cb6cd55661ed5c5452289b6",
+    "bytes": 23981086,
+    "iconSourceSHA256": "47bb96e82f2988b1de39a11245aaa6bf6c7c0b867464e1942cebb6784842b7b0"
+  },
+  "newVectorIPAProduced": false,
+  "resumeCommand": "gh run rerun 43357914231 --repo hdd290187-web/QingRead-iOS"
+}
