@@ -86,7 +86,8 @@ jobs:
             test_args+=(-only-testing:QingReadTests/ScrollWindowTests -only-testing:QingReadTests/ReaderRepairTests -only-testing:QingReadTests/ReaderPerformanceTests -only-testing:QingReadTests/CoreTests/testFontAndTextKitCharacterAnchor -only-testing:QingReadUITests/ReaderLayoutTests/testChapterBoundaryFontChangeAndBackgroundRestore -only-testing:QingReadUITests/ReaderAcceptanceTests -only-testing:QingReadUITests/ReaderIntegrityTests/testShortBookEightyFastFlingReversalsAndReopen -only-testing:QingReadUITests/BrandUITests/testEPUBOriginalCoverReadingAndPreferences -only-testing:QingReadUITests/ReaderScrollPerformanceTests/testShortTXTRepeatedFlingAndRestore)
           fi
           if test "$CLOUD_DIAGNOSTICS" = true; then
-            test_args+=(-only-testing:QingReadTests/CloudTests -only-testing:QingReadUITests/CloudLibraryTests -only-testing:QingReadUITests/ReaderAcceptanceTests/testOpenPanelLiveTextLayoutThemeAndRealFontPicker -only-testing:QingReadUITests/ReaderAcceptanceTests/testProfileKeepsTechnicalDetailsInsideAbout -only-testing:QingReadUITests/ReaderAcceptanceTests/testAllTXTModeProgressToggleActuallyExpandsViewport -only-testing:QingReadUITests/ReaderAcceptanceTests/testEPUBProgressAndOpenPanelLivePreferences -only-testing:QingReadUITests/NavigationTests)
+            xcodebuild -project QingRead.xcodeproj -scheme QingRead -testPlan QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Cloud-Unit.xcresult" "${test_args[@]}" -only-testing:QingReadTests/CloudTests CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- AD_HOC_CODE_SIGNING_ALLOWED=YES test 2>&1 | tee delivery/cloud-unit.log
+            test_args+=(-only-testing:QingReadUITests/CloudLibraryTests -only-testing:QingReadUITests/ReaderAcceptanceTests/testOpenPanelLiveTextLayoutThemeAndRealFontPicker -only-testing:QingReadUITests/ReaderAcceptanceTests/testProfileKeepsTechnicalDetailsInsideAbout -only-testing:QingReadUITests/ReaderAcceptanceTests/testAllTXTModeProgressToggleActuallyExpandsViewport -only-testing:QingReadUITests/ReaderAcceptanceTests/testEPUBProgressAndOpenPanelLivePreferences -only-testing:QingReadUITests/NavigationTests)
           fi
           xcodebuild -project QingRead.xcodeproj -scheme QingRead -testPlan QingRead -configuration Debug -destination "id=$simulator_id" -derivedDataPath "$RUNNER_TEMP/tests" -clonedSourcePackagesDirPath "$RUNNER_TEMP/packages" -resultBundlePath "$GITHUB_WORKSPACE/delivery/Tests.xcresult" "${test_args[@]}" CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- AD_HOC_CODE_SIGNING_ALLOWED=YES test 2>&1 | tee delivery/tests.log
           if test "$IMPORT_ONLY" != true && test "$READER_DIAGNOSTICS" != true && test "$CLOUD_DIAGNOSTICS" != true; then python3 scripts/export-reader-performance.py "$simulator_id" delivery/performance-se optimized; fi
@@ -101,7 +102,7 @@ jobs:
             xcrun xcresulttool get test-results summary --path delivery/Brand-iPhone15.xcresult > delivery/brand-iphone15-summary.json
             xcrun xcresulttool export attachments --path delivery/Brand-iPhone15.xcresult --output-path delivery/brand-iphone15-screenshots
           fi
-          for result in Baseline Reader-Large; do
+          for result in Baseline Reader-Large Cloud-Unit; do
             if test -d "delivery/$result.xcresult"; then
               xcrun xcresulttool get test-results summary --path "delivery/$result.xcresult" > "delivery/$result-summary.json"
               xcrun xcresulttool export attachments --path "delivery/$result.xcresult" --output-path "delivery/$result-screenshots"
