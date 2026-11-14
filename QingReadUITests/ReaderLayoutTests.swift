@@ -14,11 +14,21 @@ final class ReaderLayoutTests: XCTestCase {
     }
     @MainActor private func scrollTo(_ element: XCUIElement, app: XCUIApplication) {
         let container=app.descendants(matching:.any).matching(identifier:"settings.form.scroll").firstMatch
-        for _ in 0..<8 {
+        for _ in 0..<16 {
             let top=(app.navigationBars.allElementsBoundByIndex.filter { $0.isHittable }.map { $0.frame.maxY }.max() ?? 0)+12
-            if element.isHittable && element.frame.midY>top { break }
-            if element.exists && element.frame.midY<=top { container.swipeDown(velocity:.slow) }
-            else { container.swipeUp(velocity:.slow) }
+            if element.exists && element.isHittable && element.frame.midY>top && element.frame.maxY<app.frame.maxY-16 { return }
+            XCTAssertTrue(container.exists)
+            // Keep the drag within the sheet's actual viewport. A full element
+            // swipe can start outside a short sheet and leave the form unmoved.
+            let frame = container.frame.intersection(app.frame)
+            let upper = max(top + 8, frame.minY + 10)
+            let lower = min(frame.maxY - 16, app.frame.maxY - 24)
+            let center = (upper + lower) / 2
+            let distance = max(12, (lower - upper) * 0.25)
+            let downward = element.exists && element.frame.midY <= top
+            let start = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: frame.midX, dy: center + (downward ? -distance : distance)))
+            let end = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: frame.midX, dy: center + (downward ? distance : -distance)))
+            start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0.1)
         }
         XCTAssertTrue(element.isHittable)
     }
